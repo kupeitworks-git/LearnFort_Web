@@ -182,35 +182,52 @@ const Contacting = () => {
               Have questions about bookings, facilities, or programs at LearnFort Sports Park? Share your details and our team will reach out to you shortly.
             </p>
 
-            <div className="space-y-6 text-sm">
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+            <div className="space-y-6 text-sm text-left">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiMapPin className="w-4 h-4" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-50 text-left">Address</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">Bangala Patti, Dindigul, TN 624202</p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Address</p>
+                  <div className="text-slate-200/90 text-sm leading-relaxed">
+                    <span className="block font-semibold text-slate-50">LearnFort Sports Park</span>
+                    <span>Batlagundu Road,</span>
+                    <span>Bangalapatti,<br/> Nilakottai (Taluk),</span>
+                    <span>Dindigul (Dist),<br/>Tamil Nadu, India - 624202</span>
+                    
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiPhone className="w-4 h-4" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-50 text-left">Phone</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">Landline: +91 4543 245 622</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">WhatsApp: +91 94441 23722</p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Contact Numbers</p>
+                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
+                    <span className="font-medium text-slate-50">Phone</span>
+                    <span>+91 45432 45622</span>
+                    <span className="font-medium text-slate-50">Mobile</span>
+                    <span>+91 81247 45622</span>
+                    <span className="font-medium text-slate-50">WhatsApp</span>
+                    <span>+91 94441 23722</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiMail className="w-4 h-4" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-50 text-left">Email</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">info@learnfortsports.com</p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
+                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
+                    <span className="font-medium text-slate-50">Primary</span>
+                    <span>info@learnfortsports.com</span>
+                    <span className="font-medium text-slate-50">Support</span>
+                    <span>learnfortsports@gmail.com</span>
+                  </div>
                 </div>
               </div>
             </div>

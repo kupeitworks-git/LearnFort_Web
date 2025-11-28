@@ -51,6 +51,36 @@ const PrivacyPolicy = () => {
               We encourage parents and guardians to observe, participate in and/or monitor and guide their online activity. LearnFort Sports Park does not knowingly collect any personally identifiable information from children. If you think that your child provided this kind of information on our website, we strongly encourage you to contact us immediately and we will do our best efforts to promptly remove such information from our website.
             </p>
           </section>
+          <section>
+            <h2 className="text-lg font-semibold text-blue-800 mb-2">
+              Cancellation & Refund Policy
+            </h2>
+
+            <p className="font-medium text-gray-800 mb-1">a) User-initiated cancellation:</p>
+            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+              <li>Cancellations made 4 hours before slot time → eligible for full refund or one-time rescheduling (subject to availability).</li>
+              <li>Cancellations made within 4 hours → no refund, but one-time rescheduling is allowed (subject to availability).</li>
+            </ul>
+
+            <p className="font-medium text-gray-800 mb-1 mt-3">b) Facility-initiated cancellation:</p>
+            <p>
+              If cancelled by the facility (maintenance, operational issues, weather, etc.), users will receive a full refund or may choose a rescheduled slot depending on availability.
+            </p>
+
+            <p className="font-medium text-gray-800 mb-1 mt-3">c) Refund timelines:</p>
+            <p>
+              Refunds may take 5–10 working days depending on the payment gateway’s policies.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-blue-800 mb-2">Rescheduling Policy</h2>
+            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+              <li>Rescheduling is allowed once per booking (subject to availability).</li>
+              <li>Rescheduling requests should be made at least 4 hours before the reserved slot time.</li>
+            </ul>
+          </section>
+
 
           <section>
             <h2 className="text-lg font-semibold text-blue-800 mb-2">Online Privacy Policy Only</h2>
