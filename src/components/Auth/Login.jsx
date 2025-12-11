@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LearnFortLogo from "../../images/LearnFort.png";
 import { Eye, EyeOff } from "lucide-react";
+import {BaseUrl} from '../../components/api/api'
+
 
 const Login = () => {
 
@@ -37,7 +39,7 @@ const Login = () => {
     setToast({ message: "", type: "" });
 
     try {
-      const res = await fetch("https://learn-fornt-app.vercel.app/v1/user/login", {
+      const res = await fetch(`${BaseUrl}user/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,6 +68,9 @@ const Login = () => {
 
       try {
         localStorage.setItem("lf_user", JSON.stringify(data));
+        if (data.token) {
+          sessionStorage.setItem("token", data.token);
+        }
       } catch (storageError) {
         // ignore storage errors but still allow login
       }
@@ -167,10 +172,21 @@ const Login = () => {
             <span className="text-gray-600 mr-1">Don't have an account?</span>
             {/* <button onClick={() => navigate("/register") } className="text-blue-700 font-medium hover:underline">Register</button> */}
           </div>
-          <div className="flex items-center justify-center space-x-3">
-            <button onClick={() => navigate("/register?role=user")} className="text-blue-700 hover:underline">Register as User</button>
-            <span className="text-gray-300">|</span>
-            <button onClick={() => navigate("/register?role=admin")} className="text-blue-700 hover:underline">Register as Admin</button>
+          <div className="flex flex-col items-center space-y-2 sm:space-y-0 sm:flex-row sm:justify-center sm:space-x-3">
+            <div className="flex space-x-3">
+              <button onClick={() => navigate("/register?role=user")} className="text-blue-700 hover:underline">Register as User</button>
+              <span className="text-gray-300">|</span>
+              <button onClick={() => navigate("/register?role=admin")} className="text-blue-700 hover:underline">Register as Admin</button>
+            </div>
+            {/* <div className="w-full sm:w-auto text-center sm:text-left">
+              <span className="text-gray-300 hidden sm:inline">|</span>
+              <button 
+                onClick={() => navigate("/register?role=superadmin")} 
+                className="text-blue-700 hover:underline sm:ml-3"
+              >
+                Register as Super Admin
+              </button>
+            </div> */}
           </div>
         </div>
       </div>

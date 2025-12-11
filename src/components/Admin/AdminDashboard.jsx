@@ -27,8 +27,8 @@ const AdminDashboard = ({ onBack }) => {
     }
   }, []);
 
-  const isAdmin = user?.role === "ADMIN";
-  const displayName = user?.name || (isAdmin ? "Admin" : "User");
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const displayName = user?.name || (user?.role === "ADMIN" ? "Admin" : user?.role === "SUPER_ADMIN" ? "Super Admin" : "User");
 
   // Framer Motion variants
   const container = {
@@ -47,7 +47,7 @@ const AdminDashboard = ({ onBack }) => {
   const baseMenuItems = [
     {
       id: "profile",
-      label: "Manage Profile",
+      label: "My Profile",
       icon: <FiUser />,
       gradient: "bg-gradient-to-r from-blue-800 to-blue-600",
     },
@@ -65,7 +65,7 @@ const AdminDashboard = ({ onBack }) => {
     },
     {
       id: "contact",
-      label: "Contact Messages",
+      label: "Contact Us",
       icon: <FiMail />,
       gradient: "bg-gradient-to-r from-blue-600 to-indigo-500",
     },

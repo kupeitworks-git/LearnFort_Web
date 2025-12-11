@@ -1,14 +1,28 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiMapPin } from "react-icons/fi";
+import Gramcourt from "../../images/Court.png";
+import football from '../../images/football.png'
+import cricket from '../../images/cricket.png'
+import Badminton from '../../images/Badminton.png';
+import swim from '../../images/swim.png'
+import tennis from '../../images/tenniscourt.png'
+import hoops from '../../images/hoops.png'
+import victory from '../../images/victory.png'
+import basketball from '../../images/basketball.png'
+
+
+
+
+
+
 
 const venueData = {
     football: {
         name: "Victory Sports Arena",
         location: "Downtown, Dindigul",
         price: 1200,
-        image:
-            "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1471&q=80",
+        image:football,
         about:
             "A premium 7-a-side football turf with professional lighting, high-quality artificial grass, and ample sidelines for substitutes.",
         facilities: ["Night Lighting", "Changing Room", "Free Parking", "Drinking Water", "High-Speed WiFi"],
@@ -17,8 +31,7 @@ const venueData = {
         name: "Elite Cricket Ground",
         location: "Westside, Dindigul",
         price: 1500,
-        image:
-            "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1605&q=80",
+        image:cricket,
         about:
             "Well-maintained cricket turf with bowling machine support, boundary nets, and marked pitch for professional practice.",
         facilities: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
@@ -27,8 +40,7 @@ const venueData = {
         name: "Grand Slam Courts",
         location: "Riverside, Dindigul",
         price: 600,
-        image:
-            "https://images.unsplash.com/photo-1554068864-787f01234413?auto=format&fit=crop&w=1470&q=80",
+        image: tennis,
         about:
             "Hard-court tennis surfaces with proper markings, lighting, and spectator space for friendly matches and coaching.",
         facilities: ["Night Lighting", "Changing Room", "Gym Area", "Free Parking", "Drinking Water"],
@@ -37,8 +49,7 @@ const venueData = {
         name: "Hoops Arena",
         location: "East End, Dindigul",
         price: 800,
-        image:
-            "https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&w=1374&q=80",
+        image:basketball,
         about:
             "Full-sized basketball court with acrylic flooring, breakaway rims, and perimeter lighting for evening games.",
         facilities: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
@@ -47,8 +58,7 @@ const venueData = {
         name: "Smash Point Arena",
         location: "Central, Dindigul",
         price: 400,
-        image:
-            "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1470&q=80",
+        image: Badminton,
         about:
             "Indoor badminton setup with non-slip flooring, proper court markings, and evenly distributed lighting.",
         facilities: ["Night Lighting", "Changing Room", "High-Speed WiFi", "Free Parking", "Drinking Water"],
@@ -57,8 +67,7 @@ const venueData = {
         name: "Blue Wave Pool",
         location: "Lakeside, Dindigul",
         price: 300,
-        image:
-            "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1470&q=80",
+        image:swim,
         about:
             "Crystal clear half-Olympic pool with trained lifeguards, shower area, and kids-friendly sections.",
         facilities: ["Changing Room", "Free Parking", "Drinking Water", "Food Court"],

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiSend, FiUser, FiPhone, FiMail, FiFileText, FiChevronDown, FiArrowLeft, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import {BaseUrl} from '../components/api/api'
 
 const Contacting = () => {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ const Contacting = () => {
 
       setIsSubmitting(true);
 
-      const res = await fetch('https://learn-fornt-app.vercel.app/v1/contact/submit', {
+      const res = await fetch(`${BaseUrl}contact/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

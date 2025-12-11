@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiBell, FiChevronLeft, FiChevronRight,FiChevronDown  , FiMenu ,FiX , FiMapPin, FiStar, FiClock, FiUser } from 'react-icons/fi';
+import { BaseUrl } from './api/api';
+import { FiSearch, FiBell, FiChevronLeft, FiChevronRight, FiChevronDown, FiMenu, FiX, FiMapPin, FiStar, FiClock, FiUser } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import SportsList from './Booking/SportsList';
 import Contacting from './Contacting';
 import AdminDashboard from './Admin/AdminDashboard';
 import LearnFortLogo from '../images/LearnFort.png';
+
+
 
 const HomePage = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -38,102 +41,40 @@ const HomePage = () => {
     // { id: 'logout', label: 'Logout', submenu: [] },
   ];
 
-  // Sports banner data
-  const sportsBanners = [
-    {
-      id: 1,
-      title: 'Football Turfs',
-      image: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1471&q=80',
-      sport: 'football'
-    },
-    {
-      id: 2,
-      title: 'Cricket Grounds',
-      image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1605&q=80',
-      sport: 'cricket'
-    },
-    {
-      id: 3,
-      title: 'Tennis Courts',
-      image: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=1470&q=80',
-      sport: 'tennis'
-    },
-    {
-      id: 4,
-      title: 'Basketball Courts',
-      image: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&w=1374&q=80',
-      sport: 'basketball'
-    },
-    {
-      id: 5,
-      title: 'Badminton Courts',
-      image: 'https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1470&q=80',
-      sport: 'badminton'
-    },
-    {
-      id: 6,
-      title: 'Swimming Pool',
-      image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1470&q=80',
-      sport: 'swimming'
-    }
-  ];
 
-  // Available turfs data
-  const availableTurfs = [
-    {
-      id: 1,
-      name: 'Victory Sports Arena',
-      location: 'Downtown',
-      // rating: 4.8,
-      price: 50,
-      image: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1471&q=80',
-      sport: 'football',
-      distance: '1.2 km away',
-      timings: '6:00 AM - 11:00 PM'
-    },
-    {
-      id: 2,
-      name: 'Elite Cricket Ground',
-      location: 'Westside',
-      // rating: 4.6,
-      price: 40,
-      image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1605&q=80',
-      sport: 'cricket',
-      distance: '2.5 km away',
-      timings: '7:00 AM - 10:00 PM'
-    },
-    {
-      id: 3,
-      name: 'Grand Slam Courts',
-      location: 'Riverside',
-      // rating: 4.9,
-      price: 35,
-      image: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=1470&q=80",
 
-      sport: 'tennis',
-      distance: '3.1 km away',
-      timings: '5:00 AM - 11:00 PM'
-    },
-    {
-      id: 4,
-      name: 'Hoops Arena',
-      location: 'East End',
-      // rating: 4.7,
-      price: 45,
-      image: 'https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&w=1374&q=80',
-      sport: 'basketball',
-      distance: '1.8 km away',
-      timings: '6:00 AM - 10:00 PM'
-    }
-  ];
+  // Fetch sports data
+  const [sports, setSports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSports = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${BaseUrl}sports/list`);
+        const data = await response.json();
+        // Handle response structure (assuming array or object with data property)
+        const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
+        console.log("Fetched sports:", sportsList);
+        setSports(sportsList);
+      } catch (error) {
+        console.error("Error fetching sports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSports();
+  }, []);
 
   // Auto-rotate banners
   useEffect(() => {
+    if (sports.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % sportsBanners.length);
+      setCurrentBanner((prev) => (prev + 1) % sports.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [sports]);
 
   // Read logged-in user from localStorage
   useEffect(() => {
@@ -146,11 +87,15 @@ const HomePage = () => {
   }, []);
 
   const nextBanner = () => {
-    setCurrentBanner((prev) => (prev + 1) % sportsBanners.length);
+    if (sports.length > 0) {
+      setCurrentBanner((prev) => (prev + 1) % sports.length);
+    }
   };
 
   const prevBanner = () => {
-    setCurrentBanner((prev) => (prev - 1 + sportsBanners.length) % sportsBanners.length);
+    if (sports.length > 0) {
+      setCurrentBanner((prev) => (prev - 1 + sports.length) % sports.length);
+    }
   };
 
   const toggleDrawer = () => {
@@ -200,6 +145,7 @@ const HomePage = () => {
     else if (menuId === 'logout') {
       try {
         localStorage.removeItem('lf_user');
+        sessionStorage.removeItem('token');
       } catch (err) {
         // ignore
       }
@@ -208,7 +154,7 @@ const HomePage = () => {
       setIsDrawerOpen(false);
       return;
     }
-     else {
+    else {
       setActiveSubmenu(activeSubmenu === menuId ? '' : menuId);
       setSelectedBookingType(null);
     }
@@ -261,7 +207,7 @@ const HomePage = () => {
               className="p-2 rounded-md bg-white/10 transition-colors"
               aria-label="Open menu"
             >
-        <FiMenu className="w-6 h-6 text-white" />
+              <FiMenu className="w-6 h-6 text-white" />
 
             </button>
 
@@ -322,7 +268,7 @@ const HomePage = () => {
               className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Close menu"
             >
-          <FiX className="w-6 h-6 text-white" />
+              <FiX className="w-6 h-6 text-white" />
 
             </button>
           </div>
@@ -339,11 +285,10 @@ const HomePage = () => {
                   >
                     <span>{item.label}</span>
                     {item.submenu.length > 0 && item.id !== "about" && item.id !== "admin" && (
-                    <FiChevronDown
-  className={`w-4 h-4 transform transition-transform ${
-    activeSubmenu === item.id ? "rotate-180 text-yellow-300" : ""
-  }`}
-/>
+                      <FiChevronDown
+                        className={`w-4 h-4 transform transition-transform ${activeSubmenu === item.id ? "rotate-180 text-yellow-300" : ""
+                          }`}
+                      />
                     )}
                   </button>
 
@@ -365,114 +310,147 @@ const HomePage = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-4">
         {/* Sports Banner Carousel */}
-        <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-            style={{
-              backgroundImage: `url(${sportsBanners[currentBanner].image})`
-            }}
-          >
-            {/* Clickable center area opens venue details */}
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/venue/${sportsBanners[currentBanner].sport}`)
-              }
-              className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
-            >
-              <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
-                {sportsBanners[currentBanner].title}
-              </h2>
-            </button>
+        {loading ? (
+          <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg bg-gray-200 animate-pulse">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
           </div>
+        ) : (
+          sports.length > 0 && (
+            <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+                style={{
+                  backgroundImage: `url(${sports[currentBanner]?.web_banner})`
+                }}
+              >
+                {/* Clickable center area opens venue details */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
+                  }
+                  className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
+                >
+                  <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
+                    {sports[currentBanner]?.name}
+                  </h2>
+                </button>
+              </div>
 
-          {/* Arrows (only slide, no navigation) */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              prevBanner();
-            }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
-          >
-            <FiChevronLeft className="w-6 h-6 text-gray-800" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              nextBanner();
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
-          >
-            <FiChevronRight className="w-6 h-6 text-gray-800" />
-          </button>
-
-          {/* Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-            {sportsBanners.map((_, index) => (
+              {/* Arrows (only slide, no navigation) */}
               <button
-                key={index}
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setCurrentBanner(index);
+                  prevBanner();
                 }}
-                className={`w-3 h-3 rounded-full transition-all ${currentBanner === index ? 'bg-white' : 'bg-white/50'
-                  }`}
-              />
-            ))}
-          </div>
-        </div>
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
+              >
+                <FiChevronLeft className="w-6 h-6 text-gray-800" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextBanner();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
+              >
+                <FiChevronRight className="w-6 h-6 text-gray-800" />
+              </button>
+
+              {/* Dots */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                {sports.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentBanner(index);
+                    }}
+                    className={`w-3 h-3 rounded-full transition-all ${currentBanner === index ? 'bg-white' : 'bg-white/50'
+                      }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        )}
 
 
         {/* Available Turfs */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Turfs</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableTurfs.map((turf) => (
-              <div key={turf.id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                <div className="relative h-48">
-                  <img
-                    src={turf.image}
-                    alt={turf.name}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-800 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-6 w-1/2 bg-gray-200 rounded"></div>
+                      <div className="h-6 w-1/4 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="h-4 w-1/3 bg-gray-200 rounded"></div>
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="h-4 w-1/4 bg-gray-200 rounded"></div>
+                      <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sports.map((turf) => (
+                <div key={turf._id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                  <div className="relative h-48">
+                    <img
+                      src={turf.image}
+                      alt={turf.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-800 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
                     <FiStar className="mr-1" /> {turf.rating}
                   </div> */}
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800">{turf.name}</h3>
-                      <div className="flex items-center text-gray-500 text-sm mt-1">
-                        <FiMapPin className="mr-1" size={14} />
-                        <span>{turf.location}</span>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-800">{turf.ground_name || turf.name}</h3>
+                        <div className="flex items-center text-gray-500 text-sm mt-1">
+                          <FiMapPin className="mr-1" size={14} />
+                          <span>{turf.location || 'LearnFort Sports Park'}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {turf.actual_price_per_slot && (
+                          <span className="text-gray-400 text-sm line-through">₹{turf.actual_price_per_slot}</span>
+                        )}
+                        <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_slot}<span className="text-sm text-gray-500">/slot</span></p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-gray-400 text-sm line-through">₹{turf.price + 10}</span>
-                      <p className="text-lg font-bold text-blue-600">₹{turf.price}<span className="text-sm text-gray-500">/hr</span></p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-gray-500 text-sm mt-2">
+                    {/* <div className="flex items-center text-gray-500 text-sm mt-2">
                     <FiClock className="mr-1" size={14} />
                     <span>{turf.timings}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
-                    <span className="text-sm text-gray-500">{turf.distance}</span>
-                    <button
-                      onClick={() => navigate(`/book/${turf.sport}`)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Book Now
-                    </button>
+                  </div> */}
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
+                      <span className="text-sm text-gray-500">{turf.distance}</span>
+                      <button
+                        onClick={() => navigate(`/book/${turf.name?.toLowerCase()}`)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Book Now
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

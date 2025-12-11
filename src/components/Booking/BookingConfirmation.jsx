@@ -366,9 +366,16 @@ const BookingConfirmation = ({ isOpen, onClose, onConfirm, bookingDetails }) => 
                                 <p className="font-semibold text-gray-700">Total Amount</p>
                                 <p className="text-xs text-gray-500">Inclusive of all taxes</p>
                             </div>
-                            <span className="text-2xl font-bold text-blue-700">
-                                ₹{bookingDetails?.amount?.toLocaleString('en-IN') || "0.00"}
-                            </span>
+                            <div className="text-right">
+                                {bookingDetails?.originalAmount > bookingDetails?.amount && (
+                                    <p className="text-sm text-gray-500 line-through">
+                                        ₹{bookingDetails?.originalAmount?.toLocaleString('en-IN')}
+                                    </p>
+                                )}
+                                <span className="text-2xl font-bold text-blue-700">
+                                    ₹{bookingDetails?.amount?.toLocaleString('en-IN') || "0.00"}
+                                </span>
+                            </div>
                         </div>
                     </div>
 

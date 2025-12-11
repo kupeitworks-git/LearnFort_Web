@@ -1,5 +1,18 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import skating from '../../images/games/skating.png'
+import pickle from '../../images/games/pickle.png'
+import basketball from '../../images/basketball.png'
+import kabadi from '../../images/games/kabadi.png'
+import footballturf from '../../images/games/footballturf.png'
+import Karate from '../../images/games/Karate.png'
+import Volleyball from '../../images/games/Volleyball.png'
+import track from '../../images/games/track.png'
+import cricketnet from '../../images/games/cricketnet.png'
+import archery from '../../images/games/archery.png'
+import TurfCricket from '../../images/games/TurfCricket.png'
+import outdoor from '../../images/games/Outdoor.png'
+
 import {
     FaLightbulb,
     FaRestroom,
@@ -12,73 +25,73 @@ import { FiArrowLeft } from "react-icons/fi";
 const gameDetails = {
     1: {
         name: "Skating",
-        image: "https://images.pexels.com/photos/3774927/pexels-photo-3774927.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: skating,
         about:
             "Skating builds balance, endurance, and agility while keeping you active. Our smooth, wide rink offers a safe space for both beginners and experts to enjoy the thrill of motion on wheels.",
     },
     2: {
         name: "Pickle Ball",
-        image: "https://images.pexels.com/photos/8437081/pexels-photo-8437081.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: pickle,
         about:
             "Pickleball combines elements of tennis and ping-pong into a fun, fast-paced game. Perfect for players of all ages, it’s a great way to stay fit and enjoy friendly competition.",
     },
     3: {
         name: "Basketball",
-        image: "https://images.pexels.com/photos/976873/pexels-photo-976873.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: basketball,
         about:
             "Basketball promotes teamwork, coordination, and endurance. Our well-lit court provides the perfect setup for exciting games, training sessions, and tournaments.",
     },
     4: {
         name: "Kabaddi",
-        image: "https://images.pexels.com/photos/7988696/pexels-photo-7988696.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: kabadi,
         about:
             "Kabaddi is a traditional Indian contact sport that enhances strength, focus, and quick reflexes. Enjoy competitive matches on our professional outdoor court.",
     },
     5: {
         name: "Football (Turf) 14,000sqft",
-        image: "https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: footballturf,
         about:
             "Our 14,000 sq. ft. turf ground is ideal for five-a-side and full-field football. It features soft turf, proper drainage, and night lighting for matches under the stars.",
     },
     6: {
         name: "Karate",
-        image: "https://images.pexels.com/photos/1701203/pexels-photo-1701203.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: Karate,
         about:
             "Karate teaches discipline, confidence, and strength through structured training. Our dojo-style setup provides a professional environment for learning self-defense and fitness.",
     },
     7: {
         name: "Volleyball",
-        image: "https://images.pexels.com/photos/3774927/pexels-photo-3774927.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: Volleyball,
         about:
             "Volleyball is a high-energy team sport that develops agility and strategy. Enjoy friendly and competitive matches on our regulation-size, well-maintained court.",
     },
     8: {
         name: "Athletic Track",
-        image: "https://images.pexels.com/photos/209968/pexels-photo-209968.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: track,
         about:
             "Our synthetic athletic track supports sprints, distance running, and relays. Designed for training and professional use, it’s perfect for improving stamina and speed.",
     },
     9: {
         name: "Cricket (Turf)",
-        image: "https://images.pexels.com/photos/11429617/pexels-photo-11429617.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: TurfCricket,
         about:
             "Play like a pro on our lush turf cricket field equipped with boundary nets and lighting. Ideal for practice, local matches, and friendly weekend games.",
     },
     10: {
         name: "Archery",
-        image: "https://images.pexels.com/photos/1701203/pexels-photo-1701203.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: archery,
         about:
             "Archery enhances focus and precision. Our range is equipped with proper safety zones and adjustable targets to suit both beginner and advanced archers.",
     },
     11: {
         name: "Cricket (Net Practice)",
-        image: "https://images.pexels.com/photos/6345488/pexels-photo-6345488.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: cricketnet,
         about:
             "Train like professionals in our cricket nets built for batting and bowling practice. The setup includes protective mesh and even lighting for evening sessions.",
     },
     12: {
         name: "Badminton (Outdoor)",
-        image: "https://images.pexels.com/photos/7988696/pexels-photo-7988696.jpeg?auto=compress&cs=tinysrgb&w=800",
+        image: outdoor,
         about:
             "Outdoor badminton is an excellent cardio workout. Our open-air courts come with durable flooring, proper nets, and night lighting for evening play.",
     },

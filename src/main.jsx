@@ -34,7 +34,7 @@ function Footer() {
   ]
 
   const adminMenus = [
-    { label: 'Manage Profile', href: '/profile' },
+    { label: 'My Profile', href: '/profile' },
     { label: 'Manage Bookings', href: '/bookings' },
     { label: 'Manage Users', href: '/users' },
     { label: 'Contact Messages', href: '/contact' },
@@ -80,13 +80,13 @@ function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {/* Brand & description */}
-            <div>
+            <div className="flex flex-col h-full">
               <h3 className="text-lg font-semibold text-cyan-300 mb-2">LearnFort Sports Park</h3>
-              <p className="text-sm text-slate-200/80 mb-4 max-w-sm">
-                Your premier destination for sports and fitness in Dindigul.
+              <p className="text-sm text-slate-200/80 mb-6 leading-relaxed">
+                LearnFort Sports Park is your ultimate destination for sports and recreation in Dindigul. We provide world-class facilities for cricket, football, tennis, and more, fostering a community of athletes and fitness enthusiasts. Experience the best in sports infrastructure and training with us.
               </p>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mt-auto">
                 <a
                   href="https://www.facebook.com/learnfortsports/"
                   target="_blank"
@@ -129,9 +129,44 @@ function Footer() {
                   in
                 </a>
               </div>
-            </div> <div>
-
-
+            </div>
+            {/* Page Links */}
+            <div>
+              <h4 className="text-sm font-semibold tracking-wider text-slate-100 mb-5 uppercase border-b-2 border-cyan-500 inline-block pb-1">
+                Our Page Links
+              </h4>
+              <ul className="space-y-3 text-sm text-slate-300">
+                <li>
+                  <Link to="/" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> Home
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/games" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> Games Lists
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/gallery" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> Gallery
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/about" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> About us
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> Terms & Conditions
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy" className="hover:text-cyan-300 transition-colors flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500"></span> Privacy Policy
+                  </Link>
+                </li>
+              </ul>
             </div>
 
 
@@ -150,7 +185,7 @@ function Footer() {
                     <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Address</p>
                     <div className="text-slate-200/90 text-sm leading-relaxed">
                       <span className="block font-semibold text-slate-50">LearnFort Sports Park</span>
-                      <span className="block">Batlagundu Road, Bangalapatti,<br/> Nilakottai (Taluk),</span>
+                      <span className="block">Batlagundu Road, Bangalapatti,<br /> Nilakottai (Taluk),</span>
                       <span className="block">Dindigul (Dist), Tamil Nadu, India - 624202</span>
                     </div>
                   </div>
@@ -186,10 +221,8 @@ function Footer() {
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
-                    <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
-                      <span className="font-medium text-slate-50">Primary</span>
+                    <div className="flex flex-col gap-1 text-slate-200/90">
                       <a href="mailto:info@learnfortsports.com" className="hover:text-cyan-300 hover:underline">info@learnfortsports.com</a>
-                      <span className="font-medium text-slate-50">Support</span>
                       <a href="mailto:learnfortsports@gmail.com" className="hover:text-cyan-300 hover:underline">learnfortsports@gmail.com</a>
                     </div>
                   </div>

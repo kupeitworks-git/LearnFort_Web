@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import {BaseUrl} from '../api/api'
+
 
 // Independent Input Component (THIS FIXES YOUR ISSUE)
 const InputField = ({ name, placeholder, type = "text", value, onChange }) => (
@@ -38,11 +40,11 @@ const CreateAccount = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ?role=user/admin
+  // Handle role from URL parameter
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const role = params.get("role");
-    setActiveTab(role === "admin" ? "ADMIN" : "USER");
+    const role = params.get("role") || "user";
+    setActiveTab(role === "admin" ? "ADMIN" : role === "superadmin" ? "SUPER ADMIN" : "USER");
   }, [location.search]);
 
   // Universal change handler
@@ -63,10 +65,14 @@ const CreateAccount = () => {
       return;
     }
 
-    const url =
-      activeTab === "ADMIN"
-        ? "https://learn-fornt-app.vercel.app/v1/admin/register"
-        : "https://learn-fornt-app.vercel.app/v1/user/register";
+    let url;
+    if (activeTab === "ADMIN") {
+      url = `${BaseUrl}admin/register`;
+    } else if (activeTab === "SUPER ADMIN") {
+      url = `${BaseUrl}super-admin/register`; // Make sure this endpoint exists on your backend
+    } else {
+      url = `${BaseUrl}user/register`;
+    }
 
     setIsLoading(true);
     setToast("");
@@ -194,7 +200,7 @@ const CreateAccount = () => {
                 className="absolute right-3 top-3 cursor-pointer text-gray-500"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
               </span>
             </div>
 
@@ -214,7 +220,7 @@ const CreateAccount = () => {
                 className="absolute right-3 top-3 cursor-pointer text-gray-500"
                 onClick={() => setShowConfirm(!showConfirm)}
               >
-                {showConfirm ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                {showConfirm ? <FiEye size={20} /> : <FiEyeOff size={20} />}
               </span>
             </div>
 

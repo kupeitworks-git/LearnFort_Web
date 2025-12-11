@@ -9,6 +9,7 @@ const Settings = () => {
   const handleLogout = () => {
     try {
       localStorage.removeItem('lf_user');
+      sessionStorage.removeItem('token');
     } catch (err) {
       // ignore storage errors
     }
