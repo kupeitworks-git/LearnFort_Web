@@ -117,13 +117,14 @@ const GalleryPage = () => {
       }
     };
 
-    if (token) {
-      fetchSportsList();
-    } else {
-      setError('Authentication required. Please log in.');
-      setLoading(false);
-    }
-  }, [token]);
+    // if (token) {
+    //   fetchSportsList();
+    // } else {
+    //   setError('Authentication required. Please log in.');
+    //   setLoading(false);
+    // }
+        fetchSportsList();
+  }, []);
 
   const handleBack = () => {
     if (selectedSport) setSelectedSport(null);

@@ -420,10 +420,10 @@ const HomePage = () => {
                   <div className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-lg text-gray-800">{turf.ground_name || turf.name}</h3>
+                        <h3 className="font-bold text-lg text-gray-800">{turf.name || turf.name}</h3>
                         <div className="flex items-center text-gray-500 text-sm mt-1">
                           <FiMapPin className="mr-1" size={14} />
-                          <span>{turf.location || 'LearnFort Sports Park'}</span>
+                          <span>{turf.ground_name || 'LearnFort Sports Park'}</span>
                         </div>
                       </div>
                       <div className="text-right">

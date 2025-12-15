@@ -8,12 +8,27 @@ import {
 } from "react-router-dom";
 import './index.css'
 import App from './App.jsx'
-import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
+import { FiMail, FiPhone, FiMapPin, FiArrowUp } from 'react-icons/fi'
+
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 
 function Footer() {
   const { pathname } = useLocation()
   const year = new Date().getFullYear()
   const isAdmin = pathname.startsWith('/admin')
+  
+  const handleNavigation = (e) => {
+    // Only scroll to top if the click is on a navigation link
+    if (e.target.closest('a[href^="/"]')) {
+      // Small delay to allow the route to change first
+      setTimeout(scrollToTop, 100);
+    }
+  };
   const normalizedPath = pathname.toLowerCase()
   const isAuthPage =
     normalizedPath.startsWith('/login') ||
@@ -46,7 +61,7 @@ function Footer() {
   const menus = isAdmin ? adminMenus : userMenus
 
   return (
-    <footer className="mt-12">
+    <footer className="mt-12 relative" onClick={handleNavigation}>
       {/* CTA section */}
       <div className="bg-gradient-to-r from-sky-500 to-blue-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-12 flex flex-col items-center text-center gap-4">
@@ -239,6 +254,15 @@ function Footer() {
           </div>
         </div>
       </div>
+      
+      {/* Scroll to top button */}
+      <button 
+        onClick={scrollToTop}
+        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        aria-label="Scroll to top"
+      >
+        <FiArrowUp size={20} />
+      </button>
     </footer>
   )
 }

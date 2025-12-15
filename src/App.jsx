@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import SplashScreen from './components/SplashScreen';
 import HomePage from './components/HomePage';
 import BookingSlot from './components/Booking/BookingSlot';
@@ -14,7 +14,7 @@ import BookingHistory from './components/MangeBookings/BookingHistory';
 import ManageUsers from './components/Admin/Manageusers/ManageUsers';
 import Managesports from './components/Admin/ManageSports/Managesports';
 import AddSport from './components/Admin/ManageSports/AddSport';
-import EditSport from './components/Admin/ManageSports/Editsport';
+import EditSport from './components/Admin/ManageSports/EditSport';
 import Settings from './components/Admin/Settings/Settings';
 import ChangePassword from './components/Admin/Settings/Changepassword';
 import ContactUsPage from './components/ManageContact/ContactUsPage';
@@ -27,6 +27,16 @@ import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
 
 import './App.css';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +55,8 @@ function App() {
   }
 
   return (
+    <>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/book/:sportType" element={<BookingSlot />} />
@@ -82,6 +94,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/explore-sports" element={<SportsList onBack={() => window.history.back()} />} />
       </Routes>
+    </>
   );
 }
 

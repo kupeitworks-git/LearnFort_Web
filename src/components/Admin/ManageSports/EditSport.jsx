@@ -144,16 +144,21 @@ const EditSport = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-800 to-blue-600 shadow-md py-4 px-6 flex items-center text-white rounded-sm sticky top-0 z-10">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center focus:outline-none hover:bg-white/10 p-2 rounded-full transition"
-        >
-          <FiArrowLeft className="w-5 h-5 mr-2" />
-          <span className="text-xl sm:text-2xl font-semibold tracking-wide">Edit Sport</span>
-        </button>
-      </div>
+     {/* Header */}
+      <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
+          >
+            <FiArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
+            Edit Sport
+          </h1>
+        </div>
+      </header>
+
 
       {/* Form Card */}
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-xl mb-12 overflow-hidden border border-gray-100">

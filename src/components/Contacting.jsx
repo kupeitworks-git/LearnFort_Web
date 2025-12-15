@@ -101,10 +101,10 @@ const Contacting = () => {
         token = '';
       }
 
-      if (!token) {
-        showToast('Your session has expired. Please log in again to submit an enquiry.', 'error');
-        return;
-      }
+      // if (!token) {
+      //   showToast('Your session has expired. Please log in again to submit an enquiry.', 'error');
+      //   return;
+      // }
 
       setIsSubmitting(true);
 

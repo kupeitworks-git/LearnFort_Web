@@ -14,7 +14,9 @@ import {
     FiMail,
     FiMapPin,
     FiCreditCard,
-    FiHome
+    FiHome,
+    FiChevronLeft,
+    FiChevronRight
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '../../api/api';
@@ -35,6 +37,11 @@ const ManageUsers = () => {
     const [currentAction, setCurrentAction] = useState(null);
     const [editedUser, setEditedUser] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Pagination state
+    const [currentUserPage, setCurrentUserPage] = useState(1);
+    const [currentAdminPage, setCurrentAdminPage] = useState(1);
+    const itemsPerPage = 5;
 
     // Fetch Users
     const fetchUsers = async () => {
@@ -108,8 +115,10 @@ const ManageUsers = () => {
     useEffect(() => {
         if (activeTab === "Users") {
             fetchUsers();
+            setCurrentUserPage(1); // Reset to first page
         } else {
             fetchAdmins();
+            setCurrentAdminPage(1); // Reset to first page
         }
     }, [activeTab]);
 
@@ -242,31 +251,67 @@ const ManageUsers = () => {
         }
     };
 
+    const handleDelete = async () => {
+        try {
+            setIsSaving(true);
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(`${BaseUrl}user/delete/${selectedUser._id}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                // Remove the user from the appropriate list
+                if (activeTab === "Users") {
+                    setUsers(users.filter(u => u._id !== selectedUser._id));
+                } else {
+                    setAdmins(admins.filter(a => a._id !== selectedUser._id));
+                }
+            } else {
+                throw new Error(data.message || 'Failed to delete user');
+            }
+        } catch (err) {
+            console.error('Error deleting user:', err);
+            setError(err.message || 'Failed to delete user');
+        } finally {
+            setIsSaving(false);
+            setShowConfirmModal(false);
+        }
+    };
+
     const getStatusActions = (status) => {
         switch (status) {
             case 'ACTIVE':
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Block', action: 'block', icon: FiUserX, className: 'text-yellow-600' },
-                    { label: 'Deactivate', action: 'deactivate', icon: FiUserX, className: 'text-red-600' }
+                    { label: 'Deactivate', action: 'deactivate', icon: FiUserX, className: 'text-orange-600' },
+                    { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
             case 'INACTIVE':
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' },
-                    { label: 'Block', action: 'block', icon: FiUserX, className: 'text-red-600' }
+                    { label: 'Block', action: 'block', icon: FiUserX, className: 'text-orange-600' },
+                    { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
             case 'BLOCKED':
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' },
-                    { label: 'Deactivate', action: 'Deactivate', icon: FiCheckCircle, className: 'text-green-600' }
+                    { label: 'Deactivate', action: 'Deactivate', icon: FiCheckCircle, className: 'text-green-600' },
+                    { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
             default:
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' },
-                    { label: 'Block', action: 'block', icon: FiUserX, className: 'text-yellow-600' }
+                    { label: 'Block', action: 'block', icon: FiUserX, className: 'text-yellow-600' },
+                    { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
         }
     };
@@ -277,6 +322,7 @@ const ManageUsers = () => {
             case 'deactivate': return 'Deactivate';
             case 'block': return 'Block';
             case 'unblock': return 'Unblock';
+            case 'delete': return 'Delete';
             default: return action;
         }
     };
@@ -299,111 +345,163 @@ const ManageUsers = () => {
 
     const UserCard = ({ user }) => {
         const [expanded, setExpanded] = useState(false);
-        
+
         const DetailItem = ({ label, value, className = '' }) => (
-        <div className={`flex items-start ${className}`}>
-            <dt className="w-32 text-sm font-medium text-gray-500">{label}:</dt>
-            <dd className="flex-1 text-sm text-gray-900 break-words">
-                {value}
-            </dd>
-        </div>
-    );
-        
-        return (
-        <motion.div
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-            className="bg-white/90 backdrop-blur-md rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden"
-        >
-            <div 
-                className="flex justify-between items-center p-4 cursor-pointer"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                        {user.name?.charAt(0) || "U"}
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-gray-900 text-left">{user.name || "N/A"}</h3>
-                        <p className="text-sm text-gray-500">{user.email || "N/A"}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Mobile: {user.mobile || "N/A"}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                    <span className={`text-xs font-medium px-3 py-1 rounded-full 
-                        ${user.status === "ACTIVE"
-                            ? "bg-green-100 text-green-700"
-                            : user.status === "PENDING"
-                            ? "bg-blue-100 text-blue-700"
-                            : user.status === "BLOCKED"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}>
-                        {user.status || "Unknown"}
-                    </span>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleActionClick(user, e);
-                        }}
-                        className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                    >
-                        <FiMoreVertical className="w-5 h-5" />
-                    </button>
-                </div>
+            <div className={`flex items-start ${className}`}>
+                <dt className="w-32 text-sm font-medium text-gray-500">{label}:</dt>
+                <dd className="flex-1 text-sm text-gray-900 break-words">
+                    {value}
+                </dd>
             </div>
-            
-            {/* Expanded Details */}
-            <AnimatePresence>
-                {expanded && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="px-4 pb-4 pt-0 border-t border-gray-100"
-                    >
-                        <div className="w-full space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <DetailItem label="Father's Name" value={user.father_name || 'N/A'} />
-                                <DetailItem label="Native Place" value={user.native_place || 'N/A'} />
-                                <DetailItem label="Aadhar Number" value={user.aadhar_number || 'N/A'} />
-                                <DetailItem label="Role" value={user.role || 'N/A'} />
-                                <DetailItem label="Email" value={user.email || 'N/A'} />
-                                <DetailItem label="Mobile" value={user.mobile || 'N/A'} />
-                                <DetailItem 
-                                    label="Status" 
-                                    value={
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            user.status === "ACTIVE"
+        );
+
+        return (
+            <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white/90 backdrop-blur-md rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden"
+            >
+                <div
+                    className="flex justify-between items-center p-4 cursor-pointer"
+                    onClick={() => setExpanded(!expanded)}
+                >
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                            {user.name?.charAt(0) || "U"}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 text-left">{user.name || "N/A"}</h3>
+                            <p className="text-sm text-gray-500 text-left">{user.email || "N/A"}</p>
+                            <p className="text-xs text-gray-400 mt-1 text-left">joined :
+                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-CA') : "N/A"}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1 text-left">
+                                Mobile: {user.mobile || "N/A"}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <span className={`text-xs font-medium px-3 py-1 rounded-full 
+                        ${user.status === "ACTIVE"
+                                ? "bg-green-100 text-green-700"
+                                : user.status === "PENDING"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : user.status === "BLOCKED"
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-yellow-100 text-yellow-700"
+                            }`}>
+                            {user.status || "Unknown"}
+                        </span>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleActionClick(user, e);
+                            }}
+                            className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                        >
+                            <FiMoreVertical className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Expanded Details */}
+                <AnimatePresence>
+                    {expanded && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="px-4 pb-4 pt-0 border-t border-gray-100"
+                        >
+                            <div className="w-full space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <DetailItem label="Father's Name" value={user.father_name || 'N/A'} />
+                                    <DetailItem label="Native Place" value={user.native_place || 'N/A'} />
+                                    <DetailItem label="Aadhar Number" value={user.aadhar_number || 'N/A'} />
+                                    <DetailItem label="Role" value={user.role || 'N/A'} />
+                                    <DetailItem label="Email" value={user.email || 'N/A'} />
+                                    <DetailItem label="Mobile" value={user.mobile || 'N/A'} />
+                                    <DetailItem
+                                        label="Status"
+                                        value={
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "ACTIVE"
                                                 ? "bg-green-100 text-green-700"
                                                 : user.status === "PENDING"
-                                                ? "bg-blue-100 text-blue-700"
-                                                : user.status === "BLOCKED"
-                                                ? "bg-red-100 text-red-700"
-                                                : "bg-yellow-100 text-yellow-700"
-                                        }`}>
-                                            {user.status || "Unknown"}
-                                        </span>
-                                    } 
-                                />
+                                                    ? "bg-blue-100 text-blue-700"
+                                                    : user.status === "BLOCKED"
+                                                        ? "bg-red-100 text-red-700"
+                                                        : "bg-yellow-100 text-yellow-700"
+                                                }`}>
+                                                {user.status || "Unknown"}
+                                            </span>
+                                        }
+                                    />
+                                </div>
+                                <div className="pt-2">
+                                    <DetailItem
+                                        label="Address"
+                                        value={user.address || 'N/A'}
+                                        className="items-start"
+                                    />
+                                </div>
                             </div>
-                            <div className="pt-2">
-                                <DetailItem 
-                                    label="Address" 
-                                    value={user.address || 'N/A'} 
-                                    className="items-start"
-                                />
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        );
     };
+
+    // Pagination helper functions
+    const getPaginatedData = (data, currentPage) => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return data.slice(startIndex, endIndex);
+    };
+
+    const getTotalPages = (data) => {
+        return Math.ceil(data.length / itemsPerPage);
+    };
+
+    // Pagination Component
+    const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+        if (totalPages <= 1) return null;
+
+        return (
+            <div className="flex items-center justify-center space-x-4 mt-6 px-4">
+                <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                        }`}
+                >
+                    <FiChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                </button>
+
+                <div className="text-sm font-medium text-gray-700">
+                    Page <span className="text-blue-600 font-semibold">{currentPage}</span> of <span className="text-blue-600 font-semibold">{totalPages}</span>
+                </div>
+
+
+                <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                        }`}
+                >
+                    <span>Next</span>
+                    <FiChevronRight className="w-4 h-4" />
+                </button>
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white flex flex-col">
             <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
@@ -473,11 +571,18 @@ const ManageUsers = () => {
                                 {admins.length === 0 ? (
                                     <p className="text-center text-gray-500 py-10">No admins found</p>
                                 ) : (
-                                    <div className="space-y-4">
-                                        {admins.map((admin) => (
-                                            <UserCard key={admin._id || admin.id} user={admin} />
-                                        ))}
-                                    </div>
+                                    <>
+                                        <div className="space-y-4">
+                                            {getPaginatedData(admins, currentAdminPage).map((admin) => (
+                                                <UserCard key={admin._id || admin.id} user={admin} />
+                                            ))}
+                                        </div>
+                                        <Pagination
+                                            currentPage={currentAdminPage}
+                                            totalPages={getTotalPages(admins)}
+                                            onPageChange={setCurrentAdminPage}
+                                        />
+                                    </>
                                 )}
                             </motion.div>
                         ) : (
@@ -494,11 +599,18 @@ const ManageUsers = () => {
                                 {users.length === 0 ? (
                                     <p className="text-center text-gray-500 py-10">No users found</p>
                                 ) : (
-                                    <div className="space-y-4">
-                                        {users.map((user) => (
-                                            <UserCard key={user._id || user.id} user={user} />
-                                        ))}
-                                    </div>
+                                    <>
+                                        <div className="space-y-4">
+                                            {getPaginatedData(users, currentUserPage).map((user) => (
+                                                <UserCard key={user._id || user.id} user={user} />
+                                            ))}
+                                        </div>
+                                        <Pagination
+                                            currentPage={currentUserPage}
+                                            totalPages={getTotalPages(users)}
+                                            onPageChange={setCurrentUserPage}
+                                        />
+                                    </>
                                 )}
                             </motion.div>
                         )}
@@ -534,7 +646,7 @@ const ManageUsers = () => {
             {/* Edit User Modal */}
             {showEditModal && editedUser && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
@@ -542,14 +654,14 @@ const ManageUsers = () => {
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xl font-semibold text-gray-900">Edit Profile</h3>
-                                <button 
+                                <button
                                     onClick={() => setShowEditModal(false)}
                                     className="text-gray-400 hover:text-gray-500"
                                 >
                                     <FiX className="w-6 h-6" />
                                 </button>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -559,7 +671,7 @@ const ManageUsers = () => {
                                     <input
                                         type="text"
                                         value={editedUser.name || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -572,7 +684,7 @@ const ManageUsers = () => {
                                     <input
                                         type="text"
                                         value={editedUser.fathersName || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, fathersName: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, fathersName: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -585,7 +697,7 @@ const ManageUsers = () => {
                                     <input
                                         type="tel"
                                         value={editedUser.mobile || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, mobile: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, mobile: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -598,7 +710,7 @@ const ManageUsers = () => {
                                     <input
                                         type="email"
                                         value={editedUser.email || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -611,7 +723,7 @@ const ManageUsers = () => {
                                     <input
                                         type="text"
                                         value={editedUser.nativePlace || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, nativePlace: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, nativePlace: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -624,7 +736,7 @@ const ManageUsers = () => {
                                     <input
                                         type="text"
                                         value={editedUser.aadharNumber || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, aadharNumber: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, aadharNumber: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -636,7 +748,7 @@ const ManageUsers = () => {
                                     </label>
                                     <textarea
                                         value={editedUser.address || ''}
-                                        onChange={(e) => setEditedUser({...editedUser, address: e.target.value})}
+                                        onChange={(e) => setEditedUser({ ...editedUser, address: e.target.value })}
                                         rows="3"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
@@ -682,21 +794,28 @@ const ManageUsers = () => {
             {/* Confirmation Modal */}
             {showConfirmModal && selectedUser && currentAction && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
                     >
                         <div className="text-center">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                                <FiUserX className="h-6 w-6 text-red-600" />
+                            <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 ${currentAction === 'delete' ? 'bg-red-100' : 'bg-yellow-100'
+                                }`}>
+                                {currentAction === 'delete' ? (
+                                    <FiTrash2 className="h-6 w-6 text-red-600" />
+                                ) : (
+                                    <FiUserX className="h-6 w-6 text-yellow-600" />
+                                )}
                             </div>
                             <h3 className="text-lg font-medium text-gray-900 mb-2">
                                 {getActionLabel(currentAction)} User
                             </h3>
                             <p className="text-sm text-gray-500 mb-6">
-                                Are you sure you want to {currentAction} {selectedUser.name || 'this user'}? 
-                                This action cannot be undone.
+                                {currentAction === 'delete'
+                                    ? `Are you sure you want to permanently delete ${selectedUser.name || 'this user'}? This action cannot be undone and all user data will be lost.`
+                                    : `Are you sure you want to ${currentAction} ${selectedUser.name || 'this user'}?`
+                                }
                             </p>
                             <div className="flex justify-center space-x-3">
                                 <button
@@ -709,12 +828,17 @@ const ManageUsers = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => handleStatusUpdate(getStatusFromAction(currentAction))}
-                                    className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                        currentAction === 'delete' 
-                                            ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                                            : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                                    }`}
+                                    onClick={() => {
+                                        if (currentAction === 'delete') {
+                                            handleDelete();
+                                        } else {
+                                            handleStatusUpdate(getStatusFromAction(currentAction));
+                                        }
+                                    }}
+                                    className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${currentAction === 'delete'
+                                        ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                                        : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                                        }`}
                                     disabled={isSaving}
                                 >
                                     {isSaving ? (
