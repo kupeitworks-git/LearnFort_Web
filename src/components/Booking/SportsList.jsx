@@ -1,76 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiChevronRight, FiSearch } from "react-icons/fi";
+import { FiArrowLeft, FiChevronRight, FiSearch, FiAlertCircle } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import "react-datepicker/dist/react-datepicker.css";
+import { BaseUrl } from "../api/api";
 
-const sports = [
-  {
-    id: "cricket",
-    name: "Cricket",
-    icon: "🏏",
-    gradient: "from-sky-400 to-blue-600",
-    description: "Experience world-class cricket facilities and coaching",
-    popularity: 4.8,
-  },
-  {
-    id: "football",
-    name: "Football",
-    icon: "⚽",
-    gradient: "from-blue-400 to-blue-700",
-    description: "Play the beautiful game on pro-grade turf fields",
-    popularity: 4.9,
-  },
-  {
-    id: "badminton",
-    name: "Badminton",
-    icon: "🏸",
-    gradient: "from-sky-300 to-blue-500",
-    description: "Smash and rally on our Olympic-standard courts",
-    popularity: 4.6,
-  },
-  {
-    id: "tennis",
-    name: "Tennis",
-    icon: "🎾",
-    gradient: "from-blue-300 to-blue-600",
-    description: "Grand Slam-level surfaces for elite matches",
-    popularity: 4.7,
-  },
-  {
-    id: "basketball",
-    name: "Basketball",
-    icon: "🏀",
-    gradient: "from-sky-400 to-indigo-600",
-    description: "Shoot hoops on world-class indoor and outdoor courts",
-    popularity: 4.5,
-  },
-  {
-    id: "table-tennis",
-    name: "Table Tennis",
-    icon: "🏓",
-    gradient: "from-blue-400 to-sky-600",
-    description: "Reflex-testing fun with pro-grade tables",
-    popularity: 4.3,
-  },
-  {
-    id: "volleyball",
-    name: "Volleyball",
-    icon: "🏐",
-    gradient: "from-sky-400 to-indigo-700",
-    description: "Enjoy indoor and beach volleyball experiences",
-    popularity: 4.2,
-  },
-  {
-    id: "swimming",
-    name: "Swimming",
-    icon: "🏊‍♂️",
-    gradient: "from-cyan-400 to-blue-600",
-    description: "Olympic-sized pools with professional coaching",
-    popularity: 4.9,
-  },
-];
+// Gradient colors for different sports
+const sportGradients = {
+  cricket: "from-sky-400 to-blue-600",
+  football: "from-blue-400 to-blue-700",
+  badminton: "from-sky-300 to-blue-500",
+  tennis: "from-blue-300 to-blue-600",
+  basketball: "from-sky-400 to-indigo-600",
+  'table-tennis': "from-blue-400 to-sky-600",
+  volleyball: "from-sky-400 to-indigo-700",
+  swimming: "from-cyan-400 to-blue-600",
+  default: "from-gray-400 to-gray-600"
+};
+
+// Sport image base URL
+const SPORT_IMAGE_BASE_URL = 'https://app.learnfortsports.com';
+
+// Fallback image URL in case the API doesn't provide one
+const DEFAULT_SPORT_IMAGE = 'https://via.placeholder.com/150';
+
+// Function to get the full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return DEFAULT_SPORT_IMAGE;
+  return imagePath.startsWith('http') ? imagePath : `${SPORT_IMAGE_BASE_URL}${imagePath}`;
+};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -94,17 +53,20 @@ const SportsCard = ({ sport, onClick }) => {
       ></div>
 
       <div className="flex flex-col items-center text-center relative z-10">
-        <div className="w-24 h-24 flex items-center justify-center rounded-2xl bg-gradient-to-br from-white to-gray-50 shadow-inner mb-4 text-6xl">
-          {sport.icon}
+        <div className="w-full h-40 rounded-xl overflow-hidden mb-4 shadow-md">
+          <img 
+            src={getImageUrl(sport.image || sport.banner)} 
+            alt={sport.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = DEFAULT_SPORT_IMAGE;
+            }}
+          />
         </div>
-        <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-sky-500 transition-all">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-sky-500 transition-all">
           {sport.name}
         </h3>
-        <p className="text-sm text-gray-600 mb-4">{sport.description}</p>
-        <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 mb-3">
-          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-          <span>{sport.popularity.toFixed(1)}</span>
-        </div>
 
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -124,20 +86,64 @@ const SportsList = ({ onBack }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [sports, setSports] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const t = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(t);
+    fetchSports();
   }, []);
 
-  const filteredSports = sports.filter(
-    (sport) =>
-      sport.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sport.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const fetchSports = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`${BaseUrl}sports/list`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Handle the response structure
+      const sportsData = result.sports || [];
+      
+      if (!sportsData || sportsData.length === 0) {
+        setError('No sports available at the moment');
+        setSports([]);
+        return;
+      }
+      
+      // Transform the data to match our expected format
+      const formattedSports = sportsData.map(sport => ({
+        id: sport._id || sport.name.toLowerCase().replace(/\s+/g, '-'),
+        name: sport.name || 'Sport',
+        gradient: sportGradients[sport.name ? sport.name.toLowerCase().replace(/\d+/g, '').trim() : ''] || sportGradients.default,
+        image: sport.image || '',
+        banner: sport.banner || '',
+        price: sport.final_price_per_slot || 0
+      }));
+      
+      setSports(formattedSports);
+    } catch (err) {
+      console.error('Error fetching sports:', err);
+      setError('Failed to load sports. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleSportSelect = (id) => navigate(`/book/${id}`);
+  const filteredSports = sports.filter(
+    (sport) => sport.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
+  
+    ('Filtered Sports:', filteredSports); // Debug log
+
+  const handleSportSelect = (sport) => {
+    // Use sport ID in the URL for API calls
+    navigate(`/book/${sport.id}`);
+  };
 
   return (
     <motion.div
@@ -205,32 +211,50 @@ const SportsList = ({ onBack }) => {
           </div>
         </motion.div>
 
-        {/* Cards */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white/50 rounded-2xl p-6 h-64 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : (
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-          >
-            {filteredSports.map((sport) => (
+        {/* Sports Grid */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+        >
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md h-64 animate-pulse">
+                <div className="w-24 h-24 bg-gray-200 rounded-2xl mb-4 mx-auto"></div>
+                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6 mx-auto mb-4"></div>
+                <div className="h-10 bg-gray-200 rounded-full w-32 mx-auto"></div>
+              </div>
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center py-12">
+              <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-800 mb-2">Failed to load sports</h3>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <button
+                onClick={fetchSports}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : filteredSports.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <h3 className="text-lg font-medium text-gray-800 mb-2">No sports found</h3>
+              <p className="text-gray-600">Try adjusting your search or check back later.</p>
+            </div>
+          ) : (
+            filteredSports.map((sport) => (
               <SportsCard
                 key={sport.id}
                 sport={sport}
-                onClick={() => handleSportSelect(sport.id)}
+                onClick={() => handleSportSelect(sport)}
               />
-            ))}
-          </motion.div>
-        )}
+            ))
+          )}
+        </motion.div>
 
         {/* Footer */}
         <motion.div

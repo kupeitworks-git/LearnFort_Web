@@ -7,10 +7,6 @@ import { BaseUrl } from '../api/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
-
-
-
 const initialSportsData = {};
 
 const GalleryPage = () => {
@@ -50,6 +46,9 @@ const GalleryPage = () => {
   const [sportGalleries, setSportGalleries] = useState([]);
   const [loadingGallery, setLoadingGallery] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [selectedEvent, setSelectedEvent] = useState(null); // Track selected event for viewing all images
+  const [groupedGalleries, setGroupedGalleries] = useState([]); // Store grouped events
+  const [viewingImage, setViewingImage] = useState(null); // Track image being viewed in modal
   const dateInputRef = useRef(null);
   const location = useLocation();
   // Check if user came from Admin Dashboard
@@ -77,18 +76,18 @@ const GalleryPage = () => {
     const fetchSportsList = async () => {
       try {
         setLoading(true);
-        console.log('Fetching sports list...');
+          ('Fetching sports list...');
         const response = await axios.get(`${BaseUrl}sports/list`, {
           headers: {
             // 'Authorization': `Bearer ${token}`
           }
         });
 
-        console.log('API Response:', response.data);
+          ('API Response:', response.data);
 
         if (response.data && response.data.sports) {
           const sports = response.data.sports;
-          console.log('Sports data:', sports);
+            ('Sports data:', sports);
 
           // Transform the API response to include gallery images and videos
           const formattedData = {};
@@ -102,7 +101,7 @@ const GalleryPage = () => {
             }
           });
 
-          console.log('Formatted data:', formattedData);
+            ('Formatted data:', formattedData);
           setSportsData(formattedData);
           setSportsList(sports);
         } else {
@@ -116,14 +115,7 @@ const GalleryPage = () => {
         setLoading(false);
       }
     };
-
-    // if (token) {
-    //   fetchSportsList();
-    // } else {
-    //   setError('Authentication required. Please log in.');
-    //   setLoading(false);
-    // }
-        fetchSportsList();
+    fetchSportsList();
   }, []);
 
   const handleBack = () => {
@@ -206,8 +198,6 @@ const GalleryPage = () => {
           await refreshSportsData();
         }
 
-        // ✅ Close modal after success
-
         setItemToDelete(null);
         setDeleteType("");
         setDeleteSportId("");
@@ -215,6 +205,47 @@ const GalleryPage = () => {
       } catch (error) {
         console.error("Error deleting item:", error);
         showToast("Failed to delete item. Please try again.", "error");
+      } finally {
+        setIsDeleting(false);
+      }
+      return;
+    }
+
+    // --------------------------
+    // DELETE EVENT (All items in a specific event)
+    // --------------------------
+    if (deleteType === "event" && Array.isArray(itemToDelete) && itemToDelete.length > 0) {
+      try {
+        setIsDeleting(true);
+        showToast(`Deleting ${itemToDelete.length} items from event...`, "info");
+
+        // Delete all items in the event one by one
+        for (const itemId of itemToDelete) {
+          try {
+            await axios.delete(`${BaseUrl}gallery/delete/${itemId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          } catch (err) {
+            console.error("Error deleting item:", itemId);
+          }
+        }
+
+        showToast(`Successfully deleted event with ${itemToDelete.length} items.`, "success");
+        setShowDeleteModal(false);
+
+        // Refresh UI
+        if (selectedSportId) {
+          await fetchSportGallery(selectedSportId);
+          await refreshSportsData();
+        }
+
+        setItemToDelete(null);
+        setDeleteType("");
+        setDeleteSportId("");
+
+      } catch (error) {
+        console.error("Event delete error:", error);
+        showToast("Error occurred while deleting event.", "error");
       } finally {
         setIsDeleting(false);
       }
@@ -309,15 +340,41 @@ const GalleryPage = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      // Transform the response to match our expected format
-      const formattedGalleries = response.data.gallery.map(item => ({
-        ...item,
-        // For images, we'll use the URL directly
-        // For videos, we'll extract the thumbnail from YouTube URL if needed
-        thumbnail: item.type === 'IMAGE' ? item.url : getYoutubeThumbnail(item.url)
-      }));
+      if (response.data && response.data.gallery) {
+        let allItems = [];
+        let grouped = [];
 
-      setSportGalleries(formattedGalleries);
+        // Iterate through the grouped gallery response
+        response.data.gallery.forEach(group => {
+          if (group.items && Array.isArray(group.items)) {
+            const groupItems = group.items.map(item => ({
+              ...item,
+              event_name: group.event_name,
+              conducted_time: group.conducted_time,
+              parent_gallery_title: group.gallery_title,
+              thumbnail: item.type === 'IMAGE' ? item.url : getYoutubeThumbnail(item.url)
+            }));
+            allItems = [...allItems, ...groupItems];
+
+            // Store grouped structure
+            grouped.push({
+              event_name: group.event_name,
+              gallery_title: group.gallery_title,
+              conducted_time: group.conducted_time,
+              items: groupItems
+            });
+          }
+        });
+
+          ("Flattened gallery items:", allItems);
+          ("Grouped gallery events:", grouped);
+        setSportGalleries(allItems);
+        setGroupedGalleries(grouped);
+
+      } else {
+        setSportGalleries([]);
+        setGroupedGalleries([]);
+      }
     } catch (error) {
       console.error('Error fetching sport gallery:', error);
       showToast('Failed to load gallery. Please try again.', 'error');
@@ -330,6 +387,7 @@ const GalleryPage = () => {
     setSelectedSport(sportName);
     setSelectedSportId(sportId);
     setActiveTab('image'); // Reset to Images tab when a new sport is selected
+    setSelectedEvent(null); // Reset selected event
     fetchSportGallery(sportId);
     // Scroll to top when changing sports
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -393,7 +451,7 @@ const GalleryPage = () => {
         }
       );
 
-      console.log('Gallery added successfully:', response.data);
+        ('Gallery added successfully:', response.data);
 
       // Show success message
       showToast("Gallery added successfully!", 'success');
@@ -405,7 +463,7 @@ const GalleryPage = () => {
       showToast("Gallery updated successfully!", "success");
     } catch (error) {
       console.error('Error uploading gallery items:', error);
-      const errorMessage = error.response?.data?.message || "Failed to upload gallery items. Please try again.";
+      const errorMessage = "Failed to upload gallery items. Please try again.";
       showToast(errorMessage, "error");
 
       setFormError(errorMessage);
@@ -440,6 +498,15 @@ const GalleryPage = () => {
       : '';
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   // Update the renderGalleryContent function
   const renderGalleryContent = () => {
     if (loadingGallery) {
@@ -450,101 +517,192 @@ const GalleryPage = () => {
       );
     }
 
-    // Filter galleries based on active tab
-    const filteredGalleries = sportGalleries.filter(item =>
-      activeTab === 'image' ? item.type === 'IMAGE' : item.type === 'VIDEO'
-    );
-
-    // Add action buttons for admin
-    const renderActionButtons = () => {
-      if (!isFromAdmin) return null;
-
-      return (
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-            >
-              <FaPlus /> Add {activeTab === 'image' ? 'Image' : 'Video'}
-            </button>
-            {filteredGalleries.length > 0 && (
-              <button
-                onClick={() => {
-                  // Set delete type and show modal
-                  setDeleteType('all');
-                  setDeleteSportId(selectedSportId);
-                  setShowDeleteModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-                disabled={isDeleting}
-              >
-                <FaTimes /> Delete All
-              </button>
-            )}
-          </div>
-          <span className="text-sm text-gray-500">
-            {filteredGalleries.length} {activeTab === 'image' ? 'images' : 'videos'} found
-          </span>
-        </div>
+    // If an event is selected, show all images/videos within that event
+    if (selectedEvent) {
+      const filteredItems = selectedEvent.items.filter(item =>
+        activeTab === 'image' ? item.type === 'IMAGE' : item.type === 'VIDEO'
       );
-    };
 
-    if (filteredGalleries.length > 0) {
       return (
         <div className="p-4">
-          {renderActionButtons()}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredGalleries.map((item) => (
-              <div
-                key={item._id}
-                className="relative group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                {isFromAdmin && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      confirmDeleteItem(item._id);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <FaTimes size={16} />
-                  </button>
-                )}
-                {item.type === 'IMAGE' ? (
-                  <img
-                    src={item.url}
-                    alt={item.gallery_title || 'Gallery image'}
-                    className="w-full h-40 object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
-                    }}
-                  />
-                ) : (
-                  <div className="relative">
+          {/* Back button and event header */}
+          <div className="mb-6">
+            <button
+              onClick={() => setSelectedEvent(null)}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
+            >
+              <FiArrowLeft /> Back to Events
+            </button>
+            <h2 className="text-2xl font-bold text-gray-800">{selectedEvent.event_name}</h2>
+            <p className="text-gray-500">{selectedEvent.gallery_title}</p>
+            <p className="text-sm text-gray-400">{formatDate(selectedEvent.conducted_time)}</p>
+          </div>
+
+          {/* Images/Videos Grid */}
+          {filteredItems.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {filteredItems.map((item) => (
+                <div
+                  key={item._id}
+                  onClick={() => {
+                    if (item.type === 'IMAGE') {
+                      // Open image in modal
+                      setViewingImage(item.url);
+                    } else {
+                      // Open video in new tab
+                      window.open(item.url, '_blank');
+                    }
+                  }}
+                  className="relative group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
+                >
+                  {item.type === 'IMAGE' ? (
                     <img
-                      src={item.thumbnail}
-                      alt="Video thumbnail"
+                      src={item.url}
+                      alt={item.gallery_title || 'Gallery image'}
                       className="w-full h-40 object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                      }}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
-                        <FaPlay className="text-blue-600 text-xl" />
+                  ) : (
+                    <div className="relative">
+                      <img
+                        src={item.thumbnail}
+                        alt="Video thumbnail"
+                        className="w-full h-40 object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                        <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
+                          <FaPlay className="text-blue-600 text-xl" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                <div className="p-3">
-                  <h3 className="text-sm font-medium text-gray-800 truncate">
-                    {item.gallery_title || 'Untitled'}
-                  </h3>
-                  <p className="text-xs text-gray-500 truncate">
-                    {item.event_name}
-                  </p>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No {activeTab === 'image' ? 'images' : 'videos'} found for this event.</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Show grouped events
+    const filteredEvents = groupedGalleries.map(event => ({
+      ...event,
+      items: event.items.filter(item =>
+        activeTab === 'image' ? item.type === 'IMAGE' : item.type === 'VIDEO'
+      )
+    })).filter(event => event.items.length > 0);
+
+    if (filteredEvents.length > 0) {
+      return (
+        <div className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredEvents.map((event, index) => {
+              const previewImage = event.items[0];
+
+              return (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
+                >
+                  {/* Event Header */}
+                  <div className="p-3 bg-gray-50 border-b border-gray-200">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-bold text-gray-900 truncate text-left">{event.event_name}</h3>
+                        <p className="text-xs text-gray-500 truncate text-left">{event.gallery_title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 text-left">{formatDate(event.conducted_time)}</p>
+                      </div>
+                      {isFromAdmin && (
+                        <div className="relative group flex-shrink-0">
+                          <button className="p-1.5 hover:bg-gray-200 rounded-full transition-colors">
+                            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                              <circle cx="10" cy="4" r="1.5" />
+                              <circle cx="10" cy="10" r="1.5" />
+                              <circle cx="10" cy="16" r="1.5" />
+                            </svg>
+                          </button>
+                          {/* Dropdown menu */}
+                          <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedEvent(event);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700 rounded-t-lg flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteType('event');
+                                setItemToDelete(event.items.map(i => i._id));
+                                setShowDeleteModal(true);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-red-50 text-sm text-red-600 rounded-b-lg flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete All
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Preview Image */}
+                  <div
+                    onClick={() => setSelectedEvent(event)}
+                    className="cursor-pointer relative"
+                  >
+                    <div className="relative h-48">
+                      {previewImage.type === 'IMAGE' ? (
+                        <img
+                          src={previewImage.url}
+                          alt={event.event_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                          }}
+                        />
+                      ) : (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={previewImage.thumbnail}
+                            alt="Video thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                            <div className="w-14 h-14 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                              <FaPlay className="text-blue-600 text-xl ml-1" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {event.items.length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2.5 py-1 rounded-full text-xs font-semibold">
+                          +{event.items.length - 1} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
@@ -558,14 +716,6 @@ const GalleryPage = () => {
     return (
       <div className="text-center py-10">
         <p className="text-gray-500">{noItemsMessage}</p>
-        {isFromAdmin && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
-          >
-            + Add {activeTab === 'image' ? 'Image' : 'Video'}
-          </button>
-        )}
       </div>
     );
   };
@@ -658,148 +808,58 @@ const GalleryPage = () => {
   };
 
   const renderSportGallery = () => {
-    const sport = sportsData[selectedSport] || {};
-    const content = activeTab === "images"
-      ? (sport.images || [])
-      : (sport.videos || []);
-
-    // Format date for display
-    const formatDate = (dateString) => {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB'); // This will format as DD/MM/YYYY
-    };
-
-    return (
-      <div className="p-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{selectedSport}</h1>
-          <p className="text-gray-500">{formatDate(sport.conductedTime || new Date().toISOString())}</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            onClick={() => setActiveTab("images")}
-            className={`px-6 py-3 font-medium text-sm ${activeTab === "images"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            Images
-          </button>
-          <button
-            onClick={() => setActiveTab("videos")}
-            className={`px-6 py-3 font-medium text-sm ${activeTab === "videos"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            Videos
-          </button>
-        </div>
-
-        <div className="flex justify-end mb-4">
-          {isFromAdmin && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
-            >
-              + Add New {activeTab === 'images' ? 'Image' : 'Video'}
-            </button>
-          )}
-        </div>
-
-        {/* Gallery Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-
-          {content.length > 0 ? (
-            content.map((item, index) => (
-              <div
-                key={index}
-                className="relative rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                {activeTab === "videos" ? (
-                  <div className="relative group">
-                    <img
-                      src={item.thumbnail || 'https://via.placeholder.com/300x200?text=Video+Thumbnail'}
-                      alt={`${selectedSport} video ${index + 1}`}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
-                        <FaPlay className="text-blue-600 text-lg" />
-                      </div>
-                    </div>
-                    {item.title && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <p className="text-white text-sm font-medium truncate">{item.title}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="group relative">
-                    <img
-                      src={item.url || item}
-                      alt={`${selectedSport} image ${index + 1}`}
-                      className="w-full h-40 object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button className="bg-white/90 p-2 rounded-full text-blue-600 hover:scale-110 transition-transform">
-                        <FaPlus className="text-lg" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-10">
-              <p className="text-gray-500">
-                No {activeTab} found. {isFromAdmin && 'Click the button above to add some.'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    // This function is seemingly unused but left for reference if needed or cleaned up
+    // We primarily use renderGalleryContent now.
+    return null;
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 relative">
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Confirm Delete</h3>
-            <p className="mb-6">
-              {deleteType === 'all'
-                ? `Are you sure you want to delete all ${activeTab === 'image' ? 'images' : 'videos'}? This action cannot be undone.`
-                : 'Are you sure you want to delete this item? This action cannot be undone.'}
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete()}
-                className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <span className="flex items-center">
-                    <FaSpinner className="animate-spin mr-2" />
-                    Deleting...
-                  </span>
-                ) : 'Delete'}
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full transform transition-all scale-100">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <FaTrash className="text-red-500 text-2xl" />
+              </div>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {deleteType === 'all'
+                  ? 'Delete All Items?'
+                  : deleteType === 'event'
+                    ? 'Delete Event?'
+                    : 'Delete Item?'}
+              </h3>
+
+              <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                {deleteType === 'all'
+                  ? `Are you sure you want to delete all ${activeTab === 'image' ? 'images' : 'videos'}? This action cannot be undone.`
+                  : deleteType === 'event'
+                    ? `Are you sure you want to delete this entire event with all its ${Array.isArray(itemToDelete) ? itemToDelete.length : 0} items? This action cannot be undone.`
+                    : 'Are you sure you want to delete this item? This action cannot be undone.'}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete()}
+                  className={`flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all duration-200 flex items-center justify-center ${isDeleting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : 'Delete'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -863,7 +923,7 @@ const GalleryPage = () => {
 
               {/* Page Title */}
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                {selectedSport} Gallery
+                {selectedSport}
               </h2>
 
               {/* 🔵 Image / Video Tabs */}
@@ -964,6 +1024,11 @@ const GalleryPage = () => {
                   ref={dateInputRef}
                   value={conductedTime}
                   onChange={(e) => setConductedTime(e.target.value)}
+                  max={(() => {
+                    const today = new Date();
+                    today.setHours(23, 59, 59, 999);
+                    return today.toISOString().slice(0, 16);
+                  })()}
                   className="w-full p-3 border border-gray-300 rounded-lg"
                   placeholder="Conducted Time"
                 />
@@ -1079,9 +1144,28 @@ const GalleryPage = () => {
                 )}
               </button>
             </form>
-
-
           </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <button
+            onClick={() => setViewingImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+          >
+            <FaTimes className="text-3xl" />
+          </button>
+          <img
+            src={viewingImage}
+            alt="Viewing"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
@@ -1089,5 +1173,3 @@ const GalleryPage = () => {
 };
 
 export default GalleryPage;
-
-

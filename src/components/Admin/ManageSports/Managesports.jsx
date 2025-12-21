@@ -76,7 +76,7 @@ const ManageSports = () => {
         alert("Failed to fetch sports list");
       }
     } catch (err) {
-      console.log(err);
+        (err);
       alert("Error fetching sports");
     } finally {
       setLoading(false); // 🟢 Stop loading
@@ -224,11 +224,11 @@ const ManageSports = () => {
                     </td>
 
                     <td className="py-4 px-4 text-sm text-gray-700">
-                      ₹{sport.actual_price_per_slot}
+                      ₹{sport.actual_price_per_day}
                     </td>
 
                     <td className="py-4 px-4 text-sm font-semibold text-green-600">
-                      ₹{sport.final_price_per_slot}
+                      ₹{sport.final_price_per_day}
                     </td>
 
                     <td className="py-4 px-4">

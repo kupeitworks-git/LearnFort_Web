@@ -22,15 +22,11 @@ const HomePage = () => {
   // Menu items data
   const menuItems = [
     { id: 'games', label: 'Games List', submenu: [] }, // no submenu
-    {
-      id: 'book',
-      label: 'Book Slot',
-      submenu: [
-        { id: 'daily', label: 'Daily' },
-        // { id: 'weekly', label: 'Weekly' },
-        { id: 'monthly', label: 'Monthly' },
-        // { id: 'special', label: 'Special Events' }
-      ]
+    { 
+      id: 'book', 
+      label: 'Book Slot', 
+      submenu: [],
+      onClick: () => navigate('/explore-sports')
     },
     { id: 'gallery', label: 'Gallery', submenu: [] }, // ✅ changed
     { id: 'contact', label: 'Contact Us', submenu: [] },
@@ -55,7 +51,6 @@ const HomePage = () => {
         const data = await response.json();
         // Handle response structure (assuming array or object with data property)
         const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
-        console.log("Fetched sports:", sportsList);
         setSports(sportsList);
       } catch (error) {
         console.error("Error fetching sports:", error);
@@ -279,15 +274,14 @@ const HomePage = () => {
               {menuItems.map((item) => (
                 <li key={item.id}>
                   <button
-                    onClick={() => toggleSubmenu(item.id)}
+                    onClick={() => item.onClick ? item.onClick() : toggleSubmenu(item.id)}
                     className={`w-full flex justify-between items-center px-5 py-3 rounded-lg transition-all
-            bg-blue-700 text-white font-semibold hover:bg-blue-600`}
+                      bg-blue-700 text-white font-semibold hover:bg-blue-600`}
                   >
                     <span>{item.label}</span>
-                    {item.submenu.length > 0 && item.id !== "about" && item.id !== "admin" && (
+                    {item.submenu && item.submenu.length > 0 && item.id !== "about" && item.id !== "admin" && (
                       <FiChevronDown
-                        className={`w-4 h-4 transform transition-transform ${activeSubmenu === item.id ? "rotate-180 text-yellow-300" : ""
-                          }`}
+                        className={`w-4 h-4 transform transition-transform ${activeSubmenu === item.id ? "rotate-180 text-yellow-300" : ""}`}
                       />
                     )}
                   </button>
@@ -383,7 +377,7 @@ const HomePage = () => {
 
         {/* Available Turfs */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Turfs</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Trending Games</h2>
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -427,10 +421,10 @@ const HomePage = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        {turf.actual_price_per_slot && (
-                          <span className="text-gray-400 text-sm line-through">₹{turf.actual_price_per_slot}</span>
+                        {turf.actual_price_per_day && (
+                          <span className="text-gray-400 text-sm line-through">₹{turf.actual_price_per_day}</span>
                         )}
-                        <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_slot}<span className="text-sm text-gray-500">/slot</span></p>
+                        <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}<span className="text-sm text-gray-500">/slot</span></p>
                       </div>
                     </div>
                     {/* <div className="flex items-center text-gray-500 text-sm mt-2">

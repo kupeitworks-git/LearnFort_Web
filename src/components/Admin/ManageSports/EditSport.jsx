@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiUploadCloud, FiInfo, FiDollarSign, FiHash, FiCheck, FiX, FiMapPin, FiFolderPlus } from "react-icons/fi";
-import {BaseUrl} from '../../api/api'
+import { FiArrowLeft, FiUploadCloud, FiInfo, FiDollarSign, FiHash, FiCheck, FiX, FiMapPin, FiFolderPlus, FiUser, FiUsers } from "react-icons/fi";
+import { BaseUrl } from '../../api/api'
 
 const EditSport = () => {
   const navigate = useNavigate();
@@ -9,21 +9,33 @@ const EditSport = () => {
   const sportData = location.state?.sport;
 
   const [status, setStatus] = useState(true);
+  const [sportPriceType, setSportPriceType] = useState(null);
   const [sportImage, setSportImage] = useState(null);
   const [bannerImage, setBannerImage] = useState(null);
+  const [webBannerImage, setWebBannerImage] = useState(null);
   const [sportImageFile, setSportImageFile] = useState(null);
   const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [webBannerImageFile, setWebBannerImageFile] = useState(null);
 
   const sportInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+  const webBannerInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: "",
     ground_name: "",
-    actual_price_per_slot: "",
-    final_price_per_slot: "",
-    sport_lighting_price_half: "",
-    sport_lighting_price_full: "",
+    actual_price_per_day: "",
+    final_price_per_day: "",
+    actual_price_per_day_light: "",
+    final_price_per_day_light: "",
+    actual_price_per_month: "",
+    final_price_per_month: "",
+    actual_price_per_month_light: "",
+    final_price_per_month_light: "",
+    actual_price_per_year: "",
+    final_price_per_year: "",
+    actual_price_per_year_light: "",
+    final_price_per_year_light: "",
     about: "",
   });
 
@@ -41,15 +53,25 @@ const EditSport = () => {
       setFormData({
         name: sportData.name || "",
         ground_name: sportData.ground_name || "",
-        actual_price_per_slot: sportData.actual_price_per_slot || "",
-        final_price_per_slot: sportData.final_price_per_slot || "",
-        sport_lighting_price_half: sportData.sport_lighting_price_half || "",
-        sport_lighting_price_full: sportData.sport_lighting_price_full || "",
+        actual_price_per_day: sportData.actual_price_per_day || "",
+        final_price_per_day: sportData.final_price_per_day || "",
+        actual_price_per_day_light: sportData.actual_price_per_day_light || "",
+        final_price_per_day_light: sportData.final_price_per_day_light || "",
+        actual_price_per_month: sportData.actual_price_per_month || "",
+        final_price_per_month: sportData.final_price_per_month || "",
+        actual_price_per_month_light: sportData.actual_price_per_month_light || "",
+        final_price_per_month_light: sportData.final_price_per_month_light || "",
+        actual_price_per_year: sportData.actual_price_per_year || "",
+        final_price_per_year: sportData.final_price_per_year || "",
+        actual_price_per_year_light: sportData.actual_price_per_year_light || "",
+        final_price_per_year_light: sportData.final_price_per_year_light || "",
         about: sportData.about || "",
       });
       setStatus(sportData.status === "AVAILABLE");
+      setSportPriceType(sportData.sport_price_type || "GROUP");
       setSportImage(sportData.image || null);
       setBannerImage(sportData.banner || null);
+      setWebBannerImage(sportData.web_banner || null);
     }
   }, [sportData]);
 
@@ -66,6 +88,14 @@ const EditSport = () => {
     if (file) {
       setBannerImage(URL.createObjectURL(file));
       setBannerImageFile(file);
+    }
+  };
+
+  const handleWebBannerImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setWebBannerImage(URL.createObjectURL(file));
+      setWebBannerImageFile(file);
     }
   };
 
@@ -92,16 +122,25 @@ const EditSport = () => {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("ground_name", formData.ground_name);
-      data.append("actual_price_per_slot", formData.actual_price_per_slot);
-      data.append("final_price_per_slot", formData.final_price_per_slot);
-      data.append("sport_lighting_price_half", formData.sport_lighting_price_half);
-      data.append("sport_lighting_price_full", formData.sport_lighting_price_full);
+      data.append("actual_price_per_day", formData.actual_price_per_day);
+      data.append("final_price_per_day", formData.final_price_per_day);
+      data.append("actual_price_per_day_light", formData.actual_price_per_day_light);
+      data.append("final_price_per_day_light", formData.final_price_per_day_light);
+      data.append("actual_price_per_month", formData.actual_price_per_month);
+      data.append("final_price_per_month", formData.final_price_per_month);
+      data.append("actual_price_per_month_light", formData.actual_price_per_month_light);
+      data.append("final_price_per_month_light", formData.final_price_per_month_light);
+      data.append("actual_price_per_year", formData.actual_price_per_year);
+      data.append("final_price_per_year", formData.final_price_per_year);
+      data.append("actual_price_per_year_light", formData.actual_price_per_year_light);
+      data.append("final_price_per_year_light", formData.final_price_per_year_light);
       data.append("about", formData.about);
       data.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
+      data.append("sport_price_type", sportPriceType);
 
       if (sportImageFile) data.append("image", sportImageFile);
       if (bannerImageFile) data.append("banner", bannerImageFile);
-      if (bannerImageFile) data.append("web_banner", bannerImageFile);
+      if (webBannerImageFile) data.append("web_banner", webBannerImageFile);
 
       const res = await fetch(`${BaseUrl}sports/update/${sportData._id}`, {
         method: "PUT",
@@ -144,7 +183,7 @@ const EditSport = () => {
         </div>
       )}
 
-     {/* Header */}
+      {/* Header */}
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
@@ -177,40 +216,76 @@ const EditSport = () => {
             </div>
           </div>
 
-          {/* Right Side - Status Toggle */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <div className="flex items-center">
-              <div
-                onClick={() => setStatus(!status)}
-                className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${status ? "bg-green-500" : "bg-gray-300"
-                  }`}
-              >
-                <span
-                  className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${status ? "translate-x-9" : "translate-x-1"
+          {/* Right Side - Toggles */}
+          <div className="flex items-center space-x-6">
+            {/* Price Type Toggle */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
+                Price Type
+              </label>
+              <div className="flex items-center">
+                <div
+                  onClick={() => setSportPriceType(sportPriceType === "GROUP" ? "INDIVIDUAL" : "GROUP")}
+                  className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${sportPriceType === "GROUP" ? "bg-blue-500" : "bg-purple-500"
                     }`}
                 >
-                  {status ? (
-                    <FiCheck className="text-green-500" size={18} />
-                  ) : (
-                    <FiX className="text-gray-500" size={18} />
-                  )}
+                  <span
+                    className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${sportPriceType === "GROUP" ? "translate-x-1" : "translate-x-9"
+                      }`}
+                  >
+                    {sportPriceType === "GROUP" ? (
+                      <FiUsers className="text-blue-500" size={16} />
+                    ) : (
+                      <FiUser className="text-purple-500" size={16} />
+                    )}
+                  </span>
+                </div>
+                <span
+                  className={`ml-3 text-sm font-medium ${sportPriceType === "GROUP" ? "text-blue-600" : "text-purple-600"}`}
+                >
+                  {sportPriceType === "GROUP" ? "Group" : "Individual"}
                 </span>
               </div>
-              <span
-                className={`ml-3 text-sm font-medium ${status ? "text-green-600" : "text-gray-600"
-                  }`}
-              >
-                {status ? "Active" : "Inactive"}
-              </span>
+              <p className="text-xs text-gray-500 mt-1 max-w-[150px]">
+                {sportPriceType === "GROUP" ? "Price is for the entire group" : "Price is per individual"}
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {status
-                ? "This sport will be visible to users"
-                : "This sport will be hidden from users"}
-            </p>
+
+            {/* Status Toggle */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <div className="flex items-center">
+                <div
+                  onClick={() => setStatus(!status)}
+                  className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${status ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                >
+                  <span
+                    className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${status ? "translate-x-9" : "translate-x-1"
+                      }`}
+                  >
+                    {status ? (
+                      <FiCheck className="text-green-500" size={18} />
+                    ) : (
+                      <FiX className="text-gray-500" size={18} />
+                    )}
+                  </span>
+                </div>
+                <span
+                  className={`ml-3 text-sm font-medium ${status ? "text-green-600" : "text-gray-600"
+                    }`}
+                >
+                  {status ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {status
+                  ? "This sport will be visible to users"
+                  : "This sport will be hidden from users"}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -229,7 +304,7 @@ const EditSport = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="e.g., Football, Cricket"
+                  placeholder="Football, Cricket"
                   required
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
@@ -237,7 +312,6 @@ const EditSport = () => {
                   <FiFolderPlus className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Enter the name of the sport</p>
             </div>
 
             {/* Ground Name */}
@@ -253,20 +327,19 @@ const EditSport = () => {
                   value={formData.ground_name}
                   onChange={handleChange}
                   required
-                  placeholder="e.g., Main Field, Court 1"
+                  placeholder="Main Field, Court 1"
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiMapPin className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Name or number of the ground/field</p>
             </div>
 
-            {/* Actual Price per Slot */}
+            {/* Actual Price per day */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price per Slot</span>
+                <span>Actual Price per day</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -275,21 +348,20 @@ const EditSport = () => {
                 </div>
                 <input
                   type="number"
-                  name="actual_price_per_slot"
-                  value={formData.actual_price_per_slot}
+                  name="actual_price_per_day"
+                  value={formData.actual_price_per_day}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. 2000"
+                  placeholder="2000"
                   className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Standard price before any discounts</p>
             </div>
 
-            {/* Final Price per Slot */}
+            {/* Final Price per day */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Discounted Price per Slot</span>
+                <span>Final Price per day</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -297,20 +369,19 @@ const EditSport = () => {
                 </div>
                 <input
                   type="number"
-                  name="final_price_per_slot"
-                  value={formData.final_price_per_slot}
+                  name="final_price_per_day"
+                  value={formData.final_price_per_day}
                   onChange={handleChange}
-                  placeholder="e.g. 1500"
+                  placeholder="1500"
                   className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Special price after discount (if any)</p>
             </div>
 
             {/* Half Ground */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Half Lighting Price</span>
+                <span>Actual Price Per Day (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -319,21 +390,20 @@ const EditSport = () => {
                 </div>
                 <input
                   type="number"
-                  name="sport_lighting_price_half"
-                  value={formData.sport_lighting_price_half}
+                  name="actual_price_per_day_light"
+                  value={formData.actual_price_per_day_light}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. 4"
+                  placeholder="499"
                   className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Lighting price for half ground</p>
             </div>
 
-            {/* Full Ground */}
+            {/*Final Lighting Price Per Day*/}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Full Lighting Price</span>
+                <span>Final Price Per Day (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -342,16 +412,183 @@ const EditSport = () => {
                 </div>
                 <input
                   type="number"
-                  name="sport_lighting_price_full"
-                  value={formData.sport_lighting_price_full}
+                  name="final_price_per_day_light"
+                  value={formData.final_price_per_day_light}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. 8"
+                  placeholder="588"
                   className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Lighting price for full ground</p>
             </div>
+
+            {/* price per month  */}
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Actual Price Per Month</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="actual_price_per_month"
+                  value={formData.actual_price_per_month}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Final Price Per Month */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Final Price Per Month</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="final_price_per_month"
+                  value={formData.final_price_per_month}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Actual Price Per Month (Lighting) */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Actual Price Per Month (Lighting)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="actual_price_per_month_light"
+                  value={formData.actual_price_per_month_light}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Final Price Per Month (Lighting) */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Final Price Per Month (Lighting)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="final_price_per_month_light"
+                  value={formData.final_price_per_month_light}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Actual Price Per Year */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Actual Price Per Year</span>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="actual_price_per_year"
+                  value={formData.actual_price_per_year}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Final Price Per Year */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Final Price Per Year</span>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="final_price_per_year"
+                  value={formData.final_price_per_year}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/*Actual price per year with lighting  */}
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Actual Price Per Year (Lighting)</span>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="actual_price_per_year_light"
+                  value={formData.actual_price_per_year_light}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/*Final price per year with lighting  */}
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Final Price Per Year (Lighting)</span>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 font-medium">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="final_price_per_year_light"
+                  value={formData.final_price_per_year_light}
+                  onChange={handleChange}
+                  placeholder="1500"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
           </div>
 
           {/* About Sport */}
@@ -468,6 +705,55 @@ const EditSport = () => {
                       <img
                         src={bannerImage}
                         alt="Banner Preview"
+                        className="h-32 w-full object-cover rounded-lg shadow-sm border-2 border-white max-w-2xl"
+                      />
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            {/* Web Banner Image */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Web Banner Image
+                <span className="text-blue-500 ml-1">(Optional)</span>
+              </label>
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${webBannerImage ? 'border-purple-200 bg-purple-50' : 'border-gray-300 hover:border-blue-400 bg-gray-50'
+                }`}>
+                <label className="cursor-pointer flex flex-col items-center">
+                  <div className="p-3 rounded-full bg-purple-100 text-purple-600 mb-3">
+                    <FiUploadCloud className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      {webBannerImage ? 'Web Banner Uploaded' : 'Upload Web Banner Image'}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      {webBannerImage ? 'Click to change' : 'Recommended size: 1200x400px'}
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={webBannerInputRef}
+                    onChange={handleWebBannerImageChange}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => webBannerInputRef.current.click()}
+                    className="mt-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Select Web Banner
+                  </button>
+
+                  {webBannerImage && (
+                    <div className="mt-4 w-full">
+                      <img
+                        src={webBannerImage}
+                        alt="Web Banner Preview"
                         className="h-32 w-full object-cover rounded-lg shadow-sm border-2 border-white max-w-2xl"
                       />
                     </div>

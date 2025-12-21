@@ -250,7 +250,7 @@ function Footer() {
 
         <div className="border-t border-slate-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center text-xs text-slate-400">
-            © {year} LearnFort Sports Park. All rights reserved.
+            © {year} LearnFort Sports Park.
           </div>
         </div>
       </div>

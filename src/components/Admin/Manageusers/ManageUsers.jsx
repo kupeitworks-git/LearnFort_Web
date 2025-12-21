@@ -16,7 +16,8 @@ import {
     FiCreditCard,
     FiHome,
     FiChevronLeft,
-    FiChevronRight
+    FiChevronRight,
+   
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '../../api/api';
@@ -37,14 +38,30 @@ const ManageUsers = () => {
     const [currentAction, setCurrentAction] = useState(null);
     const [editedUser, setEditedUser] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [aadharError, setAadharError] = useState('');
+    const [toast, setToast] = useState({ message: "", type: "" });
 
     // Pagination state
-    const [currentUserPage, setCurrentUserPage] = useState(1);
-    const [currentAdminPage, setCurrentAdminPage] = useState(1);
-    const itemsPerPage = 5;
+    const [userPagination, setUserPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalDocs: 0,
+        hasNext: false,
+        hasPrev: false
+    });
+    
+    const [adminPagination, setAdminPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalDocs: 0,
+        hasNext: false,
+        hasPrev: false
+    });
+    
+    const itemsPerPage = 10; // Increased from 5 to 10
 
-    // Fetch Users
-    const fetchUsers = async () => {
+    // Fetch Users with pagination
+    const fetchUsers = async (page = 1) => {
         setLoading(true);
         setError(null);
         try {
@@ -55,19 +72,38 @@ const ManageUsers = () => {
                 return;
             }
 
-            const res = await fetch(`${BaseUrl}user/users-list`, {
+            const res = await fetch(`${BaseUrl}user/users-list?role=USER&page=${page}&limit=10`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
 
-            const data = await res.json();
+            const response = await res.json();
 
             if (res.ok) {
-                setUsers(data.users || []);
+                // Check if the response has a 'users' array or use the data directly
+                const usersData = response.users || response.data || [];
+                setUsers(usersData);
+                
+                // Handle pagination data from the response
+                const pagination = response.pagination || {
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalDocs: usersData.length,
+                    hasNext: false,
+                    hasPrev: false
+                };
+                
+                setUserPagination({
+                    currentPage: pagination.currentPage || 1,
+                    totalPages: pagination.totalPages || 1,
+                    totalDocs: pagination.totalDocs || usersData.length,
+                    hasNext: pagination.hasNext || false,
+                    hasPrev: pagination.hasPrev || false
+                });
             } else {
-                setError(data.message || "Failed to fetch users");
+                setError(response.message || "Failed to fetch users");
             }
         } catch (err) {
             console.error(err);
@@ -77,8 +113,8 @@ const ManageUsers = () => {
         }
     };
 
-    // Fetch Admins
-    const fetchAdmins = async () => {
+    // Fetch Admins with pagination
+    const fetchAdmins = async (page = 1) => {
         setLoading(true);
         setError(null);
         try {
@@ -89,19 +125,38 @@ const ManageUsers = () => {
                 return;
             }
 
-            const res = await fetch(`${BaseUrl}admin/admin-list`, {
+            const res = await fetch(`${BaseUrl}admin/admin-list?role=ADMIN&page=${page}&limit=10`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
 
-            const data = await res.json();
+            const response = await res.json();
 
             if (res.ok) {
-                setAdmins(data.admins || []);
+                // Check if the response has an 'admins' array or use the data directly
+                const adminsData = response.admins || response.data || [];
+                setAdmins(adminsData);
+                
+                // Handle pagination data from the response
+                const pagination = response.pagination || {
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalDocs: adminsData.length,
+                    hasNext: false,
+                    hasPrev: false
+                };
+                
+                setAdminPagination({
+                    currentPage: pagination.currentPage || 1,
+                    totalPages: pagination.totalPages || 1,
+                    totalDocs: pagination.totalDocs || adminsData.length,
+                    hasNext: pagination.hasNext || false,
+                    hasPrev: pagination.hasPrev || false
+                });
             } else {
-                setError(data.message || "Failed to fetch admins");
+                setError(response.message || "Failed to fetch admins");
             }
         } catch (err) {
             console.error(err);
@@ -111,16 +166,31 @@ const ManageUsers = () => {
         }
     };
 
-    // Fetch data when tab changes
+    // Fetch data when tab or page changes
     useEffect(() => {
         if (activeTab === "Users") {
-            fetchUsers();
-            setCurrentUserPage(1); // Reset to first page
+            fetchUsers(userPagination.currentPage);
         } else {
-            fetchAdmins();
-            setCurrentAdminPage(1); // Reset to first page
+            fetchAdmins(adminPagination.currentPage);
         }
-    }, [activeTab]);
+    }, [activeTab, userPagination.currentPage, adminPagination.currentPage]);
+    
+    // Handle page change for users
+    const handleUserPageChange = (page) => {
+        setUserPagination(prev => ({
+            ...prev,
+            currentPage: page
+        }));
+    };
+    
+    // Handle page change for admins
+    const handleAdminPageChange = (page) => {
+        setAdminPagination(prev => ({
+            ...prev,
+            currentPage: page
+        }));
+        fetchAdmins(page);
+    };
 
     const handleActionClick = (user, e) => {
         e.stopPropagation();
@@ -144,50 +214,89 @@ const ManageUsers = () => {
             };
             setEditedUser(userData);
             setShowEditModal(true);
+        } else if (action === 'deactivate') {
+            // Set the status to 'INACTIVE' when deactivating
+            setSelectedUser({...selectedUser, status: 'INACTIVE'});
+            setShowConfirmModal(true);
         } else {
             setShowConfirmModal(true);
         }
     };
 
-    const handleStatusUpdate = async (newStatus) => {
-        try {
-            setIsSaving(true);
-            const token = sessionStorage.getItem("token");
-            const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status: newStatus }),
-            });
+  const handleStatusUpdate = async (newStatus) => {
+    try {
+        setIsSaving(true);
+        const token = sessionStorage.getItem("token");
+        
+        // Handle null/undefined status and ensure proper case
+        let statusValue = 'INACTIVE'; // Default to INACTIVE if no status provided
+        if (newStatus) {
+            statusValue = newStatus === 'deactivate' ? 'INACTIVE' : newStatus.toUpperCase();
+        }
+        
+        const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status: statusValue }),
+        });
 
-            const data = await res.json();
+        // Rest of the function remains the same...
+        const data = await res.json();
 
-            if (res.ok) {
-                // Update the user in the appropriate list
-                if (activeTab === "Users") {
-                    setUsers(users.map(u =>
-                        u._id === selectedUser._id ? { ...u, status: newStatus } : u
-                    ));
-                } else {
-                    setAdmins(admins.map(a =>
-                        a._id === selectedUser._id ? { ...a, status: newStatus } : a
-                    ));
-                }
+        if (res.ok) {
+            // Update the user in the appropriate list
+            if (activeTab === "Users") {
+                setUsers(users.map(u =>
+                    u._id === selectedUser._id ? { ...u, status: statusValue } : u
+                ));
             } else {
-                throw new Error(data.message || 'Failed to update status');
+                setAdmins(admins.map(a =>
+                    a._id === selectedUser._id ? { ...a, status: statusValue } : a
+                ));
             }
-        } catch (err) {
-            console.error('Error updating status:', err);
-            setError(err.message || 'Failed to update status');
-        } finally {
-            setIsSaving(false);
-            setShowConfirmModal(false);
+            setError(null);
+        } else {
+            throw new Error(data.message || 'Failed to update status');
+        }
+    } catch (err) {
+        console.error('Error updating status:', err);
+        setError(err.message || 'Failed to update status');
+    } finally {
+        setIsSaving(false);
+        setShowConfirmModal(false);
+    }
+};
+    const validateAadhar = (aadhar) => {
+        if (!aadhar) return true; // Allow empty Aadhar
+        return /^\d{12}$/.test(aadhar);
+    };
+
+    const handleAadharChange = (value) => {
+        setEditedUser({ ...editedUser, aadharNumber: value });
+        if (value && !/^\d{0,12}$/.test(value)) {
+            setAadharError('Aadhar number must contain only digits');
+        } else if (value && value.length !== 12) {
+            setAadharError('Aadhar number must be 12 digits');
+        } else {
+            setAadharError('');
         }
     };
 
+    const showToast = (message, type) => {
+        setToast({ message, type });
+        setTimeout(() => setToast({ message: "", type: "" }), 3000);
+    };
+
     const handleEditSave = async () => {
+        // Validate Aadhar number before saving
+        if (editedUser.aadharNumber && !validateAadhar(editedUser.aadharNumber)) {
+            setAadharError('Please enter a valid 12-digit Aadhar number');
+            return;
+        }
+        
         try {
             setIsSaving(true);
             const token = sessionStorage.getItem("token");
@@ -240,6 +349,7 @@ const ManageUsers = () => {
                     ));
                 }
                 setShowEditModal(false);
+                showToast("User updated successfully!", "success");
             } else {
                 throw new Error(data.message || 'Failed to update user');
             }
@@ -303,7 +413,8 @@ const ManageUsers = () => {
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' },
-                    { label: 'Deactivate', action: 'Deactivate', icon: FiCheckCircle, className: 'text-green-600' },
+                  { label: 'Unblock', action: 'unblock', icon: FiCheckCircle, className: 'text-red-600' },
+                    { label: 'Deactivate', action: 'Deactivate', icon: FiUserX, className: 'text-Orange-600' },
                     { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
             default:
@@ -332,7 +443,7 @@ const ManageUsers = () => {
             case 'activate': return 'ACTIVE';
             case 'deactivate': return 'INACTIVE';
             case 'block': return 'BLOCKED';
-            case 'unblock': return 'ACTIVE';
+            case 'unblock': return 'UNBLOCKED';
             default: return null;
         }
     };
@@ -425,15 +536,17 @@ const ManageUsers = () => {
                                     <DetailItem
                                         label="Status"
                                         value={
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "ACTIVE"
-                                                ? "bg-green-100 text-green-700"
-                                                : user.status === "PENDING"
-                                                    ? "bg-blue-100 text-blue-700"
-                                                    : user.status === "BLOCKED"
-                                                        ? "bg-red-100 text-red-700"
-                                                        : "bg-yellow-100 text-yellow-700"
-                                                }`}>
-                                                {user.status || "Unknown"}
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                user.status === "ACTIVE" ? "bg-green-100 text-green-700" :
+                                                user.status === "PENDING" ? "bg-blue-100 text-blue-700" :
+                                                user.status === "BLOCKED" ? "bg-red-100 text-red-700" :
+                                                user.status === "UNBLOCKED" ? "bg-blue-200 text-blue-800" :
+                                                user.status === "INACTIVE" ? "bg-gray-100 text-gray-700" :
+                                                "bg-yellow-100 text-yellow-700"
+                                            }`}>
+                                            {user.status === 'INACTIVE' ? 'Inactive' : 
+                                             user.status === 'UNBLOCKED' ? 'Unblocked' : 
+                                             (user.status || "Unknown")}
                                             </span>
                                         }
                                     />
@@ -454,56 +567,128 @@ const ManageUsers = () => {
     };
 
     // Pagination helper functions
-    const getPaginatedData = (data, currentPage) => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return data.slice(startIndex, endIndex);
-    };
-
-    const getTotalPages = (data) => {
-        return Math.ceil(data.length / itemsPerPage);
-    };
+    // Removed getPaginatedData and getTotalPages as we're using server-side pagination now
 
     // Pagination Component
-    const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
         if (totalPages <= 1) return null;
 
+        // Generate page numbers to show (current page and 2 pages before/after)
+        const getPageNumbers = () => {
+            const pages = [];
+            const maxVisiblePages = 5;
+            
+            if (totalPages <= maxVisiblePages) {
+                // Show all pages if total pages is less than or equal to maxVisiblePages
+                for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i);
+                }
+            } else {
+                // Always show first page
+                pages.push(1);
+                
+                // Calculate start and end page numbers
+                let startPage = Math.max(2, currentPage - 1);
+                let endPage = Math.min(totalPages - 1, currentPage + 1);
+                
+                // Adjust if we're at the start or end
+                if (currentPage <= 3) {
+                    endPage = 4;
+                } else if (currentPage >= totalPages - 2) {
+                    startPage = totalPages - 3;
+                }
+                
+                // Add ellipsis if needed
+                if (startPage > 2) {
+                    pages.push('...');
+                }
+                
+                // Add middle pages
+                for (let i = startPage; i <= endPage; i++) {
+                    if (i > 1 && i < totalPages) {
+                        pages.push(i);
+                    }
+                }
+                
+                // Add ellipsis if needed
+                if (endPage < totalPages - 1) {
+                    pages.push('...');
+                }
+                
+                // Always show last page
+                if (totalPages > 1) {
+                    pages.push(totalPages);
+                }
+            }
+            
+            return pages;
+        };
+
         return (
-            <div className="flex items-center justify-center space-x-4 mt-6 px-4">
-                <button
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                        }`}
-                >
-                    <FiChevronLeft className="w-4 h-4" />
-                    <span>Previous</span>
-                </button>
+         <div className="mt-6 px-4">
+  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    
+    {/* Left: Info */}
+    <div className="text-sm text-gray-600">
+      Showing {((currentPage - 1) * itemsPerPage) + 1} to{" "}
+      {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+    </div>
 
-                <div className="text-sm font-medium text-gray-700">
-                    Page <span className="text-blue-600 font-semibold">{currentPage}</span> of <span className="text-blue-600 font-semibold">{totalPages}</span>
-                </div>
+    {/* Center: Pagination */}
+    <div className="flex items-center space-x-3">
+      
+      {/* Previous */}
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`p-2 rounded-md ${
+          currentPage === 1
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        <FiChevronLeft className="w-4 h-4" />
+      </button>
 
+      {/* Current Page */}
+      <div className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium">
+        Page {currentPage}
+      </div>
 
-                <button
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                        }`}
-                >
-                    <span>Next</span>
-                    <FiChevronRight className="w-4 h-4" />
-                </button>
-            </div>
+      {/* Next */}
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`p-2 rounded-md ${
+          currentPage === totalPages
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        <FiChevronRight className="w-4 h-4" />
+      </button>
+
+    </div>
+  </div>
+</div>
+
         );
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white flex flex-col">
+            {/* Toast Notification */}
+            {toast.message && (
+                <div
+                    className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
+                        ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
+                >
+                    <div className="flex items-center space-x-2">
+                        {toast.type === "success" ? <FiCheckCircle className="w-5 h-5" /> : <FiX className="w-5 h-5" />}
+                        <span>{toast.message}</span>
+                    </div>
+                </div>
+            )}
             <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
                     <button
@@ -573,14 +758,19 @@ const ManageUsers = () => {
                                 ) : (
                                     <>
                                         <div className="space-y-4">
-                                            {getPaginatedData(admins, currentAdminPage).map((admin) => (
-                                                <UserCard key={admin._id || admin.id} user={admin} />
+                                            {admins.map((admin) => (
+                                                <UserCard 
+                                                    key={admin._id || admin.id} 
+                                                    user={admin} 
+                                                    onActionClick={handleActionClick}
+                                                />
                                             ))}
                                         </div>
                                         <Pagination
-                                            currentPage={currentAdminPage}
-                                            totalPages={getTotalPages(admins)}
-                                            onPageChange={setCurrentAdminPage}
+                                            currentPage={adminPagination.currentPage}
+                                            totalPages={adminPagination.totalPages}
+                                            totalItems={adminPagination.totalDocs}
+                                            onPageChange={handleAdminPageChange}
                                         />
                                     </>
                                 )}
@@ -601,14 +791,19 @@ const ManageUsers = () => {
                                 ) : (
                                     <>
                                         <div className="space-y-4">
-                                            {getPaginatedData(users, currentUserPage).map((user) => (
-                                                <UserCard key={user._id || user.id} user={user} />
+                                            {users.map((user) => (
+                                                <UserCard 
+                                                    key={user._id || user.id} 
+                                                    user={user} 
+                                                    onActionClick={handleActionClick}
+                                                />
                                             ))}
                                         </div>
                                         <Pagination
-                                            currentPage={currentUserPage}
-                                            totalPages={getTotalPages(users)}
-                                            onPageChange={setCurrentUserPage}
+                                            currentPage={userPagination.currentPage}
+                                            totalPages={userPagination.totalPages}
+                                            totalItems={userPagination.totalDocs}
+                                            onPageChange={handleUserPageChange}
                                         />
                                     </>
                                 )}
@@ -736,9 +931,13 @@ const ManageUsers = () => {
                                     <input
                                         type="text"
                                         value={editedUser.aadharNumber || ''}
-                                        onChange={(e) => setEditedUser({ ...editedUser, aadharNumber: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onChange={(e) => handleAadharChange(e.target.value)}
+                                        className={`w-full px-3 py-2 border ${aadharError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                        maxLength="12"
                                     />
+                                    {aadharError && (
+                                        <p className="mt-1 text-sm text-red-600">{aadharError}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -767,8 +966,9 @@ const ManageUsers = () => {
                                 <button
                                     type="button"
                                     onClick={handleEditSave}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
-                                    disabled={isSaving}
+                                    className={`px-4 py-2 text-sm font-medium text-white ${aadharError ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center`}
+                                    disabled={isSaving || !!aadharError}
+                                    title={aadharError ? 'Please fix Aadhar number errors before saving' : ''}
                                 >
                                     {isSaving ? (
                                         <>

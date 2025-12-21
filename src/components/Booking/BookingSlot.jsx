@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiClock, FiUsers, FiCheck, FiCalendar } from "react-icons/fi";
-import BookingConfirmation from "./BookingConfirmation";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { FiCalendar, FiClock, FiUsers, FiChevronLeft, FiLoader, FiFileText, FiX } from 'react-icons/fi';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { motion } from 'framer-motion';
+import BookingConfirmation from './BookingConfirmation';
+import { toast } from 'react-toastify';
 import { BaseUrl } from "../api/api";
 
 const sportColors = {
@@ -15,62 +19,183 @@ const sportColors = {
   // Add more mappings if needed based on API names
 };
 
-// 24-hour slots
-const timeSlots = [
-  "12:00 AM - 01:00 AM", "01:00 AM - 02:00 AM", "02:00 AM - 03:00 AM",
-  "03:00 AM - 04:00 AM", "04:00 AM - 05:00 AM", "05:00 AM - 06:00 AM",
-  "06:00 AM - 07:00 AM", "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM",
-  "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM",
-  "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM",
-  "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM", "05:00 PM - 06:00 PM",
-  "06:00 PM - 07:00 PM", "07:00 PM - 08:00 PM", "08:00 PM - 09:00 PM",
-  "09:00 PM - 10:00 PM", "10:00 PM - 11:00 PM", "11:00 PM - 12:00 AM",
-].map((time, i) => ({
-  id: i + 1,
-  time,
-  available: Math.random() > 0.2, // random 80% availability
-}));
-
-const getTodayStr = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`; // YYYY-MM-DD in local time
-};
-
 const BookingSlot = () => {
   const { sportType } = useParams();
   const navigate = useNavigate();
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [players, setPlayers] = useState(1);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
+  const [bookingType, setBookingType] = useState('day'); // 'day' or 'month'
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
+  const [bookingDetails, setBookingDetails] = useState({
+    description: '',
+  });
   const [sportData, setSportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingSummary, setBookingSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const location = useLocation();
 
-  // Fetch sport details
+  const fetchAvailableSlots = async (date) => {
+    if (!sportData?.id) {
+      return;
+    }
+    
+    try {
+      setLoadingSlots(true);
+      
+      // Prepare params according to the backend API format
+      const params = {
+        sports_id: sportData.id.toString(),
+      };
+
+      if (bookingType === 'month' && date) {
+        // For month view - ensure we have a valid date
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error('Invalid date format');
+        }
+        
+        // Get month as 3-letter abbreviation (JAN, FEB, etc.)
+        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const month = monthNames[dateObj.getMonth()];
+        const year = dateObj.getFullYear();
+        
+        params.slot_type = 'MONTH';
+        params.type_month = month;
+        params.type_year = year;
+        
+      } else if (date) {
+        // For day view
+        params.date = date;
+      } else {
+        setAvailableSlots([]);
+        return;
+      }
+      
+      // Convert params to URLSearchParams
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value);
+        }
+      });
+      
+      const response = await fetch(`${BaseUrl}booking/available-slots?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to fetch available slots');
+      }
+
+      const responseData = await response.json();
+      // Process the slots from the API response
+      const slots = responseData?.slots || [];
+
+      if (slots.length === 0) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      // Process the slots to match our expected format
+      const processedSlots = slots.map(slot => {
+        let slotDate = slot.date;
+        if (bookingType === 'month' && selectedDate) {
+          // For month view, ensure we're using the correct date format
+          const dateObj = new Date(selectedDate);
+          const [hours, minutes] = slot.start_time.split(':');
+          dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          slotDate = dateObj.toISOString().split('T')[0];
+        }
+
+        return {
+          ...slot,
+          _id: slot._id || `${sportType}-${slotDate}-${slot.start_time}-${slot.end_time}`,
+          startTime: slot.start_time,
+          endTime: slot.end_time,
+          available: slot.status === 'AVAILABLE',
+          price: slot.total_price || slot.price || slot.sports?.final_price_per_day || 0,
+          sportName: slot.sports?.name || sportData?.name || 'Sport',
+          sportId: slot.sports_id || sportType,
+          date: slotDate,
+          status: slot.status || 'AVAILABLE'
+        };
+      });
+
+      setAvailableSlots(processedSlots);
+
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      toast.error(`Error: ${error.message || 'Failed to load available slots. Please try again.'}`);
+      setAvailableSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // Fetch sport details on component mount
   useEffect(() => {
     const fetchSportDetails = async () => {
       try {
         setLoading(true);
+        
+        // First, try to fetch all sports and find by name
         const response = await fetch(`${BaseUrl}sports/list`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sports list');
+        }
+        
         const data = await response.json();
-        const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
-
-        // Find the sport matching the URL param
-        // The sportType from URL is likely the name in lowercase
-        const match = sportsList.find(s => s.name.toLowerCase() === sportType.toLowerCase());
-
-        if (match) {
-          setSportData(match);
+        // Convert sportType to a URL-friendly format for comparison
+        const formattedSportType = sportType.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        
+        // Try to find by name first (case insensitive and URL-friendly)
+        const selectedSport = data.sports?.find(sport => {
+          // Create URL-friendly name for comparison
+          const sportNameUrl = sport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          return sportNameUrl === formattedSportType || 
+                 sport._id === sportType ||
+                 sport.name.toLowerCase() === sportType.toLowerCase();
+        });
+        
+        if (selectedSport) {
+          setSportData({
+            id: selectedSport._id,
+            name: selectedSport.name,
+            price: selectedSport.final_price_per_day || 200,
+            description: selectedSport.about || `Book your ${selectedSport.name} slot now!`,
+            image: selectedSport.imageUrl || (selectedSport.image ? `https://app.learnfortsports.com/${selectedSport.image}` : '')
+          });
+          
+          // Update URL to use the sport name if it's not already
+          const sportNameUrl = selectedSport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          if (sportNameUrl !== sportType) {
+            window.history.replaceState(null, '', `/book/${sportNameUrl}`);
+          }
         } else {
-          // Fallback or handle error
-          console.error("Sport not found");
+          // Fallback if sport not found
+          const sportName = sportType
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+            
+          setSportData({
+            id: sportType,
+            name: sportName,
+            price: 200,
+            description: `Book your ${sportName} slot now!`
+          });
         }
       } catch (error) {
-        console.error("Error fetching sport details:", error);
+        console.error('Error fetching sport details:', error);
+        toast.error('Failed to load sport details');
       } finally {
         setLoading(false);
       }
@@ -78,133 +203,319 @@ const BookingSlot = () => {
 
     fetchSportDetails();
   }, [sportType]);
+  
+  // Fetch available slots when date or booking type changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAvailableSlots(selectedDate);
+    }
+  }, [selectedDate, bookingType]);
 
   const sportName = sportData?.name || sportType
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-  // Determine color based on sport name/type logic. 
-  // We try to match partial keys if exact match fails, or default.
-  const gradientClass = sportColors[sportType] || sportColors.default;
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  const todayStr = getTodayStr();
-
-  const isSameDayAsToday = (dateStr) => {
-    if (!dateStr) return false;
-    return dateStr === todayStr;
-  };
-
-  const parseSlotEndToDate = (dateStr, slotTime) => {
-    if (!dateStr) return null;
-    const parts = slotTime.split("-");
-    if (parts.length < 2) return null;
-    const endPart = parts[1].trim(); // e.g. "02:00 AM"
-
-    const [time, meridiem] = endPart.split(" ");
-    if (!time || !meridiem) return null;
-    const [rawHour, rawMinute] = time.split(":");
-    let hour = parseInt(rawHour, 10);
-    const minute = parseInt(rawMinute || "0", 10);
-
-    const isPM = meridiem.toUpperCase() === "PM";
-    if (isPM && hour !== 12) hour += 12;
-    if (!isPM && hour === 12) hour = 0;
-
-    const d = new Date(dateStr);
-    d.setHours(hour, minute, 0, 0);
-    return d;
-  };
-
-  const isPastSlot = (slotTime) => {
+  const isPastSlot = (slot) => {
     if (!selectedDate) return false;
-    // If selected date is not today, past vs future by date is handled by min on input
-    if (!isSameDayAsToday(selectedDate)) return false;
-
-    const slotEndDate = parseSlotEndToDate(selectedDate, slotTime);
-    if (!slotEndDate) return false;
-
+    
+    const [startTime] = slot.split(' - ');
+    const [time, period] = startTime.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    
+    // Convert to 24-hour format
+    if (period === 'PM' && hours < 12) hours += 12;
+    
     const now = new Date();
-    return slotEndDate <= now;
+    const slotDate = new Date(selectedDate);
+    slotDate.setHours(hours, minutes, 0, 0);
+    
+    return slotDate < now;
+  };
+  
+  // Check if a slot is available
+  const isSlotAvailable = (slot) => {
+    if (!slot) return false;
+    
+    // For month view, we need to check if the slot's month and year match the selected month
+    if (bookingType === 'month' && selectedDate) {
+      const selectedDateObj = new Date(selectedDate);
+      const selectedMonth = selectedDateObj.getMonth();
+      const selectedYear = selectedDateObj.getFullYear();
+      
+      // Check if slot's month and year match the selected month and year
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const slotMonth = monthNames.indexOf(slot.type_month);
+      const slotYear = parseInt(slot.type_year);
+      
+      const isMatchingMonthYear = 
+        slotMonth === selectedMonth && 
+        slotYear === selectedYear;
+      
+      return slot.status === 'AVAILABLE' && isMatchingMonthYear;
+    }
+    
+    // For day view, just check the status
+    return slot.status === 'AVAILABLE';
   };
 
-  const handleBooking = () => {
-    if (!selectedDate || !selectedSlot) {
-      alert("Please select both date and time slot");
-      return;
+  const formatTimeSlot = (startTime, endTime) => {
+    const formatTime = (timeStr) => {
+      const [hours, minutes] = timeStr.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    };
+    
+    return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+  };
+
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return '';
+    
+    // Ensure we're working with the correct timezone
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    if (bookingType === 'month') {
+      return date.toLocaleDateString('en-US', { 
+        timeZone: 'UTC',
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+    
+    return date.toLocaleDateString('en-US', { 
+      timeZone: 'UTC',
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const handleDateChange = (e) => {
+    const date = e.target.value;
+    setSelectedDate(date);
+    setSelectedSlots([]); // Reset selected slots when date changes
+    
+    // If in month view, fetch slots for the selected month
+    if (bookingType === 'month' && date) {
+      fetchAvailableSlots(date);
+    }
+  };
+
+  const handleBookingTypeChange = (e) => {
+    const newType = e.target.value;
+    setBookingType(newType);
+    
+    // Clear all selections when changing booking type
+    setSelectedDate('');
+    setSelectedSlots([]);
+    setAvailableSlots([]);
+    
+    // Clear any existing date input
+    const dateInput = document.querySelector('input[type="date"], input[type="month"]');
+    if (dateInput) dateInput.value = '';
+  };
+
+  const handleSlotSelect = (slot) => {
+    if (!isSlotAvailable(slot)) return;
+    
+    setSelectedSlots(prev => {
+      const isSelected = prev.some(s => 
+        s.start_time === slot.start_time && 
+        s.end_time === slot.end_time &&
+        s.date === slot.date
+      );
+      
+      if (isSelected) {
+        return prev.filter(s => 
+          !(s.start_time === slot.start_time && 
+            s.end_time === slot.end_time &&
+            s.date === slot.date)
+        );
+      } else {
+        return [...prev, { ...slot }];
+      }
+    });
+  };
+
+const handleProceedToPayment = async () => {
+  if (selectedSlots.length === 0) {
+    toast.error('Please select at least one time slot');
+    return;
+  }
+
+  try {
+    setLoadingSummary(true);
+    
+    // Get auth token from localStorage
+    let token = '';
+    try {
+      const stored = localStorage.getItem('lf_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        token = parsed?.token || '';
+      }
+    } catch (err) {
+      console.error('Error getting auth token:', err);
+      token = '';
     }
 
-    // Calculate amount based on sportData or defaults
-    const finalPricePerSlot = sportData?.final_price_per_slot || 500;
-    const actualPricePerSlot = sportData?.actual_price_per_slot || finalPricePerSlot; // Fallback if no actual price
+    // Prepare the times array from selected slots
+    const times = selectedSlots.map(slot => ({
+      start_time: slot.startTime,
+      end_time: slot.endTime
+    }));
 
-    // Assuming price is per slot per person? Or just per slot? 
-    // Usually turf booking is per slot. 
-    // The previous code did `basePrice * players`. 
-    // I will stick to `price * players` if the business model implies per player, 
-    // BUT usually turf is per hour regardless of players.
-    // However, looking at the previous code: `const amount = basePrice * players;`
-    // And the user prompt says "actual original price of the sports".
-    // I will assume it follows the previous logic: Price * Players.
-    // Wait, if it's a "slot", usually it's fixed price.
-    // But the prompt says "price per slot" in the API response.
-    // The variable name "players" suggests it might scale.
-    // I'll keep the multiplication by players if that was the intent, 
-    // OR if the API says "price per slot", maybe it's just price per slot.
-    // Let's assume it IS per slot and players is just info, UNLESS the previous code was specific.
-    // Previous code: `const amount = basePrice * players;`
-    // I will stick to the previous code logic for amount calculation to be safe, but use the new prices.
-    // Actually, `price_per_slot` strongly suggests it is the price for the SLOT.
-    // If I select 1 slot, the price is X. Number of players might just be metadata.
-    // However, to avoid breaking logic I will assume price per slot * 1 (if strict slot) or * players.
-    // Let's look at the UI: "Total: ... (₹10/player)" was commented out.
-    // I'll assume the `final_price_per_slot` is the cost for the booking of that slot.
-    // So distinct from players. 
-    // BUT, I will look at `BookingConfirmation` later.
+    // Create the booking object
+    const booking = {
+      slot_type: bookingType === 'day' ? 'DAY' : 'MONTH',
+      booking_date: selectedDate, // Just the date part, no time
+      times: times
+    };
 
-    // Let's assume price is PER SLOT.
-    const amount = finalPricePerSlot;
-    const originalAmount = actualPricePerSlot;
+    // For month view, add month and year
+    if (bookingType === 'month' && selectedDate) {
+      const date = new Date(selectedDate);
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      booking.type_month = monthNames[date.getMonth()];
+      booking.type_year = date.getFullYear().toString();
+    }
 
-    // Wait, looking at lines 284-289 in original code:
-    // `₹{players * 10}` -- this was the display.
-    // `const amount = basePrice * players;` -- this was the logic.
-    // If I change to fixed price per slot, I might change business logic.
-    // But `price_per_slot` in API calls it "per slot".
-    // I will use `final_price_per_slot` as the base price.
-    // And for now I will NOT multiply by players unless I am sure. 
-    // Turfs are usually rented by the hour (slot), not by person.
-    // So `amount = finalPricePerSlot`.
+    // Create the final payload
+    const payload = {
+      sports_id: sportData?.id || '',
+      no_of_players: parseInt(bookingDetails.players) || 1,
+      bookings: [booking]
+    };
 
-    setBookingDetails({
-      sport: sportName,
-      date: new Date(selectedDate).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      timeSlot: selectedSlot,
-      players,
-      amount: amount,
-      originalAmount: originalAmount
+    const response = await fetch(`${BaseUrl}booking/booking-summary`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(payload)
     });
-
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to get booking summary');
+    }
+    
+    const result = await response.json();
+    
+    // Process the response to ensure all required fields are present
+    const processedSummary = {
+      ...result,
+      // Ensure we have the sport name from the response or fallback to the one from props
+      sportName: result?.ground?.sport || result?.slots?.[0]?.sport_name || sportData?.name || 'Not specified',
+      // Ensure we have the number of players
+      no_of_players: result?.no_of_players || parseInt(bookingDetails.players) || 1,
+      // Ensure we have the total amount
+      total_amount: result?.total_amount || result?.totalAmount || 0,
+      // Ensure we have the currency
+      currency: result?.currency || 'INR',
+      // Include the slots data
+      slots: result?.slots || [{
+        booking_date: selectedDate,
+        start_time: selectedSlots[0]?.startTime,
+        end_time: selectedSlots[0]?.endTime,
+        sport_name: sportData?.name
+      }]
+    };
+    
+    // Update booking details with the processed summary
+    setBookingDetails(prev => ({
+      ...prev,
+      sport: processedSummary?.ground?.sport || sportData?.name || 'Not specified',
+      date: selectedDate,
+      time: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`,
+      players: processedSummary?.no_of_players || 1,
+      price: processedSummary?.total_amount || 0,
+      currency: processedSummary?.currency || 'INR',
+      timeSlot: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`
+    }));
+    
+    // Store the processed booking summary
+    setBookingSummary(processedSummary);
+    
+    // Show the confirmation dialog
     setShowConfirmation(true);
-  };
+    
+  } catch (error) {
+    console.error('Error getting booking summary:', error);
+    toast.error(error.message || 'Failed to get booking summary. Please try again.');
+  } finally {
+    setLoadingSummary(false);
+  }
+};
+  const handleConfirmBooking = async (formData) => {
+    try {
+      if (!sportData?.id || selectedSlots.length === 0) {
+        throw new Error('Invalid booking data');
+      }
 
-  const handleConfirmBooking = (formData) => {
-    // Here you would typically send this data to your backend
-    console.log('Booking confirmed:', { ...bookingDetails, ...formData });
+      // Prepare the base payload
+      const bookingPayload = {
+        start_time: selectedSlots[0].startTime,
+        end_time: selectedSlots[0].endTime,
+        payment_method: formData.paymentMethod || 'online', // Default to online payment if not specified
+      };
 
-    // Show success message
-    alert(`Booking confirmed! A confirmation has been sent to ${formData.email}`);
+      // Add date or month/year based on booking type
+      if (bookingType === 'day') {
+        bookingPayload.booking_date = selectedDate;
+      } else {
+        const [year, month] = selectedDate.split('-');
+        bookingPayload.type_month = month;
+        bookingPayload.type_year = year;
+      }
 
-    // Reset and close
-    setShowConfirmation(false);
-    setSelectedSlot(null);
-    setSelectedDate("");
-    setPlayers(1);
+      // Prepare the final payload
+      const payload = {
+        sports_id: sportData.id,
+        payment_method: bookingPayload.payment_method,
+        bookings: [bookingPayload],
+      };
+      
+      const response = await fetch(`${BaseUrl}booking/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any required authentication headers here
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to confirm booking');
+      }
+      
+      // Show success message
+      toast.success('Booking confirmed successfully!');
+      
+      // Reset form
+      setShowConfirmation(false);
+      setSelectedSlots([]);
+      setSelectedDate('');
+      
+      // Optionally navigate to booking confirmation page or user's bookings
+      // navigate('/my-bookings');
+      
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      toast.error('Failed to confirm booking. Please try again.');
+    }
   };
 
   if (loading) {
@@ -246,9 +557,6 @@ const BookingSlot = () => {
     );
   }
 
-  const currentPrice = sportData?.final_price_per_slot || 0;
-  const originalPrice = sportData?.actual_price_per_slot || 0;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -259,10 +567,10 @@ const BookingSlot = () => {
               onClick={() => navigate(-1)}
               className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
             >
-              <FiArrowLeft className="w-5 h-5" />
+              <FiChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-              Book {sportName} Slot
+              {sportName} Slot
             </h1>
           </div>
         </header>
@@ -272,62 +580,168 @@ const BookingSlot = () => {
           {/* Left Section */}
           <div className="lg:col-span-2 space-y-6">
             {/* Choose Date */}
-            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">Choose Date</h2>
-              <div className="flex items-center space-x-2 bg-indigo-50 px-4 py-2 rounded-lg shadow-sm">
-                <FiCalendar className="text-indigo-500 text-lg" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  min={todayStr}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    // Clear selected slot if it becomes invalid for new date
-                    setSelectedSlot(null);
-                  }}
-                  className="bg-transparent outline-none text-gray-700 font-medium cursor-pointer"
-                />
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Choose {bookingType === 'day' ? 'Date' : 'Month'}</h2>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-32">
+                  <select
+                    className="w-full p-3 rounded-lg border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition"
+                    value={bookingType}
+                    onChange={handleBookingTypeChange}
+                  >
+                    <option value="day">Day</option>
+                    <option value="month">Month</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  {bookingType === 'month' ? (
+                    <DatePicker
+                      selected={selectedDate ? new Date(selectedDate) : null}
+                      onChange={(date) => {
+                        if (!date) return;
+                        // Set to the first day of the selected month
+                        const firstDayOfMonth = new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
+                        setSelectedDate(firstDayOfMonth.toISOString().split('T')[0]);
+                        // Force a re-render to update the display
+                        fetchAvailableSlots(firstDayOfMonth.toISOString().split('T')[0]);
+                      }}
+                      minDate={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)} // First day of next month
+                      maxDate={new Date(new Date().getFullYear() + 2, 11, 31)} // End of 2 years from now
+                      dateFormat="MMM yyyy"
+                      showMonthYearPicker
+                      className="w-full p-3 rounded-lg border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition"
+                      placeholderText="Select month"
+                      showFullMonthYearPicker
+                      showDisabledMonthNavigation
+                      useWeekdaysShort={false}
+                      useShortMonth
+                      filterDate={(date) => {
+                        // Only allow selection of the 1st of each month
+                        return date.getDate() === 1;
+                      }}
+                      filterMonth={(date) => {
+                        // Only allow future months (after current month)
+                        const now = new Date();
+                        const currentYear = now.getFullYear();
+                        const currentMonth = now.getMonth();
+                        
+                        // If the year is in the future, allow all months
+                        if (date.getFullYear() > currentYear) return true;
+                        
+                        // If it's the current year, only allow future months
+                        if (date.getFullYear() === currentYear) {
+                          return date.getMonth() > currentMonth;
+                        }
+                        
+                        // Past years not allowed
+                        return false;
+                      }}
+                    />
+                  ) : (
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full p-3 rounded-lg border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition"
+                      placeholder="Select date"
+                    />
+                  )}
+                </div>
               </div>
             </div>
-
             {/* Available Time Slots */}
             <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FiClock className="text-indigo-500" /> Available Time Slots
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 gap-4">
-                {timeSlots
-                  .filter((slot) => !isPastSlot(slot.time))
-                  .map((slot) => {
-                    const past = isPastSlot(slot.time);
-                    const disabled = !slot.available || past;
-
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {selectedDate 
+                    ? `Available Slots for ${bookingType === 'month' 
+                        ? new Date(selectedDate).toLocaleDateString('en-US', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })
+                        : new Date(selectedDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })
+                      }`
+                    : 'Available Slots'}
+                </h2>
+            
+              </div>
+              
+              {loadingSlots ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-blue-600">
+                    <FiLoader className="animate-spin mr-2" /> Loading slots...
+                  </div>
+                </div>
+              ) : !selectedDate ? (
+                <div className="text-center py-8 text-gray-500">
+                  Please select a {bookingType === 'day' ? 'date' : 'month'} to see available slots
+                </div>
+              ) : availableSlots.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No slots available for the selected {bookingType === 'day' ? 'date' : 'month'}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {availableSlots
+                    .filter(slot => {
+                      // For month view, only show slots for the selected month
+                      if (bookingType === 'month' && selectedDate) {
+                        const selectedDateObj = new Date(selectedDate);
+                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                        const slotMonth = slot.type_month;
+                        const slotYear = parseInt(slot.type_year);
+                        
+                        return (
+                          monthNames[selectedDateObj.getMonth()] === slotMonth &&
+                          selectedDateObj.getFullYear() === slotYear
+                        );
+                      }
+                      return true; // For day view, show all slots
+                    })
+                    .map((slot, index) => {
+                      const slotTime = formatTimeSlot(slot.startTime, slot.endTime);
+                      const isPast = isPastSlot(slotTime);
+                      const isBooked = slot.status !== 'AVAILABLE';
+                      const isDisabled = isPast || isBooked;
+                      const isSelected = selectedSlots.some(s => 
+                        s.startTime === slot.startTime && 
+                        s.endTime === slot.endTime &&
+                        s.date === slot.date
+                      );
+                    
                     return (
-                      <button
-                        key={slot.id}
+                      <div
+                        key={index}
                         onClick={() => {
-                          if (!disabled) {
-                            setSelectedSlot(slot.time);
+                          if (!isDisabled) {
+                            handleSlotSelect(slot);
                           }
                         }}
-                        disabled={disabled}
-                        className={`relative px-4 py-3 rounded-lg border text-xs text-center  transition-all duration-200 ${selectedSlot === slot.time
-                          ? `border-transparent bg-gradient-to-r ${gradientClass} text-white shadow-md`
-                          : !disabled
-                            ? "border-gray-200 hover:border-indigo-300 hover:shadow-sm bg-gray-50 text-gray-700"
-                            : "border-gray-100 bg-gray-100 cursor-not-allowed opacity-60 text-gray-400"
-                          }`}
+                        className={`
+                          p-4 rounded-lg border text-center transition-all
+                          ${
+                            isSelected && !isDisabled
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : isDisabled
+                              ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
+                          }
+                        `}
                       >
-                        {selectedSlot === slot.time && (
-                          <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-[3px]">
-                            <FiCheck className="text-[10px]" />
-                          </div>
+                        <div className="font-medium">{slotTime}</div>
+                        {!slot.available && (
+                          <div className="text-xs text-green-500 font-semibold mt-1">Booked</div>
                         )}
-                        {slot.time}
-                      </button>
+                      </div>
                     );
                   })}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -348,68 +762,114 @@ const BookingSlot = () => {
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-700">Number of Players</h3>
                     <div className="flex items-center mt-2">
-                      <button
-                        onClick={() => setPlayers((p) => Math.max(1, p - 1))}
-                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors"
+                      <button 
+                        onClick={() => {
+                          setBookingDetails(prev => {
+                            const newPlayers = Math.max(1, (prev.players || 1) - 1);
+                            return {
+                              ...prev,
+                              players: newPlayers
+                            };
+                          });
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
                       >
                         -
                       </button>
-                      <span className="mx-4 text-lg font-medium w-8 text-center">
-                        {players}
-                      </span>
-                      <button
-                        onClick={() => setPlayers((p) => p + 1)}
-                        className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 flex items-center justify-center transition-colors"
+                      <span className="w-8 text-center">{bookingDetails.players || 1}</span>
+                      <button 
+                        onClick={() => {
+                          setBookingDetails(prev => {
+                            const newPlayers = (prev.players || 1) + 1;
+                            return {
+                              ...prev,
+                              players: newPlayers
+                            };
+                          });
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
                       >
                         +
                       </button>
                     </div>
                   </div>
                 </div>
+                {/* Description Textarea */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    rows="3"
+                    placeholder="Write Your Notes (Optional)"
+                    value={bookingDetails.description || ''}
+                    onChange={(e) => setBookingDetails(prev => ({
+                      ...prev,
+                      description: e.target.value
+                    }))}
+                  />
+                </div>
 
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Sport:</span>
+                    <span className="font-medium">{sportData?.name || 'Loading...'}</span>
+                  </div>
+                  
                   <div className="flex justify-between">
                     <span className="text-gray-600">Date:</span>
                     <span className="font-medium">
-                      {selectedDate || "Not selected"}
+                      {selectedDate 
+                        ? new Date(selectedDate).toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            year: 'numeric',
+                            month: 'short', 
+                            day: 'numeric' 
+                          })
+                        : 'Not selected'}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Time Slot:</span>
-                    <span className="font-medium">
-                      {selectedSlot || "Not selected"}
-                    </span>
+                  
+                  <div className="mt-6 space-y-4">
+          
+                    {selectedSlots.length > 0 ? (
+                      <div className="space-y-3 max-h-20 overflow-y-auto pr-2">
+                      
+                        {/* <div className="pt-2 border-t border-gray-200 mt-4">
+                          <div className="flex justify-between items-center font-medium text-gray-900">
+                            <span>Total ({selectedSlots.length} slots):</span>
+                            <span>₹{selectedSlots.reduce((sum, slot) => sum + (slot.price || 0), 0)}</span>
+                          </div>
+                        </div> */}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic"></p>
+                    )}
                   </div>
-                  <div className="border-t border-dashed my-2"></div>
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total:</span>
-                    <div className="text-right">
-                      {originalPrice > currentPrice && (
-                        <span className="block text-sm text-gray-400 line-through">
-                          ₹{originalPrice}
-                        </span>
-                      )}
-                      <span
-                        className={`${gradientClass} bg-clip-text text-transparent`}
-                      >
-                        ₹{currentPrice}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleBooking}
-                  disabled={!selectedSlot || !selectedDate}
-                  className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 ${selectedSlot && selectedDate
-                    ? `bg-gradient-to-r ${gradientClass} hover:shadow-lg transform hover:-translate-y-0.5`
-                    : "bg-gray-300 cursor-not-allowed"
+                  
+                  <button
+                    onClick={handleProceedToPayment}
+                    disabled={selectedSlots.length === 0 || loadingSummary}
+                    className={`w-full py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center ${
+                      selectedSlots.length > 0 && !loadingSummary
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }`}
-                >
-                  {selectedSlot && selectedDate
-                    ? "Confirm Booking"
-                    : "Select Date & Time"}
-                </button>
+                  >
+                    {loadingSummary ? (
+                      <>
+                        <FiLoader className="animate-spin mr-2" /> Loading...
+                      </>
+                    ) : selectedSlots.length > 0 ? (
+                      `Book Now (${selectedSlots.length} ${selectedSlots.length === 1 ? 'slot' : 'slots'})`
+                    ) : (
+                      'Select Slots to Continue'
+                    )}
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    You'll be able to review your booking before payment
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -422,6 +882,11 @@ const BookingSlot = () => {
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmBooking}
         bookingDetails={bookingDetails}
+        showPersonalInfo={false} // Skip personal info step
+        summaryData={bookingSummary}
+        selectedSlots={selectedSlots}
+        sportName={sportData?.name}
+        bookingType={bookingType}
       />
     </div>
   );

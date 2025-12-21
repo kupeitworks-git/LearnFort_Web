@@ -69,7 +69,6 @@ const ContactUsPage = () => {
         unread: allEnquiries.filter(item => item.admin_read_status === 'UNREAD')
       };
 
-      console.log('Formatted data:', formattedData);
       setIssues(formattedData);
     } catch (err) {
       console.error('Error fetching enquiries:', err);

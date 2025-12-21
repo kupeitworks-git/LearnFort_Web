@@ -146,12 +146,12 @@ const CreateAccount = () => {
               value={form.name}
               onChange={handleChange}
             />
-            <InputField
+            {/* <InputField
               name="father_name"
               placeholder="Father Name"
               value={form.father_name}
               onChange={handleChange}
-            />
+            /> */}
             <InputField
               name="mobile"
               placeholder="Mobile Number"
@@ -165,13 +165,13 @@ const CreateAccount = () => {
               value={form.email}
               onChange={handleChange}
             />
-            <InputField
+            {/* <InputField
               name="native_place"
               placeholder="Native Place"
               value={form.native_place}
               onChange={handleChange}
-            />
-            <InputField
+            /> */}
+            {/* <InputField
               name="aadhar_number"
               placeholder="Aadhar Number"
               value={form.aadhar_number}
@@ -182,7 +182,7 @@ const CreateAccount = () => {
               placeholder="Address"
               value={form.address}
               onChange={handleChange}
-            />
+            /> */}
 
             {/* Password */}
             <div className="relative">

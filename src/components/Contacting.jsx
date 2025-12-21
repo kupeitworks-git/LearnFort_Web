@@ -223,12 +223,10 @@ const Contacting = () => {
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
-                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
-                    <span className="font-medium text-slate-50">Primary</span>
-                    <span>info@learnfortsports.com</span>
-                    <span className="font-medium text-slate-50">Support</span>
-                    <span>learnfortsports@gmail.com</span>
-                  </div>
+                   <div className="flex flex-col gap-1 text-slate-200/90">
+                      <a href="mailto:info@learnfortsports.com" className="hover:text-cyan-300 hover:underline">info@learnfortsports.com</a>
+                      <a href="mailto:learnfortsports@gmail.com" className="hover:text-cyan-300 hover:underline">learnfortsports@gmail.com</a>
+                    </div>
                 </div>
               </div>
             </div>
