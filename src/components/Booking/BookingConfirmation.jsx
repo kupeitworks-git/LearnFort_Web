@@ -275,15 +275,12 @@ const BookingConfirmation = ({
             // Handle payment based on method
             if (selectedPaymentMode === 'COD') {
                 setShowPaymentModal(false);
-                // Show processing indicator briefly before success
+                setIsProcessingPayment(false);
+                setShowPaymentSuccess(true);
+                // Redirect to home after showing success message
                 setTimeout(() => {
-                    setIsProcessingPayment(false);
-                    setShowPaymentSuccess(true);
-                    // Redirect to home after showing success message
-                    setTimeout(() => {
-                        navigate('/', { replace: true });
-                    }, 3000);
-                }, 1500);
+                    navigate('/', { replace: true });
+                }, 3000);
             } else if (selectedPaymentMode === 'online') {
                 // Close the modal immediately when redirecting to Razorpay
                 setShowPaymentModal(false);
@@ -1222,12 +1219,12 @@ const BookingConfirmation = ({
                         <div className={`animate-spin rounded-full h-16 w-16 border-b-4 ${isCancellingPayment ? 'border-red-600' : 'border-blue-600'}`}></div>
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        {isCancellingPayment ? 'Cancelling Payment...' : 'Processing Payment...'}
+                        {isCancellingPayment ? 'Cancelling Payment...' : (selectedPaymentMode === 'COD' ? 'Processing Booking...' : 'Processing Payment...')}
                     </h3>
                     <p className="text-gray-600">
                         {isCancellingPayment
                             ? 'Please wait while we cancel your payment.'
-                            : 'Please wait while we process your payment.'}
+                            : (selectedPaymentMode === 'COD' ? 'Please wait while we confirm your booking.' : 'Please wait while we process your payment.')}
                     </p>
                 </div>
             </div>
@@ -1241,8 +1238,12 @@ const BookingConfirmation = ({
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <FiCheck className="text-green-500 text-3xl" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Payment Successful!</h3>
-                    <p className="text-gray-600 mb-6">Your booking has been confirmed.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {selectedPaymentMode === 'COD' ? 'Booking Successful!' : 'Payment Successful!'}
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                        {selectedPaymentMode === 'COD' ? 'Booking has been successfully created' : 'Your booking has been confirmed.'}
+                    </p>
                     <button
                         onClick={() => {
                             setShowPaymentSuccess(false);
