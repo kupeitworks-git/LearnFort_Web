@@ -1,25 +1,162 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiUploadCloud, FiUser, FiMapPin, FiFolderPlus, FiInfo, FiDollarSign, FiHash, FiCheck, FiX } from "react-icons/fi";
+import {
+    FiArrowLeft, FiUploadCloud, FiUser, FiUsers, FiMapPin, FiFolderPlus,
+    FiInfo, FiDollarSign, FiHash, FiCheck, FiX
+} from "react-icons/fi";
+import { BaseUrl } from '../../api/api'
+
 
 const AddSport = () => {
     const navigate = useNavigate();
+
+    // Form States
     const [status, setStatus] = useState(true);
+    const [sportPriceType, setSportPriceType] = useState(null);
     const [sportImage, setSportImage] = useState(null);
     const [bannerImage, setBannerImage] = useState(null);
+    const [webBannerImage, setWebBannerImage] = useState(null);
+    const [sportImageFile, setSportImageFile] = useState(null);
+    const [bannerImageFile, setBannerImageFile] = useState(null);
+    const [webBannerImageFile, setWebBannerImageFile] = useState(null);
+    const sportInputRef = useRef(null);
+    const bannerInputRef = useRef(null);
+    const webBannerInputRef = useRef(null);
 
+
+
+    const [form, setForm] = useState({
+        name: "",
+        ground_name: "",
+        actual_price_per_day: "",
+        final_price_per_day: "",
+        actual_price_per_day_light: "",
+        final_price_per_day_light: "",
+        actual_price_per_month: "",
+        final_price_per_month: "",
+        actual_price_per_month_light: "",
+        final_price_per_month_light: "",
+        actual_price_per_year: "",
+        final_price_per_year: "",
+        actual_price_per_year_light: "",
+        final_price_per_year_light: "",
+        about: ""
+    });
+
+    // 🔹 Handle text inputs
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    // 🔹 Handle images
     const handleSportImageChange = (e) => {
-        setSportImage(URL.createObjectURL(e.target.files[0]));
+        const file = e.target.files[0];
+        setSportImage(URL.createObjectURL(file));
+        setSportImageFile(file); // Store actual file for upload
     };
 
     const handleBannerImageChange = (e) => {
-        setBannerImage(URL.createObjectURL(e.target.files[0]));
+        const file = e.target.files[0];
+        setBannerImage(URL.createObjectURL(file));
+        setBannerImageFile(file);
+    };
+
+    const handleWebBannerImageChange = (e) => {
+        const file = e.target.files[0];
+        setWebBannerImage(URL.createObjectURL(file));
+        setWebBannerImageFile(file);
+    };
+
+    const [toast, setToast] = useState({ message: "", type: "" });
+    const [isLoading, setIsLoading] = useState(false);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+        setTimeout(() => setToast({ message: "", type: "" }), 3000);
+    };
+
+    // ⭐ SUBMIT FUNCTION WITH API
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            const token = sessionStorage.getItem("token");
+
+            if (!token) {
+                showToast("No token found. Please login first.", "error");
+                setIsLoading(false);
+                return;
+            }
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append("name", form.name);
+            formData.append("about", form.about);
+            formData.append("actual_price_per_day", form.actual_price_per_day);
+            formData.append("final_price_per_day", form.final_price_per_day);
+            formData.append("ground_name", form.ground_name);
+            formData.append("actual_price_per_day_light", form.actual_price_per_day_light);
+            formData.append("final_price_per_day_light", form.final_price_per_day_light);
+            formData.append("actual_price_per_month", form.actual_price_per_month);
+            formData.append("final_price_per_month", form.final_price_per_month);
+            formData.append("actual_price_per_month_light", form.actual_price_per_month_light);
+            formData.append("final_price_per_month_light", form.final_price_per_month_light);
+            formData.append("actual_price_per_year", form.actual_price_per_year);
+            formData.append("final_price_per_year", form.final_price_per_year);
+            formData.append("actual_price_per_year_light", form.actual_price_per_year_light);
+            formData.append("final_price_per_year_light", form.final_price_per_year_light);
+            formData.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
+            formData.append("sport_price_type", sportPriceType);
+            formData.append("list", "test"); // static because Postman has it
+
+            if (sportImageFile) formData.append("image", sportImageFile);
+            if (bannerImageFile) formData.append("banner", bannerImageFile);
+            if (webBannerImageFile) formData.append("web_banner", webBannerImageFile);
+
+            // API Call
+            const res = await fetch(`${BaseUrl}sports/add`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`, // FIXED HERE
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast("Sport Added Successfully!", "success");
+                ("Response:", data);
+                setTimeout(() => navigate(-1), 1500);
+            } else {
+                showToast(data.message || "Something went wrong!", "error");
+            }
+
+        } catch (error) {
+            // console.error(error);
+            showToast("Error adding sport!", "error");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+            {/* Toast Notification */}
+            {toast.message && (
+                <div
+                    className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
+                        ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
+                >
+                    <div className="flex items-center space-x-2">
+                        {toast.type === "success" ? <FiCheck /> : <FiInfo />}
+                        <span>{toast.message}</span>
+                    </div>
+                </div>
+            )}
             {/* Header */}
-          <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
+            <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
                     <button
                         onClick={() => navigate(-1)}
@@ -32,73 +169,107 @@ const AddSport = () => {
                     </h1>
                 </div>
             </header>
+
             {/* Form Card */}
             <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-xl  mb-12 overflow-hidden border border-gray-100">
                 {/* Form Header */}
-                <div className="px-8 pt-6 pb-4 border-b border-gray-100">
-                    <div className="px-8 pt-6 pb-4 border-b border-gray-100">
-                        <div className="flex items-center justify-between">
-                            {/* Left Side: Title + Subtitle */}
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-                                    <FiUser className="h-6 w-6" />
-
-                                </div>
-                                <div className="ml-4">
-                                    <h2 className="text-2xl font-bold text-gray-800">
-                                        Sport Information
-                                    </h2>
-                                    <p className="text-sm text-gray-500">
-                                        Fill in the details below to add a new sport
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Right Side: Status Toggle */}
-                            <div className="flex flex-col items-end space-y-1">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Status
-                                </label>
-                                <div className="flex items-center">
-                                    <div
-                                        onClick={() => setStatus(!status)}
-                                        className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${status ? "bg-green-500" : "bg-gray-300"
-                                            }`}
-                                    >
-                                        <span
-                                            className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${status ? "translate-x-9" : "translate-x-1"
-                                                }`}
-                                        >
-                                            {status ? (
-                                                <FiCheck className="text-green-500" size={18} />
-                                            ) : (
-                                                <FiX className="text-gray-500" size={18} />
-                                            )}
-                                        </span>
-                                    </div>
-                                    <span
-                                        className={`ml-3 text-sm font-medium ${status ? "text-green-600" : "text-gray-600"
-                                            }`}
-                                    >
-                                        {status ? "Active" : "Inactive"}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {status
-                                        ? "This sport will be visible to users"
-                                        : "This sport will be hidden from users"}
-                                </p>
-                            </div>
+                <div className="px-8 pt-6 pb-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    {/* Left Side - Title */}
+                    <div className="flex items-center mb-4 sm:mb-0">
+                        <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <FiUser className="h-6 w-6" />
+                        </div>
+                        <div className="ml-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Sport Information</h2>
+                            <p className="text-sm text-gray-500">
+                                Fill in the details below to add a new sport
+                            </p>
                         </div>
                     </div>
 
+                    {/* Right Side - Toggles */}
+                    <div className="flex items-center space-x-6">
+                        {/* Price Type Toggle */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
+                                Price Type
+                            </label>
+                            <div className="flex items-center">
+                                <div
+                                    onClick={() => setSportPriceType(sportPriceType === "GROUP" ? "INDIVIDUAL" : "GROUP")}
+                                    className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${sportPriceType === "GROUP" ? "bg-blue-500" : "bg-purple-500"
+                                        }`}
+                                >
+                                    <span
+                                        className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${sportPriceType === "GROUP" ? "translate-x-1" : "translate-x-9"
+                                            }`}
+                                    >
+                                        {sportPriceType === "GROUP" ? (
+                                            <FiUsers className="text-blue-500" size={16} />
+                                        ) : (
+                                            <FiUser className="text-purple-500" size={16} />
+                                        )}
+                                    </span>
+                                </div>
+                                <span
+                                    className={`ml-3 text-sm font-medium ${sportPriceType === "GROUP" ? "text-blue-600" : "text-purple-600"}`}
+                                >
+                                    {sportPriceType === "GROUP" ? "Group" : "Individual"}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[150px]">
+                                {sportPriceType === "GROUP" ? "Price is for the entire group" : "Price is per individual"}
+                            </p>
+                        </div>
+
+                        {/* Status Toggle */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Status
+                            </label>
+                            <div className="flex items-center">
+                                <div
+                                    onClick={() => setStatus(!status)}
+                                    className={`relative inline-flex items-center h-8 rounded-full w-16 cursor-pointer transition-colors duration-200 ${status ? "bg-green-500" : "bg-gray-300"
+                                        }`}
+                                >
+                                    <span
+                                        className={`inline-block w-7 h-7 transform transition-transform duration-200 rounded-full bg-white shadow-md flex items-center justify-center ${status ? "translate-x-9" : "translate-x-1"
+                                            }`}
+                                    >
+                                        {status ? (
+                                            <FiCheck className="text-green-500" size={18} />
+                                        ) : (
+                                            <FiX className="text-gray-500" size={18} />
+                                        )}
+                                    </span>
+                                </div>
+                                <span
+                                    className={`ml-3 text-sm font-medium ${status ? "text-green-600" : "text-gray-600"
+                                        }`}
+                                >
+                                    {status ? "Active" : "Inactive"}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {status
+                                    ? "This sport will be visible to users"
+                                    : "This sport will be hidden from users"}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <form className="p-8 pt-6">
+
+
+
+                {/* FORM START */}
+                <form onSubmit={handleSubmit} className="p-8 pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Sport Name */}
+
+                        {/* SPORT NAME */}
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center text-left">
                                 <span>Sport Name</span>
                                 <span className="text-red-500 ml-1">*</span>
                                 <FiInfo className="ml-2 text-gray-400" size={14} />
@@ -106,121 +277,296 @@ const AddSport = () => {
                             <div className="relative">
                                 <input
                                     type="text"
-                                    placeholder="e.g., Football, Cricket"
+                                    name="name"
                                     required
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Football"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10"
                                 />
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <FiFolderPlus className="h-5 w-5 text-gray-400" />
-
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Enter the name of the sport</p>
+                            {/* <p className="text-xs text-gray-500 mt-1 text-left">Enter the name of the sport</p> */}
+
                         </div>
 
-                        {/* Ground Name */}
+                        {/* GROUND NAME */}
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Ground Name</span>
+                            <label className="block text-sm font-medium text-gray-700 text-left">Ground Name
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
                                 <input
                                     type="text"
+                                    name="ground_name"
                                     required
-                                    placeholder="e.g., Main Field, Court 1"
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Main Field"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10"
                                 />
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <FiMapPin className="h-5 w-5 text-gray-400" />
-
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Name or number of the ground/field</p>
+
                         </div>
 
-                        {/* Actual Price per Slot */}
+                        {/* Actual Price per day */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 text-left">Actual Price per day
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    name="actual_price_per_day"
+                                    required
+                                    placeholder="2000"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 text-left">Final Price per day
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    name="final_price_per_day"
+                                    required
+                                    placeholder="1500"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actual Lighting Price Per Day */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price per Slot</span>
+                                <span>Actual Price Per Day (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiDollarSign className="text-gray-400" />
+                                    <span className="text-gray-400 font-medium">₹</span>
                                 </div>
                                 <input
                                     type="number"
                                     required
-                                    placeholder="e.g. 2000"
+                                    placeholder="199"
+                                    name="actual_price_per_day_light"
+                                    onChange={handleChange}
                                     className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Standard price before any discounts</p>
                         </div>
 
-                        {/* Final Price per Slot */}
+                        {/* Final Lighting Price Per Day */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Discounted Price per Slot</span>
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiDollarSign className="text-gray-400" />
-                                </div>
-                                <input
-                                    type="number"
-                                    required
-                                    placeholder="e.g. 1500"
-                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">Special price after discount (if any)</p>
-                        </div>
-
-                        {/* Half Ground */}
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Half Ground Slots</span>
+                                <span>Final Price Per Day (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiHash className="text-gray-400" />
+                                    <span className="text-gray-400 font-medium">₹</span>
                                 </div>
                                 <input
                                     type="number"
                                     required
-                                    placeholder="e.g. 4"
+                                    placeholder="652"
+                                    name="final_price_per_day_light"
+                                    onChange={handleChange}
                                     className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Number of slots for half ground</p>
                         </div>
 
-                        {/* Full Ground */}
+                        {/* price per month  */}
+
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Full Ground Slots</span>
+                                <span>Actual Price Per Month</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiHash className="text-gray-400" />
+                                    <span className="text-gray-400 font-medium">₹</span>
                                 </div>
                                 <input
                                     type="number"
                                     required
-                                    placeholder="e.g. 8"
+                                    placeholder="772"
+                                    name="actual_price_per_month"
+                                    onChange={handleChange}
                                     className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Number of slots for full ground</p>
+                        </div>
+
+                        {/* final price per month */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Final Price Per Month</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="850"
+                                    name="final_price_per_month"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/*price per month with lighting   */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Actual Price Per Month (Lighting)</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="5208"
+                                    name="actual_price_per_month_light"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/*price per month with lighting   */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Final Price Per Month (Lighting)</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="4008"
+                                    name="final_price_per_month_light"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* price per year */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Actual Price Per Year</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="800"
+                                    name="actual_price_per_year"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* final price per year */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Final Price Per Year</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="800"
+                                    name="final_price_per_year"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/*Actual price per year with lighting  */}
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Actual Price Per Year (Lighting)</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="1800"
+                                    name="actual_price_per_year_light"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* final price per year with lighting  */}
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center">
+                                <span>Final Price Per Year (Lighting)</span>
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-medium">₹</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="1400"
+                                    name="final_price_per_year_light"
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* About Sport */}
-                    <div className="mt-2 mb-6">
+                    <div className="mt-8 mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                             <span>About Sport</span>
                             <span className="text-red-500 ml-1">*</span>
@@ -229,6 +575,7 @@ const AddSport = () => {
                             <textarea
                                 rows="4"
                                 required
+                                onChange={handleChange}
                                 placeholder="Write a detailed description about this sport, including any special rules or requirements..."
                                 className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
                             ></textarea>
@@ -238,142 +585,211 @@ const AddSport = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Status Toggle */}
 
-
-                        {/* Sport Image */}
+                    {/* IMAGES */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                        {/* SPORT IMAGE */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Sport Image
-                                <span className="text-red-500 ml-1">*</span>
+                                Sport Image <span className="text-red-500">*</span>
                             </label>
-                            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${sportImage ? 'border-green-200 bg-green-50' : 'border-gray-300 hover:border-blue-400 bg-gray-50'
-                                }`}>
+
+                            <div
+                                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${sportImage ? "border-green-300 bg-green-50" : "border-blue-300 bg-white"
+                                    }`}
+                            >
                                 <label className="cursor-pointer flex flex-col items-center">
-                                    <div className="p-3 rounded-full bg-blue-100 text-blue-600 mb-3">
-                                        <FiUploadCloud className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-sm font-medium text-gray-700 mb-1">
-                                            {sportImage ? 'Image Uploaded' : 'Upload Sport Image'}
-                                        </p>
-                                        <p className="text-xs text-gray-500 mb-2">
-                                            {sportImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
-                                        </p>
-                                        <p className="text-xs text-gray-400 italic">
-                                            Recommended sizes:
-                                            <br />
-                                            <span className="font-medium text-gray-500">
-                                                320×120 (Sports Image) • 1200×400 (Website)
-                                            </span>
-                                        </p>
+                                    {/* Icon */}
+                                    <div className="p-4 rounded-full bg-blue-100 text-blue-600 mb-3">
+                                        <FiUploadCloud className="w-7 h-7" />
                                     </div>
 
+                                    {/* Text */}
+                                    <p className="text-sm font-medium text-gray-800">
+                                        Upload Sport Image
+                                    </p>
+
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        PNG, JPG, JPEG up to 5MB
+                                    </p>
+
+                                    <p className="text-xs text-gray-400 italic mt-1">
+                                        Recommended sizes:<br />
+                                        <span className="font-medium text-gray-600">
+                                            320×120 (Sports Image) • 1200×400 (Website)
+                                        </span>
+                                    </p>
+
+                                    {/* Hidden File Input */}
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={handleSportImageChange}
+                                        ref={sportInputRef}
+                                        required
                                         className="hidden"
+                                        onChange={handleSportImageChange}
                                     />
-                                    {sportImage ? (
-                                        <div className="mt-4">
-                                            <div className="relative inline-block">
-                                                <img
-                                                    src={sportImage}
-                                                    alt="Sport"
-                                                    className="h-24 w-24 object-cover rounded-lg shadow-sm border-2 border-white"
-                                                />
-                                                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
-                                                    <FiCheck size={12} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                                        >
-                                            Select File
-                                        </button>
+
+
+                                    {/* Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => sportInputRef.current.click()}
+                                        className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow hover:bg-blue-700 transition"
+                                    >
+                                        Select File
+                                    </button>
+
+
+                                    {/* Preview */}
+                                    {sportImage && (
+                                        <img
+                                            src={sportImage}
+                                            alt="Sport Preview"
+                                            className="mt-4 h-28 w-auto rounded-lg shadow border"
+                                        />
                                     )}
                                 </label>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Banner Image */}
-                    <div className="space-y-1 md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Banner Image
-                            <span className="text-blue-500 ml-1">(Optional)</span>
-                        </label>
-                        <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${bannerImage ? 'border-purple-200 bg-purple-50' : 'border-gray-300 hover:border-blue-400 bg-gray-50'
-                            }`}>
-                            <label className="cursor-pointer flex flex-col items-center">
-                                <div className="p-3 rounded-full bg-purple-100 text-purple-600 mb-3">
-                                    <FiUploadCloud className="w-6 h-6" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm font-medium text-gray-700 mb-1">
-                                        {bannerImage ? 'Banner Uploaded' : 'Upload Banner Image'}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mb-3">
-                                        {bannerImage ? 'Click to change' : 'Recommended size: 1200x400px, JPG or PNG up to 2MB'}
-                                    </p>
-                                </div>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleBannerImageChange}
-                                    className="hidden"
-                                />
-                                {bannerImage ? (
-                                    <div className="mt-4 w-full">
-                                        <div className="relative inline-block max-w-full">
-                                            <img
-                                                src={bannerImage}
-                                                alt="Banner Preview"
-                                                className="h-32 w-full object-cover rounded-lg shadow-sm border-2 border-white max-w-2xl"
-                                            />
-                                            <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full p-1">
-                                                <FiCheck size={12} />
-                                            </div>
-                                        </div>
+
+                        {/* BANNER IMAGE */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Banner Image <span className="text-blue-500">(Optional)</span>
+                            </label>
+
+                            <div
+                                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${bannerImage ? "border-purple-300 bg-purple-50" : "border-gray-300 bg-gray-50"
+                                    }`}
+                            >
+                                <label className="cursor-pointer flex flex-col items-center">
+                                    <div className="p-4 rounded-full bg-purple-100 text-purple-600 mb-3">
+                                        <FiUploadCloud className="w-7 h-7" />
                                     </div>
-                                ) : (
+
+                                    <p className="text-sm font-medium text-gray-800">
+                                        Upload Banner Image
+                                    </p>
+
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Recommended size: 1200×400px, JPG or PNG up to 2MB
+                                    </p>
+
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        ref={bannerInputRef}
+                                        required
+                                        className="hidden"
+                                        onChange={handleBannerImageChange}
+                                    />
+
                                     <button
                                         type="button"
-                                        className="mt-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                        onClick={() => bannerInputRef.current.click()}
+
+                                        className="mt-4 px-4 py-2 bg-white border border-gray-300
+                text-gray-700 text-sm font-medium rounded-lg shadow hover:bg-gray-100 transition"
                                     >
                                         Select Banner
                                     </button>
-                                )}
-                            </label>
+
+                                    {bannerImage && (
+                                        <img
+                                            src={bannerImage}
+                                            alt="Banner Preview"
+                                            className="mt-4 h-28 w-full object-cover rounded-lg shadow border max-w-2xl"
+                                        />
+                                    )}
+                                </label>
+                            </div>
+
+                            <p className="text-xs text-gray-500 mt-2">
+                                A banner image will be displayed at the top of the sport's page
+                            </p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                            A banner image will be displayed at the top of the sport's page
-                        </p>
+
+
+                        {/* WEB BANNER IMAGE */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Web Banner Image <span className="text-blue-500">(Optional)</span>
+                            </label>
+
+                            <div
+                                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${webBannerImage ? "border-purple-300 bg-purple-50" : "border-gray-300 bg-gray-50"
+                                    }`}
+                            >
+                                <label className="cursor-pointer flex flex-col items-center">
+                                    <div className="p-4 rounded-full bg-purple-100 text-purple-600 mb-3">
+                                        <FiUploadCloud className="w-7 h-7" />
+                                    </div>
+
+                                    <p className="text-sm font-medium text-gray-800">
+                                        Upload Web Banner Image
+                                    </p>
+
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Recommended size: 1200×400px, JPG or PNG up to 2MB
+                                    </p>
+
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        ref={webBannerInputRef}
+                                        className="hidden"
+                                        onChange={handleWebBannerImageChange}
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => webBannerInputRef.current.click()}
+
+                                        className="mt-4 px-4 py-2 bg-white border border-gray-300
+                            text-gray-700 text-sm font-medium rounded-lg shadow hover:bg-gray-100 transition"
+                                    >
+                                        Select Web Banner
+                                    </button>
+
+                                    {webBannerImage && (
+                                        <img
+                                            src={webBannerImage}
+                                            alt="Web Banner Preview"
+                                            className="mt-4 h-28 w-full object-cover rounded-lg shadow border max-w-2xl"
+                                        />
+                                    )}
+                                </label>
+                            </div>
+
+                            <p className="text-xs text-gray-500 mt-2">
+                                A banner image will be displayed at the top of the sport's web page
+                            </p>
+                        </div>
+
                     </div>
 
-                    {/* Form Actions */}
-                    <div className="md:col-span-2 flex flex-col sm:flex-row justify-between items-center mt-10 pt-6 border-t border-gray-200">
+                    {/* SUBMIT */}
+                    <div className="flex justify-end mt-10">
                         <button
-                            type="button"
-                            onClick={() => navigate(-1)}
-                            className="w-full sm:w-auto mb-3 sm:mb-0 px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            type="submit"
+                            disabled={isLoading}
+                            className={`px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium rounded-lg 
+                                ${isLoading ? "opacity-70 cursor-not-allowed" : "hover:from-blue-700 hover:to-blue-600"}`}
                         >
-                            Cancel
+                            {isLoading ? (
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Adding Sport...
+                                </span>
+                            ) : (
+                                "Add Sport"
+                            )}
                         </button>
-                        <div className="flex space-x-3 w-full sm:w-auto">
-
-                            <button
-                                type="submit"
-                                className="w-1/2 sm:w-auto px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium rounded-lg shadow-md hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all transform hover:-translate-y-0.5"
-                            >
-                                Add Sport
-                            </button>
-                        </div>
                     </div>
                 </form>
             </div>

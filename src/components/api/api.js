@@ -1,0 +1,1 @@
+export const BaseUrl = "https://app.learnfortsports.com/v1/"

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiSend, FiUser, FiPhone, FiMail, FiFileText, FiChevronDown, FiArrowLeft, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import {BaseUrl} from '../components/api/api'
 
 const Contacting = () => {
   const navigate = useNavigate();
@@ -100,14 +101,14 @@ const Contacting = () => {
         token = '';
       }
 
-      if (!token) {
-        showToast('Your session has expired. Please log in again to submit an enquiry.', 'error');
-        return;
-      }
+      // if (!token) {
+      //   showToast('Your session has expired. Please log in again to submit an enquiry.', 'error');
+      //   return;
+      // }
 
       setIsSubmitting(true);
 
-      const res = await fetch('https://learn-fornt-app.vercel.app/v1/contact/submit', {
+      const res = await fetch(`${BaseUrl}contact/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,39 +183,50 @@ const Contacting = () => {
               Have questions about bookings, facilities, or programs at LearnFort Sports Park? Share your details and our team will reach out to you shortly.
             </p>
 
-            <div className="space-y-6 text-sm">
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
+            <div className="space-y-6 text-sm text-left">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiMapPin className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-50 text-left">Address</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm break-words text-left">
-                    LearnFort Sports Park, Batlagundu road, Bangalapatti, Nilakottai(Taluk), Dindigul(Dist), Tamil Nadu, India-624202
-                  </p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Address</p>
+                  <div className="text-slate-200/90 text-sm leading-relaxed">
+                    <span className="block font-semibold text-slate-50">LearnFort Sports Park</span>
+                    <span>Batlagundu Road,</span>
+                    <span>Bangalapatti,<br/> Nilakottai (Taluk),</span>
+                    <span>Dindigul (Dist),<br/>Tamil Nadu, India - 624202</span>
+                    
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiPhone className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-50 text-left">Phone</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm text-left">Phone: +91 4543 245 622</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm text-left">Mobile: +91 94441 23722</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm text-left">WhatsApp: +91 94441 23722</p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Contact Numbers</p>
+                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
+                    <span className="font-medium text-slate-50">Phone</span>
+                    <span>+91 45432 45622</span>
+                    <span className="font-medium text-slate-50">Mobile</span>
+                    <span>+91 81247 45622</span>
+                    <span className="font-medium text-slate-50">WhatsApp</span>
+                    <span>+91 94441 23722</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                   <FiMail className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-50 text-left">Email</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm text-left">info@learnfortsports.com</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm text-left">learnfortsports@gmail.com</p>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
+                   <div className="flex flex-col gap-1 text-slate-200/90">
+                      <a href="mailto:info@learnfortsports.com" className="hover:text-cyan-300 hover:underline">info@learnfortsports.com</a>
+                      <a href="mailto:learnfortsports@gmail.com" className="hover:text-cyan-300 hover:underline">learnfortsports@gmail.com</a>
+                    </div>
                 </div>
               </div>
             </div>

@@ -23,18 +23,10 @@ const PaymentSuccess = () => {
         
         <h1 className="text-3xl font-bold text-gray-800 mb-3">Payment Successful!</h1>
         <p className="text-gray-600 mb-8">
-          Your booking has been confirmed. We've sent a confirmation email with all the details.
+          Your booking has been confirmed.
         </p>
         
-        <div className="bg-blue-50 p-4 rounded-lg mb-8 text-left">
-          <h3 className="font-semibold text-gray-800 mb-2">What's Next?</h3>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-            <li>Check your email for the booking confirmation</li>
-            <li>Bring your ID proof when you come for the game</li>
-            <li>Please arrive 15 minutes before your scheduled time</li>
-          </ul>
-        </div>
-        
+
         <button
           onClick={() => navigate('/')}
           className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

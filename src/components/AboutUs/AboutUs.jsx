@@ -2,6 +2,28 @@ import React from "react";
 import { FiArrowLeft, FiMail, FiPhone, FiMapPin } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import bluwave from '../../images/bluewae.png'
+import premium from '../../images/premeium.png'
+import { FiSunrise, FiHome, FiZap } from "react-icons/fi";
+import {
+  GiCricketBat,
+  GiWeightLiftingUp,
+  GiBabyFace,
+  GiForkKnifeSpoon,
+  GiPathDistance,
+} from "react-icons/gi";
+
+// ✅ USE THIS amenities list (with icons)
+export const amenities = [
+  { name: "Lighting for Night Events", icon: FiSunrise },
+  { name: "Bowling Machine for Practice", icon: GiCricketBat },
+  { name: "Open Gym", icon: GiWeightLiftingUp },
+  { name: "Children Play Area", icon: GiBabyFace },
+  { name: "Rest Rooms", icon: FiHome },
+  { name: "Food Court", icon: GiForkKnifeSpoon },
+  { name: "Walking Pathway", icon: GiPathDistance },
+  { name: "EV Charging Station", icon: FiZap },
+];
 
 const AboutUs = () => {
   const navigate = useNavigate();
@@ -12,16 +34,7 @@ const AboutUs = () => {
     "Karate", "Athletic Track", "Archery", "Badminton (Outdoor)"
   ];
 
-  const amenities = [
-    "Lighting for Night Events",
-    "Bowling Machine for Practice",
-    "Open Gym",
-    "Children Play Area",
-    "Rest Rooms",
-    "Food Court",
-    "Walking Pathway",
-    "EV Charging Station",
-  ];
+
 
   const handleBack = () => navigate(-1);
 
@@ -70,8 +83,10 @@ const AboutUs = () => {
             Where passion meets performance in the heart of Dindigul
           </p>
         </div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1470&q=80')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
-      </motion.section>
+        <div
+          className="absolute inset-0 bg-cover bg-center mix-blend-overlay opacity-20"
+          style={{ backgroundImage: `url(${bluwave})` }}
+        ></div>      </motion.section>
 
       {/* About Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
@@ -89,7 +104,7 @@ const AboutUs = () => {
               <div className="w-full">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
-                    src="https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&w=1374&q=80"
+                    src={premium}
                     alt="LearnFort Sports Park"
                     className="w-full h-64 md:h-80 object-cover transition-transform duration-500 hover:scale-105"
                   />
@@ -194,51 +209,116 @@ const AboutUs = () => {
       </section>
 
       {/* Amenities Section */}
-      <section className="py-12 bg-gradient-to-br from-[#E6F7FF] to-white px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-gradient-to-br from-[#E6F7FF] to-white px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-10"
+            className="text-center mb-12"
           >
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0077B6] to-[#00B4D8]">
                 World-Class Amenities
               </span>
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Designed for athletes, by athletes. Everything you need for peak
-              performance.
+              Designed to deliver peak performance and the best sports
+              experience.
             </p>
-            <div className="w-20 h-1 bg-gradient-to-r from-[#0077B6] to-[#00B4D8] mx-auto rounded-full mt-3"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#0077B6] to-[#00B4D8] mx-auto rounded-full mt-3"></div>
           </motion.div>
 
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             variants={container}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
           >
-            {amenities.map((item, index) => (
-              <motion.div
-                key={index}
-                variants={item}
-                whileHover={{ y: -5 }}
-                className="bg-white p-6 rounded-xl shadow-sm border border-blue-50 hover:shadow-md transition-all duration-300 group"
-              >
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gradient-to-r group-hover:from-[#0077B6] group-hover:to-[#00B4D8] group-hover:text-white text-[#0077B6] transition-all duration-300">
-                  ⚡
-                </div>
-                <h3 className="font-semibold text-gray-800 mb-2 group-hover:text-[#0077B6] transition-colors">
-                  {item}
-                </h3>
-              </motion.div>
-            ))}
+            {amenities.map((item, index) => {
+              const Icon = item.icon;
+
+              return (
+                <motion.div
+                  key={index}
+                  variants={item}
+                  whileHover={{ y: -5 }}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-blue-50 
+                      hover:shadow-xl hover:border-blue-200 transition-all duration-300 group"
+                >
+                  <div
+                    className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 
+                            group-hover:bg-gradient-to-r group-hover:from-[#0077B6] group-hover:to-[#00B4D8] 
+                            group-hover:text-white text-[#0077B6] transition-all duration-300"
+                  >
+                    <Icon className="text-2xl" />
+                  </div>
+
+                  <h3 className="font-semibold text-gray-800 text-lg group-hover:text-[#0077B6] transition-colors">
+                    {item.name}
+                  </h3>
+                </motion.div>
+              );
+            })}
           </motion.div>
         </div>
+      </section>
+
+      {/* Location Section */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-8"
+        >
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0077B6] to-[#00B4D8]">
+              Find Us Here
+            </span>
+          </h2>
+          <div className="w-20 h-1 bg-gradient-to-r from-[#0077B6] to-[#00B4D8] mx-auto rounded-full"></div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="relative w-full h-80 md:h-96 rounded-2xl overflow-hidden shadow-lg border border-blue-100 group"
+        >
+          {/* Clickable Map Container */}
+          <a
+            href="https://www.google.com/maps/place/LearnFort+Sports+Park/@10.168391,77.8158151,17z/data=!3m1!4b1!4m6!3m5!1s0x3b074f005fc2e393:0xd21427417fa359e2!8m2!3d10.168391!4d77.8158151!16s%2Fg%2F11yk350zvj?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full h-full relative"
+          >
+            {/* Map Iframe - pointer-events-none ensures the click goes to the anchor tag */}
+            <iframe
+              title="LearnFort Sports Park Location"
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              style={{ border: 0 }}
+              src="https://maps.google.com/maps?q=LearnFort+Sports+Park&t=&z=17&ie=UTF8&iwloc=&output=embed"
+              allowFullScreen
+              className="w-full h-full pointer-events-none"
+            ></iframe>
+
+            {/* Overlay Text (optional, to encourage clicking) */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0">
+                <span className="font-semibold text-blue-600 flex items-center gap-2">
+                  <FiMapPin /> Open in Google Maps
+                </span>
+              </div>
+            </div>
+          </a>
+        </motion.div>
       </section>
 
     </div>

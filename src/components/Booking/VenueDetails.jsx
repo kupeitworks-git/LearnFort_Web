@@ -1,91 +1,165 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiMapPin } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiChevronDown, FiSun, FiMoon } from "react-icons/fi";
+import { FaWifi, FaParking, FaTshirt, FaUtensils, FaDumbbell, FaChild } from "react-icons/fa";
+import { BaseUrl } from "../api/api";
 
-const venueData = {
-    football: {
-        name: "Victory Sports Arena",
-        location: "Downtown, Dindigul",
-        price: 1200,
-        image:
-            "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1471&q=80",
-        about:
-            "A premium 7-a-side football turf with professional lighting, high-quality artificial grass, and ample sidelines for substitutes.",
-        facilities: ["Night Lighting", "Changing Room", "Free Parking", "Drinking Water", "High-Speed WiFi"],
-    },
-    cricket: {
-        name: "Elite Cricket Ground",
-        location: "Westside, Dindigul",
-        price: 1500,
-        image:
-            "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1605&q=80",
-        about:
-            "Well-maintained cricket turf with bowling machine support, boundary nets, and marked pitch for professional practice.",
-        facilities: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
-    },
-    tennis: {
-        name: "Grand Slam Courts",
-        location: "Riverside, Dindigul",
-        price: 600,
-        image:
-            "https://images.unsplash.com/photo-1554068864-787f01234413?auto=format&fit=crop&w=1470&q=80",
-        about:
-            "Hard-court tennis surfaces with proper markings, lighting, and spectator space for friendly matches and coaching.",
-        facilities: ["Night Lighting", "Changing Room", "Gym Area", "Free Parking", "Drinking Water"],
-    },
-    basketball: {
-        name: "Hoops Arena",
-        location: "East End, Dindigul",
-        price: 800,
-        image:
-            "https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&w=1374&q=80",
-        about:
-            "Full-sized basketball court with acrylic flooring, breakaway rims, and perimeter lighting for evening games.",
-        facilities: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
-    },
-    badminton: {
-        name: "Smash Point Arena",
-        location: "Central, Dindigul",
-        price: 400,
-        image:
-            "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1470&q=80",
-        about:
-            "Indoor badminton setup with non-slip flooring, proper court markings, and evenly distributed lighting.",
-        facilities: ["Night Lighting", "Changing Room", "High-Speed WiFi", "Free Parking", "Drinking Water"],
-    },
-    swimming: {
-        name: "Blue Wave Pool",
-        location: "Lakeside, Dindigul",
-        price: 300,
-        image:
-            "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1470&q=80",
-        about:
-            "Crystal clear half-Olympic pool with trained lifeguards, shower area, and kids-friendly sections.",
-        facilities: ["Changing Room", "Free Parking", "Drinking Water", "Food Court"],
-    },
+// Hardcoded facilities data (as requested by user)
+const facilitiesData = {
+    football: ["Night Lighting", "Changing Room", "Free Parking", "Drinking Water", "High-Speed WiFi"],
+    cricket: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
+    tennis: ["Night Lighting", "Changing Room", "Gym Area", "Free Parking", "Drinking Water"],
+    basketball: ["Night Lighting", "Changing Room", "Food Court", "Free Parking", "Drinking Water"],
+    badminton: ["Night Lighting", "Changing Room", "High-Speed WiFi", "Free Parking", "Drinking Water"],
+    swimming: ["Changing Room", "Free Parking", "Drinking Water", "Food Court"],
+    default: ["Night Lighting", "Changing Room", "Free Parking", "Drinking Water"],
 };
 
 const VenueDetails = () => {
     const { sportType } = useParams();
     const navigate = useNavigate();
 
-    const venue = venueData[sportType] || {
-        name: "LearnFort Sports Venue",
-        location: "Dindigul",
-        price: 500,
-        image:
-            "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=1470&q=80",
-        about:
-            "A versatile sports venue powered by LearnFort Sports Park, ideal for practice, coaching, and friendly matches.",
-        facilities: ["Night Lighting", "Changing Room", "Free Parking", "Drinking Water"],
-    };
+    // State declarations at the top level
+    const [sportData, setSportData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [showPriceDropdown, setShowPriceDropdown] = useState(false);
+    const [selectedPeriod, setSelectedPeriod] = useState('hour');
+
+    // Remove the duplicate priceType state since we're using selectedPeriod
+
+    // Fetch sport details from API
+    useEffect(() => {
+        const fetchSportDetails = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`${BaseUrl}sports/list`);
+                const data = await response.json();
+                const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
+
+                // Find the sport matching the URL param
+                const match = sportsList.find(s => s.name.toLowerCase() === sportType.toLowerCase());
+
+                if (match) {
+                    setSportData(match);
+                } else {
+                    setError("Sport not found");
+                }
+            } catch (error) {
+                // console.error("Error fetching sport details:", error);
+                setError("Failed to load sport details");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSportDetails();
+    }, [sportType]);
+
+    // Get facilities for this sport (hardcoded)
+    const facilities = facilitiesData[sportType] || facilitiesData.default;
 
     const sportLabel = sportType
         ? sportType
-              .split("-")
-              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-              .join(" ")
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ")
         : "Sport";
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading venue details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error || !sportData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-red-600 mb-4">{error || "Venue not found"}</p>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Format price with commas
+    const formatPrice = (price) => {
+        return price ? price.toLocaleString('en-IN') : '0';
+    };
+
+    // Facility icons mapping
+    const facilityIcons = {
+        'Night Lighting': <FiSun className="mr-2" />,
+        'Rest Rooms': <FiSun className="mr-2" />,
+        'Food Court': <FaUtensils className="mr-2" />,
+        'Open Gym': <FaDumbbell className="mr-2" />,
+        'Walking Path': <FiMapPin className="mr-2" />,
+        "Children's Play Station": <FaChild className="mr-2" />,
+        'Free Parking': <FaParking className="mr-2" />,
+        'Changing Room': <FaTshirt className="mr-2" />,
+        'High-Speed WiFi': <FaWifi className="mr-2" />,
+        'default': <FiSun className="mr-2" />
+    };
+
+    // Use actual data from API
+    const venue = {
+        name: sportData.ground_name || sportData.name || "LearnFort Sports Venue",
+        location: sportData.location || "Dindigul",
+        image: sportData.image || sportData.web_banner,
+        about: sportData.about || `A premium ${sportData.name} venue powered by LearnFort Sports Park, ideal for practice, coaching, and friendly matches.`,
+        facilities: facilities,
+        sportPriceType: sportData.sport_price_type || 'INDIVIDUAL',
+        groundName: sportData.ground_name || 'Turf near store room',
+        // Day pricing
+        dayPrice: sportData.final_price_per_day || 0,
+        dayActualPrice: sportData.actual_price_per_day || 0,
+        // Night pricing
+        nightPrice: sportData.final_price_per_day_light || 0,
+        nightActualPrice: sportData.actual_price_per_day_light || 0,
+        // Month pricing
+        monthPrice: sportData.final_price_per_month || 0,
+        monthActualPrice: sportData.actual_price_per_month || 0,
+        // Month night pricing (fallback to day_light if not available)
+        monthNightPrice: sportData.final_price_per_month_light || sportData.final_price_per_day_light || 0,
+        monthNightActualPrice: sportData.actual_price_per_month_light || sportData.actual_price_per_day_light || 0,
+        status: sportData.status || 'AVAILABLE'
+    };
+
+    // Get prices based on selected period
+    const getPrices = () => {
+        if (selectedPeriod === 'hour') {
+            return {
+                dayPrice: venue.dayPrice,
+                dayActualPrice: venue.dayActualPrice,
+                nightPrice: venue.nightPrice,
+                nightActualPrice: venue.nightActualPrice
+            };
+        } else {
+            return {
+                dayPrice: venue.monthPrice,
+                dayActualPrice: venue.monthActualPrice,
+                nightPrice: venue.monthNightPrice,
+                nightActualPrice: venue.monthNightActualPrice
+            };
+        }
+    };
+
+    const { dayPrice, dayActualPrice, nightPrice, nightActualPrice } = getPrices();
+
+    // selectedPeriod state is now at the top with other state declarations
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
@@ -125,7 +199,7 @@ const VenueDetails = () => {
                             {venue.location}
                         </div>
                         <div className="flex items-end gap-2 mt-4">
-                            <span className="text-3xl font-bold">${venue.price}</span>
+                            <span className="text-3xl font-bold">₹{venue.price}</span>
                             <span className="text-sm text-blue-100 mb-1">per slot</span>
                         </div>
                     </div>
@@ -135,72 +209,148 @@ const VenueDetails = () => {
 
                         {/* LEFT SECTION — ABOUT + FACILITIES */}
                         <div>
-                            {/* <p className="text-xl md:text-base text-slate-600 mb-1">
-                                <span className="font-bold">{sportLabel}</span>
-                            </p> */}
-                            <h2 className="text-xl md:text-2xl font-semibold text-slate-900 mb-3">
-                                About this venue
+                            <h2 className="text-xl font-semibold text-slate-800 mb-3">
+                                About {sportLabel}
                             </h2>
 
-                            <p className="text-slate-700 text-sm md:text-base leading-relaxed text-justify">
+                            <p className="text-slate-600 text-sm leading-relaxed mb-6">
                                 {venue.about}
                             </p>
 
-                            <h3 className="mt-10 text-xl md:text-2xl font-semibold text-slate-900 mb-4">
+
+                            <h3 className="mt-8 text-xl font-semibold text-slate-800 mb-4">
                                 Facilities Available
                             </h3>
 
-                            <div className="flex flex-wrap gap-3">
-                                {venue.facilities.map((f) => (
-                                    <span
-                                        key={f}
-                                        className="px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium shadow-sm"
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {venue.facilities.map((facility) => (
+                                    <div
+                                        key={facility}
+                                        className="flex items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow transition"
                                     >
-                                        {f}
-                                    </span>
+                                        {facilityIcons[facility] || facilityIcons.default}
+                                        <span className="text-sm text-gray-700">{facility}</span>
+                                    </div>
                                 ))}
                             </div>
                         </div>
 
                         {/* RIGHT SECTION — BOOKING CARD */}
-                        <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 shadow-md">
-                            <p className="text-lg font-bold tracking-widest text-slate-700 uppercase">
-                                {sportLabel} slot details
-                            </p>
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                            <div className="mb-6">
 
-                            <p className="mt-2 text-3xl font-bold text-slate-900">
-                                ${venue.price}
-                                <span className="ml-1 text-sm text-slate-500 font-normal">per slot</span>
-                            </p>
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Details</h3>
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium text-blue-600">Ground Name:</span> {venue.groundName}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <span className="text-slate-700 font-bold text-base whitespace-nowrap">Price per :</span>
+                                    <div className="relative flex-1">
+                                        {/* Border Label */}
+                                        <div className="absolute -top-2 left-4 px-2 bg-white text-[10px] text-gray-400 font-bold uppercase tracking-wider z-10 transition-colors group-hover:text-blue-500">
+                                            Slot Type
+                                        </div>
 
-                            <p className="mt-3 text-xs text-emerald-700 inline-flex items-center bg-emerald-100 px-3 py-1 rounded-full font-medium">
-                                ● Open for bookings
-                            </p>
+                                        {/* Dropdown Button */}
+                                        <div className="relative w-full">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowPriceDropdown(!showPriceDropdown);
+                                                }}
+                                                className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-2xl bg-slate-50 shadow-inner group hover:border-blue-300 hover:bg-white transition-all outline-none"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="capitalize">{selectedPeriod}</span>
+                                                </div>
+                                                <FiChevronDown className={`transition-transform ${showPriceDropdown ? 'transform rotate-180' : ''}`} />
+                                            </button>
+                                            {showPriceDropdown && (
+                                                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                                                    {['hour', 'month'].map((period) => (
+                                                        <div
+                                                            key={period}
+                                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer capitalize flex justify-between items-center"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedPeriod(period);
+                                                                setShowPriceDropdown(false);
+                                                            }}
+                                                        >
+                                                            {period}
+                                                            {selectedPeriod === period && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <p className="mt-3 text-xs text-slate-500">
-                                Prices may vary for weekends and special events.
-                            </p>
+                                <div className="space-y-4 mt-6">
+                                    {/* Day Time Price */}
+                                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for day time: (6AM - 6PM)</h4>
+                                        <div className="space-y-3">
 
-                            <div className="mt-6 flex flex-col gap-3">
+                                            <div className="flex justify-between items-center">
+                                                <p>Price:  <span className="text-lg font-bold text-green-600">
+                                                    ₹{formatPrice(dayPrice)}
+                                                </span></p>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Night Time Price */}
+                                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for night time: (6PM - 6AM)</h4>
+                                        <div className="space-y-3">
+
+                                            <div className="flex justify-between items-center">
+                                                <p>Price:   <span className="text-lg font-bold text-green-600">
+                                                    ₹{formatPrice(nightPrice)}
+                                                </span></p>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-200">
+                                <p className="text-sm text-gray-500 mb-4">
+                                    {venue.status === 'AVAILABLE' ? (
+                                        <span className="inline-flex items-center text-green-600 bg-green-100 px-2.5 py-0.5 rounded-full text-xs font-medium">
+                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
+                                            Available
+                                        </span>
+                                    ) : null}
+                                </p>
+
                                 <button
-                                    onClick={() => navigate(`/book/${sportType}`)}
-                                    className="w-full bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white font-semibold py-3 rounded-full shadow-md hover:shadow-xl transition transform hover:-translate-y-0.5"
+                                    disabled={venue.status !== 'AVAILABLE'}
+                                    onClick={() => venue.status === 'AVAILABLE' && navigate(`/book/${sportType}`)}
+                                    className={`w-full font-medium py-3 px-4 rounded-lg transition-colors ${venue.status === 'AVAILABLE'
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
                                 >
-                                    Book this venue
+                                    {venue.status === 'AVAILABLE' ? 'Book Now' : 'Not Available'}
                                 </button>
 
-                                {/* <button
-                                    type="button"
-                                    className="w-full border border-slate-300 text-slate-700 font-medium py-3 rounded-full hover:bg-slate-100 transition text-sm"
-                                >
-                                    Call to know more
-                                </button> */}
+
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };
