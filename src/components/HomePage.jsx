@@ -16,12 +16,14 @@ const HomePage = () => {
   const [selectedBookingType, setSelectedBookingType] = useState(null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showMaintenancePopup, setShowMaintenancePopup] = useState(false);
+  const [selectedSport, setSelectedSport] = useState(null);
   const navigate = useNavigate();
 
   // Menu items data
   // Menu items data
   const menuItems = [
-    { id: 'games', label: 'Games List', submenu: [] }, // no submenu
+    { id: 'games', label: 'Our Sports List', submenu: [] }, // no submenu
     { 
       id: 'book', 
       label: 'Book Slot', 
@@ -42,6 +44,22 @@ const HomePage = () => {
   // Fetch sports data
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const closePopup = (e) => {
+    e?.stopPropagation();
+    setShowMaintenancePopup(false);
+  };
+  
+  const handleBookNow = (sport, e) => {
+    e?.stopPropagation();
+    if (sport.status === 'NOT_AVAILABLE') {
+      setSelectedSport(sport);
+      setShowMaintenancePopup(true);
+      return false; // Prevent default action
+    }
+    navigate(`/book/${sport.name?.toLowerCase()}`);
+    return true;
+  };
 
   useEffect(() => {
     const fetchSports = async () => {
@@ -375,6 +393,32 @@ const HomePage = () => {
         )}
 
 
+        {/* Maintenance Popup */}
+        {showMaintenancePopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePopup}>
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Note!</h3>
+                <button 
+                  onClick={closePopup}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-gray-700 mb-4 text-left">This sport is currently under maintenance. Please try again later!</p>
+              <button
+                onClick={closePopup}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Available Turfs */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Trending Games</h2>
@@ -434,10 +478,17 @@ const HomePage = () => {
                     <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
                       <span className="text-sm text-gray-500">{turf.distance}</span>
                       <button
-                        onClick={() => navigate(`/book/${turf.name?.toLowerCase()}`)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBookNow(turf, e);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          turf.status === 'NOT_AVAILABLE' 
+                            ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
                       >
-                        Book Now
+                        {turf.status === 'NOT_AVAILABLE' ? 'Not Available' : 'Book Now'}
                       </button>
                     </div>
                   </div>

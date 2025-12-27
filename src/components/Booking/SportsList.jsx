@@ -38,18 +38,63 @@ const fadeUp = {
 
 const SportsCard = ({ sport, onClick }) => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+  const [showMaintenancePopup, setShowMaintenancePopup] = useState(false);
+  
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (sport.status === 'NOT_AVAILABLE') {
+      setShowMaintenancePopup(true);
+      return;
+    }
+    if (onClick) {
+      onClick();
+    }
+  };
+
+  const closePopup = (e) => {
+    e.stopPropagation();
+    setShowMaintenancePopup(false);
+  };
+
+  const isDisabled = sport.status === 'NOT_AVAILABLE';
+  
   return (
     <motion.div
       ref={ref}
       variants={fadeUp}
       initial="hidden"
       animate={inView ? "visible" : "hidden"}
-      whileHover={{ y: -6, scale: 1.03 }}
-      className="relative bg-white rounded-2xl p-6 border border-gray-100 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer group"
-      onClick={onClick}
+      whileHover={{ y: isDisabled ? 0 : -6, scale: isDisabled ? 1 : 1.03 }}
+      className={`relative bg-white rounded-2xl p-6 border border-gray-100 shadow-md ${isDisabled ? 'cursor-default' : 'hover:shadow-2xl cursor-pointer group'}`}
+      onClick={!isDisabled ? onClick : undefined}
     >
+      {showMaintenancePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePopup}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Note!</h3>
+              <button 
+                onClick={closePopup}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-gray-700 mb-4 text-left">This sport is currently under maintenance. Please try again later!</p>
+            <button
+              onClick={closePopup}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${sport.gradient} opacity-0 group-hover:opacity-15 transition duration-500 rounded-2xl`}
+        className={`absolute inset-0 bg-gradient-to-br ${sport.gradient} opacity-0 ${!isDisabled ? 'group-hover:opacity-15' : ''} transition duration-500 rounded-2xl`}
       ></div>
 
       <div className="flex flex-col items-center text-center relative z-10">
@@ -64,17 +109,22 @@ const SportsCard = ({ sport, onClick }) => {
             }}
           />
         </div>
-        <h3 className="text-xl font-bold text-gray-800 mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-sky-500 transition-all">
+        <h3 className={`text-xl font-bold mb-4 ${isDisabled ? 'text-gray-500' : 'text-gray-800 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-sky-500'} transition-all`}>
           {sport.name}
         </h3>
 
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-sky-500 text-white rounded-full font-medium text-sm flex items-center shadow-md hover:shadow-lg"
+          whileHover={!isDisabled ? { scale: 1.05 } : { scale: 1 }}
+          whileTap={!isDisabled ? { scale: 0.97 } : { scale: 0.98 }}
+          onClick={handleClick}
+          className={`px-4 py-2 rounded-full font-medium text-sm flex items-center shadow-md ${
+            isDisabled 
+              ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400' 
+              : 'bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:shadow-lg'
+          }`}
         >
-          Book Now
-          <FiChevronRight className="ml-1" />
+          {isDisabled ? 'Not Available' : 'Book Now'}
+          {!isDisabled && <FiChevronRight className="ml-1" />}
         </motion.button>
       </div>
     </motion.div>
@@ -122,7 +172,8 @@ const SportsList = ({ onBack }) => {
         gradient: sportGradients[sport.name ? sport.name.toLowerCase().replace(/\d+/g, '').trim() : ''] || sportGradients.default,
         image: sport.image || '',
         banner: sport.banner || '',
-        price: sport.final_price_per_slot || 0
+        price: sport.final_price_per_slot || 0,
+        status: sport.status || 'AVAILABLE' // Add status with a default of 'AVAILABLE'
       }));
       
       setSports(formattedSports);
@@ -263,15 +314,7 @@ const SportsList = ({ onBack }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          <p>
-            Can’t find what you’re looking for?{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Contact support
-            </a>
-          </p>
+          
         </motion.div>
       </div>
     </motion.div>

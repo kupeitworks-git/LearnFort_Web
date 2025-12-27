@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaArrowLeft, FaPlay, FaPlus, FaTimes, FaSpinner, FaCheckCircle, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaPlay, FaPlus, FaTimes, FaSpinner, FaCheckCircle, FaTrash, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { FiArrowLeft, FiCheck, FiInfo } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
@@ -49,6 +49,8 @@ const GalleryPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null); // Track selected event for viewing all images
   const [groupedGalleries, setGroupedGalleries] = useState([]); // Store grouped events
   const [viewingImage, setViewingImage] = useState(null); // Track image being viewed in modal
+  const [viewingIndex, setViewingIndex] = useState(0);
+  const [viewingItems, setViewingItems] = useState([]);
   const dateInputRef = useRef(null);
   const location = useLocation();
   // Check if user came from Admin Dashboard
@@ -69,6 +71,33 @@ const GalleryPage = () => {
     }
   }, []);
 
+  const handlePrevImage = (e) => {
+    if (e) e.stopPropagation();
+    if (viewingItems.length <= 1) return;
+    const newIndex = (viewingIndex - 1 + viewingItems.length) % viewingItems.length;
+    setViewingIndex(newIndex);
+    setViewingImage(viewingItems[newIndex].url);
+  };
+
+  const handleNextImage = (e) => {
+    if (e) e.stopPropagation();
+    if (viewingItems.length <= 1) return;
+    const newIndex = (viewingIndex + 1) % viewingItems.length;
+    setViewingIndex(newIndex);
+    setViewingImage(viewingItems[newIndex].url);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!viewingImage) return;
+      if (e.key === 'ArrowLeft') handlePrevImage();
+      if (e.key === 'ArrowRight') handleNextImage();
+      if (e.key === 'Escape') setViewingImage(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingImage, viewingIndex, viewingItems]);
+
   // Check if user is admin or super admin
   const isAdminUser = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN');
 
@@ -76,18 +105,18 @@ const GalleryPage = () => {
     const fetchSportsList = async () => {
       try {
         setLoading(true);
-          ('Fetching sports list...');
+        ('Fetching sports list...');
         const response = await axios.get(`${BaseUrl}sports/list`, {
           headers: {
             // 'Authorization': `Bearer ${token}`
           }
         });
 
-          ('API Response:', response.data);
+        ('API Response:', response.data);
 
         if (response.data && response.data.sports) {
           const sports = response.data.sports;
-            ('Sports data:', sports);
+          ('Sports data:', sports);
 
           // Transform the API response to include gallery images and videos
           const formattedData = {};
@@ -101,7 +130,7 @@ const GalleryPage = () => {
             }
           });
 
-            ('Formatted data:', formattedData);
+          ('Formatted data:', formattedData);
           setSportsData(formattedData);
           setSportsList(sports);
         } else {
@@ -366,8 +395,8 @@ const GalleryPage = () => {
           }
         });
 
-          ("Flattened gallery items:", allItems);
-          ("Grouped gallery events:", grouped);
+        ("Flattened gallery items:", allItems);
+        ("Grouped gallery events:", grouped);
         setSportGalleries(allItems);
         setGroupedGalleries(grouped);
 
@@ -451,7 +480,7 @@ const GalleryPage = () => {
         }
       );
 
-        ('Gallery added successfully:', response.data);
+      ('Gallery added successfully:', response.data);
 
       // Show success message
       showToast("Gallery added successfully!", 'success');
@@ -541,13 +570,15 @@ const GalleryPage = () => {
           {/* Images/Videos Grid */}
           {filteredItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filteredItems.map((item) => (
+              {filteredItems.map((item, index) => (
                 <div
                   key={item._id}
                   onClick={() => {
                     if (item.type === 'IMAGE') {
                       // Open image in modal
                       setViewingImage(item.url);
+                      setViewingIndex(index);
+                      setViewingItems(filteredItems);
                     } else {
                       // Open video in new tab
                       window.open(item.url, '_blank');
@@ -615,9 +646,9 @@ const GalleryPage = () => {
                   <div className="p-3 bg-gray-50 border-b border-gray-200">
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-gray-900 truncate text-left">{event.event_name}</h3>
-                        <p className="text-xs text-gray-500 truncate text-left">{event.gallery_title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5 text-left">{formatDate(event.conducted_time)}</p>
+                        <h3 className="text-base font-bold text-gray-900 truncate text-left">    <span className="font-bold">Event Name:</span> {event.event_name}</h3>
+                        <p className="text-xs text-gray-500 truncate text-left">   <span className="font-bold">Gallery Name:</span> {event.gallery_title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 text-left">  <span className="font-bold">Date:</span> {formatDate(event.conducted_time)}</p>
                       </div>
                       {isFromAdmin && (
                         <div className="relative group flex-shrink-0">
@@ -1151,21 +1182,59 @@ const GalleryPage = () => {
       {/* Image Viewer Modal */}
       {viewingImage && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-4 md:p-10"
           onClick={() => setViewingImage(null)}
         >
+          {/* Close Button */}
           <button
             onClick={() => setViewingImage(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+            className="absolute top-6 right-6 text-white/70 hover:text-white transition-all duration-300 z-[110] bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-md"
+            title="Close (Esc)"
           >
-            <FaTimes className="text-3xl" />
+            <FaTimes className="text-2xl" />
           </button>
-          <img
-            src={viewingImage}
-            alt="Viewing"
-            className="max-w-full max-h-full object-contain"
+
+          {/* Navigation Buttons */}
+          {viewingItems.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-all duration-300 z-[110] bg-white/5 hover:bg-white/15 p-4 md:p-6 rounded-full backdrop-blur-sm group"
+                title="Previous (Left Arrow)"
+              >
+                <FaChevronLeft className="text-2xl md:text-3xl group-hover:scale-110 transition-transform" />
+              </button>
+
+              <button
+                onClick={handleNextImage}
+                className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-all duration-300 z-[110] bg-white/5 hover:bg-white/15 p-4 md:p-6 rounded-full backdrop-blur-sm group"
+                title="Next (Right Arrow)"
+              >
+                <FaChevronRight className="text-2xl md:text-3xl group-hover:scale-110 transition-transform" />
+              </button>
+
+              {/* Image Counter */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 bg-white/5 px-4 py-1.5 rounded-full backdrop-blur-md text-sm font-medium z-[110]">
+                {viewingIndex + 1} / {viewingItems.length}
+              </div>
+            </>
+          )}
+
+          {/* Image Container */}
+          <div
+            className="relative w-full h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <img
+              src={viewingImage}
+              alt={`Gallery image ${viewingIndex + 1}`}
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg animate-in fade-in zoom-in duration-300"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/800x600?text=Image+Not+Found';
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

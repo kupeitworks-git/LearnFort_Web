@@ -18,14 +18,14 @@ const facilitiesData = {
 const VenueDetails = () => {
     const { sportType } = useParams();
     const navigate = useNavigate();
-    
+
     // State declarations at the top level
     const [sportData, setSportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showPriceDropdown, setShowPriceDropdown] = useState(false);
-    const [selectedPeriod, setSelectedPeriod] = useState('day');
-    
+    const [selectedPeriod, setSelectedPeriod] = useState('hour');
+
     // Remove the duplicate priceType state since we're using selectedPeriod
 
     // Fetch sport details from API
@@ -137,10 +137,10 @@ const VenueDetails = () => {
         monthNightActualPrice: sportData.actual_price_per_month_light || sportData.actual_price_per_day_light || 0,
         status: sportData.status || 'AVAILABLE'
     };
-    
+
     // Get prices based on selected period
     const getPrices = () => {
-        if (selectedPeriod === 'day') {
+        if (selectedPeriod === 'hour') {
             return {
                 dayPrice: venue.dayPrice,
                 dayActualPrice: venue.dayActualPrice,
@@ -156,7 +156,7 @@ const VenueDetails = () => {
             };
         }
     };
-    
+
     const { dayPrice, dayActualPrice, nightPrice, nightActualPrice } = getPrices();
 
     // selectedPeriod state is now at the top with other state declarations
@@ -224,7 +224,7 @@ const VenueDetails = () => {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {venue.facilities.map((facility) => (
-                                    <div 
+                                    <div
                                         key={facility}
                                         className="flex items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow transition"
                                     >
@@ -238,91 +238,86 @@ const VenueDetails = () => {
                         {/* RIGHT SECTION — BOOKING CARD */}
                         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                             <div className="mb-6">
-                                
-                            <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Details</h3>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">
-                                        <span className="font-medium text-blue-600">Ground Name:</span> {venue.groundName}
-                                    </p>
+
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Details</h3>
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium text-blue-600">Ground Name:</span> {venue.groundName}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-medium text-gray-500">Price per</span>
-                                    <div className="relative w-32">
-                                        <button 
-                                            className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                            onClick={() => setShowPriceDropdown(!showPriceDropdown)}
-                                        >
-                                            <span>{selectedPeriod === 'day' ? 'Day' : 'Month'}</span>
-                                            <FiChevronDown className="text-gray-500" />
-                                        </button>
-                                        {showPriceDropdown && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                                                <button 
-                                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation();
-                                                        setSelectedPeriod('day'); 
-                                                        setShowPriceDropdown(false); 
-                                                    }}
-                                                >
-                                                    Day
-                                                </button>
-                                                <button 
-                                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation();
-                                                        setSelectedPeriod('month'); 
-                                                        setShowPriceDropdown(false); 
-                                                    }}
-                                                >
-                                                    Month
-                                                </button>
-                                            </div>
-                                        )}
+                                <div className="flex items-center gap-4 mb-6">
+                                    <span className="text-slate-700 font-bold text-base whitespace-nowrap">Price per :</span>
+                                    <div className="relative flex-1">
+                                        {/* Border Label */}
+                                        <div className="absolute -top-2 left-4 px-2 bg-white text-[10px] text-gray-400 font-bold uppercase tracking-wider z-10 transition-colors group-hover:text-blue-500">
+                                            Slot Type
+                                        </div>
+
+                                        {/* Dropdown Button */}
+                                        <div className="relative w-full">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowPriceDropdown(!showPriceDropdown);
+                                                }}
+                                                className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-2xl bg-slate-50 shadow-inner group hover:border-blue-300 hover:bg-white transition-all outline-none"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="capitalize">{selectedPeriod}</span>
+                                                </div>
+                                                <FiChevronDown className={`transition-transform ${showPriceDropdown ? 'transform rotate-180' : ''}`} />
+                                            </button>
+                                            {showPriceDropdown && (
+                                                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                                                    {['hour', 'month'].map((period) => (
+                                                        <div
+                                                            key={period}
+                                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer capitalize flex justify-between items-center"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedPeriod(period);
+                                                                setShowPriceDropdown(false);
+                                                            }}
+                                                        >
+                                                            {period}
+                                                            {selectedPeriod === period && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4 mt-4">
-                                    <div className="p-4 bg-blue-50 rounded-lg">
-                                        {/* <div className="flex items-center text-blue-700 mb-2">
-                                            <FiSun className="mr-2" />
-                                            <span className="font-medium">Day Time</span>
-                                        </div> */}
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-sm text-gray-500">Actual Price</p>
-                                                <p className="text-red-500 text-sm line-through">
-                                                    ₹{formatPrice(dayActualPrice)}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm text-gray-500">Final Price</p>
-                                                <p className="text-lg font-bold text-green-600">
+                                <div className="space-y-4 mt-6">
+                                    {/* Day Time Price */}
+                                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for day time: (6AM - 6PM)</h4>
+                                        <div className="space-y-3">
+                                           
+                                            <div className="flex justify-between items-center">
+                                                <p>Price:  <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(dayPrice)}
-                                                </p>
+                                                </span></p>
+                                              
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-gray-50 rounded-lg">
-                                        <div className="flex items-center text-gray-700 mb-2">
-                                            <FiMoon className="mr-2" />
-                                            <span className="font-medium">Lighting price for night time</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-sm text-gray-500">Actual Price</p>
-                                                <p className="text-red-500 text-sm line-through">
-                                                    ₹{formatPrice(nightActualPrice)}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm text-gray-500">Final Price</p>
-                                                <p className="text-lg font-bold text-green-600">
+                                    {/* Night Time Price */}
+                                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for night time: (6PM - 6AM)</h4>
+                                        <div className="space-y-3">
+                                           
+                                            <div className="flex justify-between items-center">
+                                                <p>Price:   <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(nightPrice)}
-                                                </p>
+                                                </span></p>
+                                             
                                             </div>
                                         </div>
                                     </div>
@@ -350,10 +345,8 @@ const VenueDetails = () => {
                                 >
                                     Book Now
                                 </button>
-                                
-                                <p className="mt-3 text-xs text-center text-gray-500">
-                                    Prices include all applicable taxes
-                                </p>
+
+                             
                             </div>
                         </div>
                     </div>

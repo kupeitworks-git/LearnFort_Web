@@ -48,7 +48,9 @@ const BookingConfirmation = ({
     const [selectedPayment, setSelectedPayment] = useState('online');
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [isCancellingPayment, setIsCancellingPayment] = useState(false);
     const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+    const [showPaymentCancelled, setShowPaymentCancelled] = useState(false);
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [formData, setFormData] = useState({
         fullName: "",
@@ -75,6 +77,9 @@ const BookingConfirmation = ({
             });
             setStep(1);
             setShowPaymentSuccess(false);
+            setShowPaymentCancelled(false);
+            setIsProcessingPayment(false);
+            setIsCancellingPayment(false);
         }
     }, [isOpen]);
 
@@ -150,49 +155,16 @@ const BookingConfirmation = ({
     }, []);
 
     const handleBack = async () => {
-        // If payment modal is open and we have a payment ID, cancel the payment
+        // If payment modal is open and we have a payment ID, just show cancelled UI and redirect home
         if (showPaymentModal && selectedPaymentMode === 'online' && window.rzpPaymentData) {
-            try {
-                setIsLoading(true);
-                const { payment_id, order_id } = window.rzpPaymentData;
-
-                // Get auth token
-                const token = currentUser?.token || '';
-
-                // Call the cancel booking API
-                const response = await fetch(`${BaseUrl}booking/cancel-booking/${payment_id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.message || 'Failed to cancel booking');
-                }
-
-                  ('Booking cancelled successfully:', result);
-                alert('Payment was cancelled. Your booking has been cancelled.');
-            } catch (error) {
-                console.error('Error cancelling booking:', error);
-                alert('Error cancelling booking. Please contact support if you were charged.');
-            } finally {
-                setIsLoading(false);
-                // Clean up
-                window.rzpPaymentData = null;
-            }
+            setShowPaymentCancelled(true);
+            // Clean up payment data
+            window.rzpPaymentData = null;
         }
-
-        // Close modals and navigate
+        // Close any open modals
         setShowPaymentModal(false);
-        if (id) {
-            navigate(`/book/${id}`);
-        } else {
-            onClose();
-        }
+        // Redirect to home page
+        navigate('/', { replace: true });
     };
 
     const handleProceedToPay = () => {
@@ -217,10 +189,10 @@ const BookingConfirmation = ({
 
         try {
             // Debug logging
-              ('Processing payment with method:', selectedPaymentMode);
-              ('Booking Details:', bookingDetails);
-              ('Summary Data:', summaryData);
-              ('Selected Slots:', selectedSlots);
+            console.log('Processing payment with method:', selectedPaymentMode);
+            console.log('Booking Details:', bookingDetails);
+            console.log('Summary Data:', summaryData);
+            console.log('Selected Slots:', selectedSlots);
 
             // Get sport ID from the first selected slot or fallback to other sources
             const sportId = selectedSlots?.[0]?.sportId ||
@@ -268,7 +240,7 @@ const BookingConfirmation = ({
                 bookings: [bookingPayload]
             };
 
-              ('Sending payload:', payload);
+            console.log('Sending payload:', payload);
 
             // Get auth token
             let token = '';
@@ -294,7 +266,7 @@ const BookingConfirmation = ({
             });
 
             const data = await response.json();
-              ('API Response:', data);
+            console.log('API Response:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to process booking');
@@ -303,11 +275,15 @@ const BookingConfirmation = ({
             // Handle payment based on method
             if (selectedPaymentMode === 'COD') {
                 setShowPaymentModal(false);
-                setShowPaymentSuccess(true);
-                // Redirect to home after showing success message
+                // Show processing indicator briefly before success
                 setTimeout(() => {
-                    navigate('/', { replace: true });
-                }, 1000);
+                    setIsProcessingPayment(false);
+                    setShowPaymentSuccess(true);
+                    // Redirect to home after showing success message
+                    setTimeout(() => {
+                        navigate('/', { replace: true });
+                    }, 3000);
+                }, 1500);
             } else if (selectedPaymentMode === 'online') {
                 // Close the modal immediately when redirecting to Razorpay
                 setShowPaymentModal(false);
@@ -347,10 +323,9 @@ const BookingConfirmation = ({
                                     payment_id: data.payment_id
                                 };
 
-                                  ('Verifying payment with payload:', verifyPayload);
+                                console.log('Verifying payment with payload:', verifyPayload);
 
-                                setIsVerifyingPayment(true);
-                                document.body.classList.add('blur-overlay');
+                                setIsProcessingPayment(true);
 
                                 // Verify payment
                                 const verifyResponse = await fetch(`${BaseUrl}booking/verify-payment`, {
@@ -368,7 +343,8 @@ const BookingConfirmation = ({
                                     // Payment verification successful
                                     console.log('Payment verification successful:', result);
 
-                                    // Show success popup and then redirect
+                                    // Hide processing indicator and show success popup
+                                    setIsProcessingPayment(false);
                                     setShowPaymentModal(false);
                                     setShowPaymentSuccess(true);
 
@@ -381,19 +357,36 @@ const BookingConfirmation = ({
                                     console.error('Payment verification failed:', result);
                                     const errorMessage = result.message || 'Payment verification failed';
                                     if (!errorMessage.includes('verified')) {
+                                        setIsProcessingPayment(false);
                                         await handlePaymentCancellation(data.payment_id, 'Payment verification failed. Your booking has been cancelled.');
                                     }
                                 }
                             } catch (error) {
                                 console.error('Payment processing error:', error);
+                                setIsProcessingPayment(false);
                                 // Only show error alert if it's not a success message
                                 if (!error.message?.includes('verified')) {
                                     alert(error.message || 'Payment processing failed. Please contact support.');
                                 }
                                 setShowPaymentModal(false);
-                            } finally {
-                                setIsVerifyingPayment(false);
-                                document.body.classList.remove('blur-overlay');
+                            }
+                        },
+                        modal: {
+                            ondismiss: async function () {
+                                console.log('Payment modal dismissed by user');
+                                try {
+                                    if (data?.payment_id) {
+                                        await handlePaymentCancellation(data.payment_id, 'Payment cancelled by user');
+                                    }
+                                } catch (err) {
+                                    console.error('Error cancelling booking on dismiss:', err);
+                                    setShowPaymentCancelled(true);
+                                    window.rzpPaymentData = null;
+                                }
+
+                                setTimeout(() => {
+                                    navigate('/', { replace: true });
+                                }, 3000);
                             }
                         },
                         theme: {
@@ -402,6 +395,18 @@ const BookingConfirmation = ({
                     };
 
                     const rzp = new window.Razorpay(options);
+
+                    // If we get a failure response from the script, call the cancel API
+                    rzp.on('payment.failed', async function (response) {
+                        console.error('Payment failed response:', response);
+                        try {
+                            setIsProcessingPayment(false);
+                            await handlePaymentCancellation(data.payment_id, 'Payment failed. Your booking has been cancelled.');
+                        } catch (err) {
+                            console.error('Error handling payment failure:', err);
+                        }
+                    });
+
                     rzp.open();
                 };
                 script.onerror = () => {
@@ -425,10 +430,11 @@ const BookingConfirmation = ({
 
         try {
             setIsLoading(true);
+            setIsCancellingPayment(true);
             const token = currentUser?.token || '';
 
             // Call the cancel booking API
-              (`CANCEL BOOKING → payment_id=${paymentId}`);
+            console.log('CANCEL BOOKING → payment_id=', paymentId);
             const response = await fetch(`${BaseUrl}booking/cancel-booking/${paymentId}`, {
                 method: 'PUT',
                 headers: {
@@ -443,11 +449,13 @@ const BookingConfirmation = ({
                 throw new Error(result.message || 'Failed to cancel booking');
             }
 
-              ('Booking cancelled successfully:', result);
-            alert(message || 'Payment was cancelled. Your booking has been cancelled.');
+            console.log('Booking cancelled successfully:', result);
+            setIsCancellingPayment(false);
+            setShowPaymentCancelled(true);
             return true;
         } catch (error) {
             console.error('Error cancelling booking:', error);
+            setIsCancellingPayment(false);
             throw error;
         } finally {
             setIsLoading(false);
@@ -459,19 +467,15 @@ const BookingConfirmation = ({
     };
 
     const handlePaymentCancel = () => {
-        // If we have an active payment, try to cancel it
+        // If we have an active payment, just show cancelled UI without calling API
         if (window.rzpPaymentData) {
-            handlePaymentCancellation(window.rzpPaymentData.payment_id, 'Payment was cancelled. Your booking has been cancelled.')
-                .catch(error => {
-                    console.error('Error in payment cancellation:', error);
-                    alert('Error cancelling payment. Please contact support if you were charged.');
-                });
+            setShowPaymentCancelled(true);
+            // Clean up payment data
+            window.rzpPaymentData = null;
         }
-
-        // Close the modals
+        // Close the payment modal and redirect home
         setShowPaymentModal(false);
-        onClose();
-        setStep(1);
+        navigate('/', { replace: true });
     };
 
     const handlePaymentConfirm = () => {
@@ -783,7 +787,7 @@ const BookingConfirmation = ({
                             {/* Add more fields here */}
                         </div>
                     </div>
-                          {/* User Details Section */}
+                    {/* User Details Section */}
                     <div className="w-full bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                         {/* Header */}
                         <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 flex items-center gap-2">
@@ -808,9 +812,9 @@ const BookingConfirmation = ({
                             </div>
 
                             <div className="flex justify-between">
-                                <p className="font-semibold text-gray-700">Aadhar Number</p>
+                                <p className="font-semibold text-gray-700">Email</p>
                                 <p className="text-gray-600">
-                                    {formData.aadharNumber || currentUser?.aadhar || "-"}
+                                    {formData.email || currentUser?.email || "-"}
                                 </p>
                             </div>
                         </div>
@@ -841,7 +845,7 @@ const BookingConfirmation = ({
                         </div>
                     </div>
 
-              
+
                     <div className="flex justify-between space-x-4 pt-2">
                         <button
                             type="button"
@@ -888,8 +892,8 @@ const BookingConfirmation = ({
                                             onClick={() => handlePaymentModeSelect('online')}
                                             disabled={isLoading}
                                             className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${selectedPaymentMode === 'online'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-200 hover:border-blue-300'
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-200 hover:border-blue-300'
                                                 } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                         >
                                             <div className="flex items-center">
@@ -1096,8 +1100,8 @@ const BookingConfirmation = ({
                                             type="button"
                                             onClick={() => setSelectedPayment('online')}
                                             className={`p-4 border rounded-lg text-left transition-colors ${selectedPayment === 'online'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-300 hover:border-blue-300'
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-300 hover:border-blue-300'
                                                 }`}
                                         >
                                             <div className="flex items-center">
@@ -1115,8 +1119,8 @@ const BookingConfirmation = ({
                                             type="button"
                                             onClick={() => setSelectedPayment('onsite')}
                                             className={`p-4 border rounded-lg text-left transition-colors ${selectedPayment === 'onsite'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-300 hover:border-blue-300'
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-300 hover:border-blue-300'
                                                 }`}
                                         >
                                             <div className="flex items-center">
@@ -1196,8 +1200,8 @@ const BookingConfirmation = ({
                                     onClick={handleSubmit}
                                     disabled={!summaryData && step === 1}
                                     className={`mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:mt-0 sm:col-start-2 sm:text-sm ${step === 1
-                                            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                                            : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                                        ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                                        : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
                                         } ${(!summaryData && step === 1) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {step === 1 ? 'Continue to Payment' : 'Confirm Booking'}
@@ -1205,6 +1209,26 @@ const BookingConfirmation = ({
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderProcessingPayment = () => (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                <div className="text-center">
+                    <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <div className={`animate-spin rounded-full h-16 w-16 border-b-4 ${isCancellingPayment ? 'border-red-600' : 'border-blue-600'}`}></div>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {isCancellingPayment ? 'Cancelling Payment...' : 'Processing Payment...'}
+                    </h3>
+                    <p className="text-gray-600">
+                        {isCancellingPayment
+                            ? 'Please wait while we cancel your payment.'
+                            : 'Please wait while we process your payment.'}
+                    </p>
                 </div>
             </div>
         </div>
@@ -1234,28 +1258,18 @@ const BookingConfirmation = ({
         </div>
     );
 
-    {isVerifyingPayment && (
-        <>
-            <div className="blur-overlay"></div>
-            <div className="payment-verifying">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Verifying Payment</h3>
-                <p className="text-gray-600">Please wait while we verify your payment...</p>
-            </div>
-        </>
-    )}
-    {showPaymentSuccess && (
+    const renderPaymentCancelled = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
                 <div className="text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiCheck className="text-green-500 text-3xl" />
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiX className="text-red-500 text-3xl" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Payment Successful!</h3>
-                    <p className="text-gray-600 mb-6">Your booking has been confirmed.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Payment Cancelled</h3>
+                    <p className="text-gray-600 mb-6">Your booking has been cancelled.</p>
                     <button
                         onClick={() => {
-                            setShowPaymentSuccess(false);
+                            setShowPaymentCancelled(false);
                             onClose();
                             navigate('/');
                         }}
@@ -1266,12 +1280,13 @@ const BookingConfirmation = ({
                 </div>
             </div>
         </div>
-    )}
+    );
+
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
-   
+
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
                 <motion.div
                     className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-8 max-h-[90vh] flex flex-col"
@@ -1282,7 +1297,9 @@ const BookingConfirmation = ({
                     {step === 1 ? renderStepTwo() : renderStepTwo()}
                 </motion.div>
             </div>
-                     {showPaymentSuccess && renderPaymentSuccess()}
+            {(isProcessingPayment || isCancellingPayment) && renderProcessingPayment()}
+            {showPaymentSuccess && renderPaymentSuccess()}
+            {showPaymentCancelled && renderPaymentCancelled()}
         </AnimatePresence>
     );
 };

@@ -352,21 +352,33 @@ const handleProceedToPayment = async () => {
     return;
   }
 
+  // Check if user is logged in
+  let token = '';
+  try {
+    const stored = localStorage.getItem('lf_user');
+    if (!stored) {
+      // Redirect to login page if user is not logged in
+      toast.info('Please login to continue with booking');
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    
+    const parsed = JSON.parse(stored);
+    token = parsed?.token || '';
+    
+    if (!token) {
+      toast.info('Please login to continue with booking');
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+  } catch (err) {
+    console.error('Error getting auth token:', err);
+    toast.error('An error occurred. Please try again.');
+    return;
+  }
+
   try {
     setLoadingSummary(true);
-    
-    // Get auth token from localStorage
-    let token = '';
-    try {
-      const stored = localStorage.getItem('lf_user');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        token = parsed?.token || '';
-      }
-    } catch (err) {
-      console.error('Error getting auth token:', err);
-      token = '';
-    }
 
     // Prepare the times array from selected slots
     const times = selectedSlots.map(slot => ({

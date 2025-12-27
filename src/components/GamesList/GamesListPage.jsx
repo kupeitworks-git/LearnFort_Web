@@ -10,6 +10,24 @@ const GamesListPage = () => {
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showMaintenancePopup, setShowMaintenancePopup] = useState(false);
+  const [selectedSport, setSelectedSport] = useState(null);
+
+  const closePopup = (e) => {
+    e?.stopPropagation();
+    setShowMaintenancePopup(false);
+  };
+
+  const handleCardClick = (sport, e) => {
+    e?.stopPropagation();
+    if (sport.status === 'NOT_AVAILABLE') {
+      setSelectedSport(sport);
+      setShowMaintenancePopup(true);
+      return false;
+    }
+    navigate(`/venue/${sport.name}`);
+    return true;
+  };
 
   useEffect(() => {
     const fetchSports = async () => {
@@ -47,7 +65,7 @@ const GamesListPage = () => {
               <FiArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-              Games & Facilities
+              Our Sports List
             </h1>
           </div>
           {/* Search Bar (optional, added for "wonderful" UX) */}
@@ -95,17 +113,32 @@ const GamesListPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  onClick={() => navigate(`/venue/${sport.name}`)}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+                  onClick={(e) => handleCardClick(sport, e)}
+                  className={`group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 transform hover:-translate-y-1 ${
+                    sport.status === 'NOT_AVAILABLE' 
+                      ? 'opacity-90 cursor-pointer' 
+                      : 'cursor-pointer hover:shadow-xl'
+                  }`}
                 >
                   {/* Image Section */}
                   <div className="relative h-48 sm:h-52 overflow-hidden">
                     {sport.image || sport.web_banner ? (
+                      <div className="relative w-full h-full">
                       <img
                         src={sport.image || sport.web_banner}
                         alt={sport.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${
+                          sport.status === 'NOT_AVAILABLE' ? 'blur-[2px]' : ''
+                        }`}
                       />
+                      {/* {sport.status === 'NOT_AVAILABLE' && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">
+                            Not Available
+                          </span>
+                        </div>
+                      )} */}
+                    </div>
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                         <FaRunning className="w-12 h-12 text-blue-300" />
@@ -116,8 +149,12 @@ const GamesListPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                     {/* Price Badge */}
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-blue-800 shadow-sm">
-                      {sport.final_price_per_day ? `₹${sport.final_price_per_day}/slot` : 'Book Now'}
+                    <div className={`absolute top-4 right-4 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                      sport.status === 'NOT_AVAILABLE'
+                        ? 'bg-white/90 text-blue-800'
+                        : 'bg-white/90 text-blue-800'
+                    }`}>
+                     ₹${sport.final_price_per_day}/slot
                     </div>
 
                     {/* Title over Image (optional style, or below) - choosing below for cleanliness, kept simple title on image */}
@@ -135,8 +172,12 @@ const GamesListPage = () => {
                     </p>
 
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                        AVAILABLE NOW
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                        sport.status === 'NOT_AVAILABLE'
+                          ? 'text-gray-600 bg-gray-50 '
+                          : 'text-blue-600 bg-blue-50'
+                      }`}>
+                        {sport.status === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : 'AVAILABLE NOW'}
                       </span>
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,6 +200,32 @@ const GamesListPage = () => {
           </div>
         )}
       </div>
+
+      {/* Maintenance Popup */}
+      {showMaintenancePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePopup}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Note!</h3>
+              <button 
+                onClick={closePopup}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-gray-700 mb-4 text-left">This sport is currently under maintenance. Please try again later!</p>
+            <button
+              onClick={closePopup}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

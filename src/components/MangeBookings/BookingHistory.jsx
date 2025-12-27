@@ -10,6 +10,9 @@ import {
     FiCalendar,
     FiCheckCircle,
     FiX,
+    FiUser,
+    FiLayers,
+    FiChevronRight
 } from "react-icons/fi";
 import {
     GiSoccerBall,
@@ -18,6 +21,7 @@ import {
     GiBasketballBall,
     GiShuttlecock,
 } from "react-icons/gi";
+import { FaSpinner } from "react-icons/fa";
 
 const BookingsPage = () => {
     const navigate = useNavigate();
@@ -27,6 +31,9 @@ const BookingsPage = () => {
     const [showReceipt, setShowReceipt] = useState(false);
     const [pendingBooking, setPendingBooking] = useState(null);
     const [showPendingPayment, setShowPendingPayment] = useState(false);
+    const [user, setUser] = useState(null);
+    const [viewMode, setViewMode] = useState("selection"); // 'selection' or 'history'
+    const [historyType, setHistoryType] = useState("my"); // 'my' or 'all'
 
     // State for pagination and data
     const [bookings, setBookings] = useState({
@@ -55,7 +62,25 @@ const BookingsPage = () => {
     });
 
     const [loading, setLoading] = useState(false);
+    const [totalItems, setTotalItems] = useState({
+        upcoming: 0,
+        live: 0,
+        completed: 0,
+        "my-bookings": 0,
+        all: 0
+    });
     const receiptRef = useRef(null);
+
+    // Get user and handle initial view
+    useEffect(() => {
+        const storedUser = localStorage.getItem("lf_user");
+        if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+        }
+    }, []);
+
+    const isAdmin = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN');
 
     const downloadReceipt = async () => {
         const receiptElement = document.getElementById('receipt-content');
@@ -69,7 +94,7 @@ const BookingsPage = () => {
         container.style.width = '100%';
         container.style.zIndex = '9999';
         container.style.visibility = 'hidden';
-        
+
         // Create a clone of the receipt element with print-specific styles
         const receiptClone = receiptElement.cloneNode(true);
         receiptClone.style.position = 'absolute';
@@ -83,31 +108,31 @@ const BookingsPage = () => {
         receiptClone.style.background = '#ffffff';
         receiptClone.style.padding = '20px';
         receiptClone.style.zIndex = '10000';
-        
+
         // Append to container and then to body
         container.appendChild(receiptClone);
         document.body.appendChild(container);
-        
+
         try {
             // Make the container visible for capture
             container.style.visibility = 'visible';
-            
+
             // Wait for the browser to render the element
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             // Get the scrollable content and make it fully visible
             const scrollableContent = receiptClone.querySelector('.custom-scrollbar');
             if (scrollableContent) {
                 scrollableContent.style.overflow = 'visible';
                 scrollableContent.style.maxHeight = 'none';
             }
-            
+
             // Hide any download buttons in the clone
             const downloadButtons = receiptClone.querySelectorAll('button[title="Download Receipt"]');
             downloadButtons.forEach(btn => {
                 btn.style.display = 'none';
             });
-            
+
             // Use html2canvas with the clone
             const canvas = await html2canvas(receiptClone, {
                 scale: 2,
@@ -121,7 +146,7 @@ const BookingsPage = () => {
                 backgroundColor: '#ffffff',
                 removeContainer: true
             });
-            
+
             // Create PDF with proper dimensions
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
@@ -129,17 +154,17 @@ const BookingsPage = () => {
                 unit: 'mm',
                 format: 'a4'
             });
-            
+
             // Calculate dimensions to fit the page width while maintaining aspect ratio
             const pageWidth = pdf.internal.pageSize.getWidth() - 20;
             const pageHeight = (canvas.height * pageWidth) / canvas.width;
-            
+
             // Add image to PDF with proper scaling and centering
             pdf.addImage(imgData, 'PNG', 10, 10, pageWidth, pageHeight);
-            
+
             // Save the PDF with a proper name
             pdf.save(`receipt-${selectedBooking?.id || Date.now()}.pdf`);
-            
+
         } catch (error) {
             console.error('Error generating PDF:', error);
         } finally {
@@ -170,6 +195,16 @@ const BookingsPage = () => {
         return `${h}:${minutes} ${ampm}`;
     };
 
+    const handleBack = () => {
+        if (viewMode === "history") {
+            setViewMode("selection");
+            // Reset bookings for the new context if needed, 
+            // but keeping them might be fine unless user wants a fresh fetch every time
+        } else {
+            navigate(-1);
+        }
+    };
+
     // Helper to format API data to match UI expected fields
     // Assuming API returns standard fields, but we map safe properties
     const mapBookingData = (item) => ({
@@ -196,77 +231,79 @@ const BookingsPage = () => {
         rawDate: item.booking_date // Keep raw for receipts if needed
     });
 
-  const loadMore = React.useCallback(async (type) => {
-    if (loading) return;
+    const fetchBookings = React.useCallback(async (type, pageNum) => {
+        if (loading) return;
 
-    setLoading(true);
-    try {
-        setPages(prev => {
-            const nextPage = prev[type] + 1;
-            return { ...prev, [type]: nextPage };
-        });
+        setLoading(true);
+        try {
+            const token = sessionStorage.getItem('token');
+            let status = type;
+            let filter = historyType === "all" ? "all" : "my-bookings";
 
-        const token = sessionStorage.getItem('token');
-        let status = type;
-        let filter = null;
-
-        if (type === "my-bookings") {
-            status = "upcoming";
-            filter = "my-bookings";
-        } else if (type === "all") {
-            status = "upcoming";
-            filter = "all";
-        }
-
-        let url = `${BaseUrl}booking/booking-details?status=${status}&limit=10&page=${pages[type] + 1}`;
-        if (filter) {
-            url += `&filter=${filter}`;
-        }
-
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+            let url = `${BaseUrl}booking/booking-details?status=${status}&limit=50&page=${pageNum}`;
+            if (filter) {
+                url += `&filter=${filter}`;
             }
-        });
-        const result = await response.json();
 
-        const newItems = (result.data || result.bookings || []).map(mapBookingData);
-        
-        setBookings(prev => {
-            const existingIds = new Set(prev[type].map(booking => booking.id));
-            const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id));
-            
-            if (uniqueNewItems.length > 0) {
-                return {
-                    ...prev,
-                    [type]: [...prev[type], ...uniqueNewItems]
-                };
-            }
-            return prev;
-        });
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const result = await response.json();
 
-        if (newItems.length < 10) {
-            setHasMore(prev => ({ ...prev, [type]: false }));
+            const newItems = (result.data || result.bookings || []).map(mapBookingData);
+
+            // If API provides total items, store it. Otherwise estimate from results.
+            const total = result.total || result.total_count || (newItems.length < 50 ? (pageNum - 1) * 50 + newItems.length : 1000);
+
+            setTotalItems(prev => ({ ...prev, [type]: total }));
+
+            setBookings(prev => ({
+                ...prev,
+                [type]: newItems
+            }));
+
+            setHasMore(prev => ({
+                ...prev,
+                [type]: newItems.length === 50
+            }));
+
+            setPages(prev => ({
+                ...prev,
+                [type]: pageNum
+            }));
+
+        } catch (error) {
+            console.error(`Fetch Error for ${type} →`, error);
+        } finally {
+            setLoading(false);
         }
+    }, [historyType]); // Removed loading from dependencies to keep the function stable
 
-    } catch (error) {
-        console.error(`Pagination Error for ${type} →`, error);
-    } finally {
-        setLoading(false);
-    }
-}, [loading]); // Only depend on loading state
-
-
-   // Update the useEffect to use useCallback memoized loadMore
-React.useEffect(() => {
-    const fetchInitialData = async () => {
-        if (bookings[activeTab].length === 0 && hasMore[activeTab]) {
-            await loadMore(activeTab);
+    const handlePrevPage = () => {
+        if (pages[activeTab] > 1) {
+            fetchBookings(activeTab, pages[activeTab] - 1);
         }
     };
-    
-    fetchInitialData();
-}, [activeTab, bookings, hasMore, loadMore]);
+
+    const handleNextPage = () => {
+        if (hasMore[activeTab]) {
+            fetchBookings(activeTab, pages[activeTab] + 1);
+        }
+    };
+
+
+    // Update the useEffect to use useCallback memoized loadMore
+    React.useEffect(() => {
+        const fetchInitialData = async () => {
+            if (viewMode === "history" && bookings[activeTab].length === 0 && !loading) {
+                await fetchBookings(activeTab, 1);
+            }
+        };
+
+        fetchInitialData();
+    }, [activeTab, viewMode, historyType, fetchBookings]); // Removed 'bookings' to break the loop
     const getBookings = () => bookings[activeTab] || [];
 
     const toggleBooking = (id) => {
@@ -278,165 +315,278 @@ React.useEffect(() => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-800 font-['Inter',sans-serif]">
-            {/* Header */}
-            <header className="bg-[#1E3A8A] text-white shadow-md sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
+       <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
+        
+        {/* Header */}
+           <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
+  
+                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
                     <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 rounded-full bg-white/10 mr-4 transition"
+                        onClick={handleBack}
+                        className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 mr-4 transition-all duration-300 hover:scale-110 active:scale-95 shadow-inner"
                     >
                         <FiArrowLeft className="w-5 h-5" />
                     </button>
-                    <h1 className="text-xl font-semibold tracking-wide">
-                        Booking History
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                        {viewMode === "selection" ? "Booking History" : (historyType === "all" ? "All Bookings" : "My Bookings")}
                     </h1>
                 </div>
             </header>
 
-            {/* Tabs */}
-            <div className="max-w-5xl mx-auto mt-4 px-4 sticky top-16 z-10 bg-gray-50 pt-2 pb-2">
-                <div className="flex border-b border-gray-200">
-                    {["upcoming", "live", "completed"].map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-3 text-sm font-medium capitalize transition-all duration-300 relative ${activeTab === tab
-                                ? "text-blue-700"
-                                : "text-gray-500 hover:text-gray-700"
-                                }`}
+            {viewMode === "selection" ? (
+                <div className="max-w-3xl mx-auto mt-12 px-6">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-extrabold text-[#1E3A8A] mb-3">Welcome Back!</h2>
+                        <p className="text-gray-500 text-lg">Select which records you'd like to explore today.</p>
+                    </div>
+
+                    <div className={`${isAdmin ? "grid grid-cols-1 md:grid-cols-2" : "flex justify-center"} gap-8`}>
+                        {/* My Bookings Card */}
+                        <motion.button
+                            whileHover={{ y: -8, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            onClick={() => {
+                                setHistoryType("my");
+                                setViewMode("history");
+                                // Reset data for fresh fetch
+                                setBookings({ upcoming: [], live: [], completed: [], "my-bookings": [], all: [] });
+                                setPages({ upcoming: 0, live: 0, completed: 0, "my-bookings": 0, all: 0 });
+                                setHasMore({ upcoming: true, live: true, completed: true, "my-bookings": true, all: true });
+                            }}
+                            className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-blue-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10"
                         >
-                            {tab}
-                            {activeTab === tab && (
-                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-700 rounded-t-full"></span>
-                            )}
-                        </button>
-                    ))}
+                            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-3xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform duration-300">
+                                <FiUser className="w-9 h-9" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-800 mb-2">My Bookings</h3>
+                            <p className="text-gray-500 mb-6">Access your personal bookings and check status.</p>
+                            <div className="mt-auto flex items-center gap-2 text-blue-600 font-bold group-hover:gap-4 transition-all duration-300">
+                                <span>Explore Now</span>
+                                <FiChevronRight className="w-5 h-5" />
+                            </div>
+                        </motion.button>
+
+                        {/* All Bookings Card (Admin Only) */}
+                        {isAdmin && (
+                            <motion.button
+                                whileHover={{ y: -8, scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: 0.1 }}
+                                onClick={() => {
+                                    setHistoryType("all");
+                                    setViewMode("history");
+                                    setActiveTab("upcoming");
+                                    setBookings({ upcoming: [], live: [], completed: [], "my-bookings": [], all: [] });
+                                    setPages({ upcoming: 0, live: 0, completed: 0, "my-bookings": 0, all: 0 });
+                                    setHasMore({ upcoming: true, live: true, completed: true, "my-bookings": true, all: true });
+                                }}
+                                className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-green-900/5 border border-green-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/10"
+                            >
+                                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-700 rounded-3xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-200 group-hover:scale-110 transition-transform duration-300">
+                                    <FiLayers className="w-9 h-9" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-800 mb-2">All Bookings</h3>
+                                <p className="text-gray-500 mb-6">Monitor all traffic and bookings across the park.</p>
+                                <div className="mt-auto flex items-center gap-2 text-green-600 font-bold group-hover:gap-4 transition-all duration-300">
+                                    <span>Manage All</span>
+                                    <FiChevronRight className="w-5 h-5" />
+                                </div>
+                            </motion.button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <>
 
-            {/* Bookings List */}
-            <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-5xl mx-auto px-4 mt-6 pb-20"
-            >
-                <div className="flex flex-col gap-4">
-                    <h2 className="text-xl font-bold text-blue-900 mb-2">
-                        Your Recent Bookings
-                    </h2>
-
-                    {getBookings().length > 0 ? (
-                        getBookings().map((booking, index) => {
-                            const isExpanded = expandedBooking === booking.id;
-                            const uniqueKey = `${booking.id}-${index}`;
-
-                            return (
-                                <motion.div
-                                    key={uniqueKey}
-                                    layout
-                                    className="bg-white rounded-xl overflow-hidden shadow-sm border border-purple-100"
-                                >
-                                    {/* Card Header (Always Visible) */}
-                                    <div
-                                        onClick={() => toggleBooking(booking.id)}
-                                        className="p-4 cursor-pointer flex items-center justify-between"
+                    {/* Tabs - Only show for All Bookings */}
+                    {historyType === "all" && (
+                        <div className="max-w-5xl mx-auto mt-4 px-4 sticky top-16 z-10 bg-gray-50 pt-2 pb-2">
+                            <div className="flex border-b border-gray-200">
+                                {["upcoming", "live", "completed"].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`flex-1 py-3 text-sm font-medium capitalize transition-all duration-300 relative ${activeTab === tab
+                                            ? "text-blue-700"
+                                            : "text-gray-500 hover:text-gray-700"
+                                            }`}
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-700 shadow-sm">
-                                                {gameIcons[booking.game] || <GiSoccerBall className="w-6 h-6" />}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-blue-900 text-lg capitalize text-left">{booking.game}</h3>
-                                                <p className="text-blue-400 text-sm font-medium text-left">{booking.date}</p>
-                                                <p className="text-blue-400 text-sm font-medium text-left">{booking.time}</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <motion.div
-                                                animate={{ rotate: isExpanded ? 180 : 0 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </motion.div>
-                                        </div>
-                                    </div>
+                                        {tab}
+                                        {activeTab === tab && (
+                                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-700 rounded-t-full"></span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
-                                    {/* Expanded Content */}
-                                    {isExpanded && (
+                    {/* Bookings List */}
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="max-w-5xl mx-auto px-4 mt-6 pb-20"
+                    >
+                        <div className="flex flex-col gap-4">
+                            <h2 className="text-xl font-bold text-blue-900 mb-2">
+                                Your Recent Bookings
+                            </h2>
+
+                            {loading && getBookings().length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <FaSpinner className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                                    <p className="text-blue-900 font-medium animate-pulse">Fetching your {activeTab} bookings...</p>
+                                </div>
+                            ) : getBookings().length > 0 ? (
+                                getBookings().map((booking, index) => {
+                                    const isExpanded = expandedBooking === booking.id;
+                                    const uniqueKey = `${booking.id}-${index}`;
+
+                                    return (
                                         <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="px-4 pb-4"
+                                            key={uniqueKey}
+                                            layout
+                                            className="bg-white rounded-xl overflow-hidden shadow-sm border border-purple-100"
                                         >
-                                            {/* Status Badge */}
-                                            <div className="flex items-center gap-2 mb-4">
-                                                {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? (
-                                                    <FiCheckCircle className="w-5 h-5 text-green-500" />
-                                                ) : (
-                                                    <FiClock className="w-5 h-5 text-yellow-500" />
-                                                )}
+                                            {/* Card Header (Always Visible) */}
+                                            <div
+                                                onClick={() => toggleBooking(booking.id)}
+                                                className="p-4 cursor-pointer flex items-center justify-between"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-700 shadow-sm">
+                                                        {gameIcons[booking.game] || <GiSoccerBall className="w-6 h-6" />}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-blue-900 text-lg capitalize text-left">{booking.game}</h3>
+                                                        <p className="text-blue-400 text-sm font-medium text-left">{booking.date}</p>
+                                                        <p className="text-blue-400 text-sm font-medium text-left">{booking.time}</p>
+                                                    </div>
+                                                </div>
                                                 <div>
-                                                    <p className="font-semibold text-blue-900">
-                                                        {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? 'Payment Successful' : 'Payment Information'}
-                                                    </p>
-                                                    <p className="text-blue-700 font-bold">Amount: ₹{booking.amount}</p>
+                                                    <motion.div
+                                                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </motion.div>
                                                 </div>
                                             </div>
 
-                                            {/* Notes / Info */}
-                                            <div className="bg-green-50/50 border border-green-100 rounded-lg p-3 mb-4 text-green-800 text-sm flex items-start gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>{booking.notes || "No additional notes provided."}</span>
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="flex justify-end">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedBooking(booking);
-                                                        setShowReceipt(true);
-                                                    }}
-                                                    className="bg-[#3B5998] hover:bg-[#2d4373] text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+                                            {/* Expanded Content */}
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: "auto" }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="px-4 pb-4"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                                                    </svg>
-                                                    View Receipt
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </motion.div>
-                            );
-                        })
-                    ) : (
-                        <p className="text-gray-500 text-center py-10">
-                            No {activeTab} bookings found.
-                        </p>
-                    )}
-                </div>
+                                                    {/* Status Badge */}
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? (
+                                                            <FiCheckCircle className="w-5 h-5 text-green-500" />
+                                                        ) : (
+                                                            <FiClock className="w-5 h-5 text-yellow-500" />
+                                                        )}
+                                                        <div>
+                                                            <p className="font-semibold text-blue-900">
+                                                                {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? 'Payment Successful' : 'Payment Information'}
+                                                            </p>
+                                                            <p className="text-blue-700 font-bold">Amount: ₹{booking.amount}</p>
+                                                        </div>
+                                                    </div>
 
-                {/* Load More Button */}
-                {getBookings().length > 0 && hasMore[activeTab] && (
-                    <div className="flex justify-center mt-8 pb-8">
-                        <button
-                            onClick={() => loadMore(activeTab)}
-                            disabled={loading}
-                            className="text-blue-600 font-medium text-sm hover:underline disabled:opacity-50"
-                        >
-                            {loading ? "Loading..." : "Load More"}
-                        </button>
-                    </div>
-                )}
-            </motion.div>
+                                                    {/* Notes / Info */}
+                                                    <div className="bg-green-50/50 border border-green-100 rounded-lg p-3 mb-4 text-green-800 text-sm flex items-start gap-2">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span>{booking.notes || "No additional notes provided."}</span>
+                                                    </div>
+
+                                                    {/* Action Buttons */}
+                                                    <div className="flex justify-end">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedBooking(booking);
+                                                                setShowReceipt(true);
+                                                            }}
+                                                            className="bg-[#3B5998] hover:bg-[#2d4373] text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                                            </svg>
+                                                            View Receipt
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                        <FiCalendar className="w-8 h-8 text-gray-400" />
+                                    </div>
+                                    <p className="text-gray-500 font-medium">No {activeTab} bookings found.</p>
+                                    <p className="text-gray-400 text-sm mt-1">Book your first game to see it here!</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {viewMode === "history" && (
+                            <div className="flex flex-col items-center gap-4 mt-10 pb-16">
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={handlePrevPage}
+                                        disabled={loading || pages[activeTab] <= 1}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-white text-blue-700 font-bold rounded-2xl shadow-md border border-blue-50 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        <span>Previous</span>
+                                    </button>
+
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Page</span>
+                                        <span className="text-blue-900 font-black text-xl">{pages[activeTab]}</span>
+                                    </div>
+
+                                    <button
+                                        onClick={handleNextPage}
+                                        disabled={loading || !hasMore[activeTab]}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-[#1E3A8A] text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:bg-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                                    >
+                                        <span>Next</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {loading && (
+                                    <div className="flex items-center gap-2 text-blue-600 font-medium">
+                                        <FaSpinner className="animate-spin" />
+                                        <span className="text-sm">Loading records...</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </motion.div>
+                </>
+            )}
 
             {/* Payment Success Modal (Simplified/Removed in favor of specific flow if needed, but keeping logic just in case) */}
             {selectedBooking && !showReceipt && false && (
@@ -461,7 +611,7 @@ React.useEffect(() => {
                         {/* Header Bar */}
                         <div className="bg-[#3B5998] text-white p-4 flex items-center justify-between">
                             <button
-                            className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
+                                className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
                                 onClick={() => {
                                     setSelectedBooking(null);
                                     setShowReceipt(false);
