@@ -136,12 +136,14 @@ function Footer() {
     Contact Info
   </h4>
 
-  <ul className="space-y-2 text-sm text-slate-200">
+  <ul className="space-y-2 text-sm text-slate-200 text-left">
     
     {/* Address */}
     <li className="flex items-start gap-3">
-      <FiMapPin className="mt-0.5 text-cyan-300" />
-      <span>Bangala Patti, Dindigul, TN 624202</span>
+      <FiMapPin className="mt-0.5 text-cyan-300 flex-shrink-0" />
+      <span className="break-words">
+        LearnFort Sports Park, Batlagundu road, Bangalapatti, Nilakottai(Taluk), Dindigul(Dist), Tamil Nadu, India, 624202
+      </span>
     </li>
 
   
@@ -153,11 +155,22 @@ function Footer() {
         href="tel:+914543245622"
         className="hover:text-cyan-300 hover:underline"
       >
-      Landline:  +91 4543 245 622
+      Phone:  +91 45432 45622
       </a>
     </li>
 
     {/* WhatsApp Number */}
+    <li className="flex items-center gap-3">
+      <FiPhone className="text-cyan-300" />
+      <a
+        href="https://wa.me/918124745622"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:text-cyan-300 hover:underline"
+      >
+        Mobile: +91 81247 45622
+      </a>
+    </li>
     <li className="flex items-center gap-3">
       <FiPhone className="text-cyan-300" />
       <a
@@ -178,6 +191,15 @@ function Footer() {
         className="hover:text-cyan-300 hover:underline"
       >
         info@learnfortsports.com
+      </a>
+    </li>
+    <li className="flex items-center gap-3">
+      <FiMail className="text-cyan-300" />
+      <a
+        href="mailto:learnfortsports@gmail.com"
+        className="hover:text-cyan-300 hover:underline"
+      >
+        learnfortsports@gmail.com
       </a>
     </li>
   </ul>

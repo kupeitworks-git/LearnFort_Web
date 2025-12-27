@@ -184,33 +184,37 @@ const Contacting = () => {
 
             <div className="space-y-6 text-sm">
               <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
                   <FiMapPin className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-50 text-left">Address</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">Bangala Patti, Dindigul, TN 624202</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm break-words text-left">
+                    LearnFort Sports Park, Batlagundu road, Bangalapatti, Nilakottai(Taluk), Dindigul(Dist), Tamil Nadu, India-624202
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
                   <FiPhone className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-50 text-left">Phone</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">Landline: +91 4543 245 622</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">WhatsApp: +91 94441 23722</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm text-left">Phone: +91 4543 245 622</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm text-left">Mobile: +91 94441 23722</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm text-left">WhatsApp: +91 94441 23722</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300">
+                <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-300 flex-shrink-0">
                   <FiMail className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-50 text-left">Email</p>
-                  <p className="text-slate-200/80 text-xs md:text-sm">info@learnfortsports.com</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm text-left">info@learnfortsports.com</p>
+                  <p className="text-slate-200/80 text-xs md:text-sm text-left">learnfortsports@gmail.com</p>
                 </div>
               </div>
             </div>
