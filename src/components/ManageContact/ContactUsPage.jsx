@@ -27,7 +27,7 @@ const ContactUsPage = () => {
         setUser(userData);
       }
     } catch (err) {
-      console.error("Error parsing user data:", err);
+      // console.error("Error parsing user data:", err);
     }
   }, []);
 
@@ -71,7 +71,7 @@ const ContactUsPage = () => {
 
       setIssues(formattedData);
     } catch (err) {
-      console.error('Error fetching enquiries:', err);
+      // console.error('Error fetching enquiries:', err);
       setError(err.message || 'Failed to load enquiries');
     } finally {
       setIsLoading(false);
@@ -121,7 +121,7 @@ const ContactUsPage = () => {
       }, 500);
 
     } catch (err) {
-      console.error('Error sending reply:', err);
+      // console.error('Error sending reply:', err);
       setError(err.message || 'Failed to send reply');
     } finally {
       setIsSendingReply(false); // Make sure to re-enable the button in case of error
@@ -151,7 +151,7 @@ const ContactUsPage = () => {
       setShowMarkReadConfirm(false);
       setIssueToMark(null);
     } catch (err) {
-      console.error('Error marking as read:', err);
+      // console.error('Error marking as read:', err);
       setError(err.message || 'Failed to mark as read');
     }
   };
@@ -261,9 +261,9 @@ const ContactUsPage = () => {
                   {/* Details */}
                   <div className="flex-1 min-w-0">
                     {issue.contact_type && (
-                  <h3 className="text-blue-500 font-semibold text-sm text-left whitespace-normal break-words">
-                     {issue.contact_type}
-                    </h3>
+                      <h3 className="text-blue-500 font-semibold text-sm text-left whitespace-normal break-words">
+                        {issue.contact_type}
+                      </h3>
                     )}
                     <h3 className="text-gray-800  text-sm text-left whitespace-normal break-words">
                       <span className="font-medium">Message:</span>  {issue.message}
@@ -459,8 +459,8 @@ const ContactUsPage = () => {
                   onClick={handleSendReply}
                   disabled={isSendingReply || reply.trim() === ""}
                   className={`w-full px-4 py-2 rounded-lg font-medium transition ${isSendingReply || reply.trim() === ""
-                      ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                      : 'bg-blue-700 text-white hover:bg-blue-800'
+                    ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                    : 'bg-blue-700 text-white hover:bg-blue-800'
                     }`}
                 >
                   {isSendingReply ? (

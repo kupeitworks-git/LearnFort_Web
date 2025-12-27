@@ -39,7 +39,7 @@ const fadeUp = {
 const SportsCard = ({ sport, onClick }) => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
   const [showMaintenancePopup, setShowMaintenancePopup] = useState(false);
-  
+
   const handleClick = (e) => {
     e.stopPropagation();
     if (sport.status === 'NOT_AVAILABLE') {
@@ -57,7 +57,7 @@ const SportsCard = ({ sport, onClick }) => {
   };
 
   const isDisabled = sport.status === 'NOT_AVAILABLE';
-  
+
   return (
     <motion.div
       ref={ref}
@@ -73,7 +73,7 @@ const SportsCard = ({ sport, onClick }) => {
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Note!</h3>
-              <button 
+              <button
                 onClick={closePopup}
                 className="text-gray-400 hover:text-gray-500"
               >
@@ -92,15 +92,15 @@ const SportsCard = ({ sport, onClick }) => {
           </div>
         </div>
       )}
-      
+
       <div
         className={`absolute inset-0 bg-gradient-to-br ${sport.gradient} opacity-0 ${!isDisabled ? 'group-hover:opacity-15' : ''} transition duration-500 rounded-2xl`}
       ></div>
 
       <div className="flex flex-col items-center text-center relative z-10">
         <div className="w-full h-40 rounded-xl overflow-hidden mb-4 shadow-md">
-          <img 
-            src={getImageUrl(sport.image || sport.banner)} 
+          <img
+            src={getImageUrl(sport.image || sport.banner)}
             alt={sport.name}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -117,11 +117,10 @@ const SportsCard = ({ sport, onClick }) => {
           whileHover={!isDisabled ? { scale: 1.05 } : { scale: 1 }}
           whileTap={!isDisabled ? { scale: 0.97 } : { scale: 0.98 }}
           onClick={handleClick}
-          className={`px-4 py-2 rounded-full font-medium text-sm flex items-center shadow-md ${
-            isDisabled 
-              ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400' 
+          className={`px-4 py-2 rounded-full font-medium text-sm flex items-center shadow-md ${isDisabled
+              ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400'
               : 'bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:shadow-lg'
-          }`}
+            }`}
         >
           {isDisabled ? 'Not Available' : 'Book Now'}
           {!isDisabled && <FiChevronRight className="ml-1" />}
@@ -149,22 +148,22 @@ const SportsList = ({ onBack }) => {
       setIsLoading(true);
       setError(null);
       const response = await fetch(`${BaseUrl}sports/list`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      
+
       // Handle the response structure
       const sportsData = result.sports || [];
-      
+
       if (!sportsData || sportsData.length === 0) {
         setError('No sports available at the moment');
         setSports([]);
         return;
       }
-      
+
       // Transform the data to match our expected format
       const formattedSports = sportsData.map(sport => ({
         id: sport._id || sport.name.toLowerCase().replace(/\s+/g, '-'),
@@ -175,10 +174,10 @@ const SportsList = ({ onBack }) => {
         price: sport.final_price_per_slot || 0,
         status: sport.status || 'AVAILABLE' // Add status with a default of 'AVAILABLE'
       }));
-      
+
       setSports(formattedSports);
     } catch (err) {
-      console.error('Error fetching sports:', err);
+      // console.error('Error fetching sports:', err);
       setError('Failed to load sports. Please try again later.');
     } finally {
       setIsLoading(false);
@@ -188,8 +187,8 @@ const SportsList = ({ onBack }) => {
   const filteredSports = sports.filter(
     (sport) => sport.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
-  
-    ('Filtered Sports:', filteredSports); // Debug log
+
+  // ('Filtered Sports:', filteredSports); // Debug log
 
   const handleSportSelect = (sport) => {
     // Use sport ID in the URL for API calls
@@ -314,7 +313,7 @@ const SportsList = ({ onBack }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          
+
         </motion.div>
       </div>
     </motion.div>

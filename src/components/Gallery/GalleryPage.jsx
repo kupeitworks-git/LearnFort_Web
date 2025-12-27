@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaArrowLeft, FaPlay, FaPlus, FaTimes, FaSpinner, FaCheckCircle, FaTrash, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaPlay, FaTimes, FaSpinner, FaCheckCircle, FaTrash, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { FiArrowLeft, FiCheck, FiInfo } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { BaseUrl } from '../api/api';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const initialSportsData = {};
 
@@ -67,7 +65,7 @@ const GalleryPage = () => {
         setUser(userData);
       }
     } catch (error) {
-      console.error("Error parsing user data:", error);
+      // console.error("Error parsing user data:", error);
     }
   }, []);
 
@@ -105,18 +103,18 @@ const GalleryPage = () => {
     const fetchSportsList = async () => {
       try {
         setLoading(true);
-        ('Fetching sports list...');
+        // ('Fetching sports list...');
         const response = await axios.get(`${BaseUrl}sports/list`, {
           headers: {
             // 'Authorization': `Bearer ${token}`
           }
         });
 
-        ('API Response:', response.data);
+        // ('API Response:', response.data);
 
         if (response.data && response.data.sports) {
           const sports = response.data.sports;
-          ('Sports data:', sports);
+          // ('Sports data:', sports);
 
           // Transform the API response to include gallery images and videos
           const formattedData = {};
@@ -130,15 +128,15 @@ const GalleryPage = () => {
             }
           });
 
-          ('Formatted data:', formattedData);
+          // ('Formatted data:', formattedData);
           setSportsData(formattedData);
           setSportsList(sports);
         } else {
-          console.error('Unexpected API response format:', response.data);
+          // console.error('Unexpected API response format:', response.data);
           setError('Unexpected data format received from server');
         }
       } catch (err) {
-        console.error('Error fetching sports list:', err);
+        // console.error('Error fetching sports list:', err);
         setError('Failed to load sports data. Please try again later.');
       } finally {
         setLoading(false);
@@ -232,7 +230,7 @@ const GalleryPage = () => {
         setDeleteSportId("");
 
       } catch (error) {
-        console.error("Error deleting item:", error);
+        // console.error("Error deleting item:", error);
         showToast("Failed to delete item. Please try again.", "error");
       } finally {
         setIsDeleting(false);
@@ -255,7 +253,7 @@ const GalleryPage = () => {
               headers: { Authorization: `Bearer ${token}` },
             });
           } catch (err) {
-            console.error("Error deleting item:", itemId);
+            // console.error("Error deleting item:", itemId);
           }
         }
 
@@ -273,7 +271,7 @@ const GalleryPage = () => {
         setDeleteSportId("");
 
       } catch (error) {
-        console.error("Event delete error:", error);
+        // console.error("Event delete error:", error);
         showToast("Error occurred while deleting event.", "error");
       } finally {
         setIsDeleting(false);
@@ -307,7 +305,7 @@ const GalleryPage = () => {
               headers: { Authorization: `Bearer ${token}` },
             });
           } catch (err) {
-            console.error("Error deleting item:", item._id);
+            // console.error("Error deleting item:", item._id);
           }
         }
 
@@ -324,7 +322,7 @@ const GalleryPage = () => {
         setDeleteSportId("");
 
       } catch (error) {
-        console.error("Bulk delete error:", error);
+        // console.error("Bulk delete error:", error);
         showToast(`Error occurred while deleting ${type}.`, "error");
       } finally {
         setIsDeleting(false);
@@ -356,7 +354,7 @@ const GalleryPage = () => {
         setSportsList(response.data.sports);
       }
     } catch (error) {
-      console.error('Error refreshing sports data:', error);
+      // console.error('Error refreshing sports data:', error);
     }
   };
 
@@ -395,8 +393,8 @@ const GalleryPage = () => {
           }
         });
 
-        ("Flattened gallery items:", allItems);
-        ("Grouped gallery events:", grouped);
+        // ("Flattened gallery items:", allItems);
+        // ("Grouped gallery events:", grouped);
         setSportGalleries(allItems);
         setGroupedGalleries(grouped);
 
@@ -405,7 +403,7 @@ const GalleryPage = () => {
         setGroupedGalleries([]);
       }
     } catch (error) {
-      console.error('Error fetching sport gallery:', error);
+      // console.error('Error fetching sport gallery:', error);
       showToast('Failed to load gallery. Please try again.', 'error');
     } finally {
       setLoadingGallery(false);
@@ -480,7 +478,7 @@ const GalleryPage = () => {
         }
       );
 
-      ('Gallery added successfully:', response.data);
+      // ('Gallery added successfully:', response.data);
 
       // Show success message
       showToast("Gallery added successfully!", 'success');
@@ -491,7 +489,7 @@ const GalleryPage = () => {
       await refreshSportsData();
       showToast("Gallery updated successfully!", "success");
     } catch (error) {
-      console.error('Error uploading gallery items:', error);
+      // console.error('Error uploading gallery items:', error);
       const errorMessage = "Failed to upload gallery items. Please try again.";
       showToast(errorMessage, "error");
 
@@ -555,15 +553,8 @@ const GalleryPage = () => {
       return (
         <div className="p-4">
           {/* Back button and event header */}
-          <div className="mb-6">
-            <button
-              onClick={() => setSelectedEvent(null)}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
-            >
-              <FiArrowLeft /> Back to Events
-            </button>
-            <h2 className="text-2xl font-bold text-gray-800">{selectedEvent.event_name}</h2>
-            <p className="text-gray-500">{selectedEvent.gallery_title}</p>
+          <div className="mb-6 text-center">
+            <p className="text-gray-500 font-medium">{selectedEvent.gallery_title}</p>
             <p className="text-sm text-gray-400">{formatDate(selectedEvent.conducted_time)}</p>
           </div>
 
@@ -932,36 +923,61 @@ const GalleryPage = () => {
       <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         {selectedSport ? (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="relative flex items-center justify-center mb-6 min-h-[42px]">
 
               {/* Back Button */}
               <button
                 onClick={() => {
-                  setSelectedSport(null);
-                  setSportGalleries([]);
+                  if (selectedEvent) {
+                    setSelectedEvent(null);
+                  } else {
+                    setSelectedSport(null);
+                    setSportGalleries([]);
+                  }
                 }}
-                className="    flex items-center gap-2
-    px-4 py-2
-    text-blue-700 font-medium
-    bg-white border border-blue-200
-    rounded-lg shadow-sm
-    hover:bg-blue-50 hover:border-blue-400 hover:shadow
-    transition-all duration-200"
+                className="absolute left-0 flex items-center justify-center w-10 h-10 text-blue-700 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 hover:border-blue-400 hover:shadow transition-all duration-200"
               >
-                <FiArrowLeft className="mr-2" />
-
+                <FiArrowLeft className="text-xl" />
               </button>
 
               {/* Page Title */}
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                {selectedSport}
+                {selectedSport} {selectedEvent && <span className="font-normal text-gray-600">/ {selectedEvent.event_name}</span>}
               </h2>
 
-              {/* 🔵 Image / Video Tabs */}
-              <div className="flex border rounded-lg overflow-hidden">
+              {/* 🔵 Image / Video Tabs - Only show when NOT inside an event */}
+              {!selectedEvent && (
+                <div className="absolute right-0 flex border rounded-lg overflow-hidden hidden sm:flex">
+                  <button
+                    onClick={() => setActiveTab("image")}
+                    className={`px-4 py-2 text-sm font-medium transition ${activeTab === "image"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-blue-600"
+                      }`}
+                  >
+                    Images
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("video")}
+                    className={`px-4 py-2 text-sm font-medium transition border-l ${activeTab === "video"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-blue-600"
+                      }`}
+                  >
+                    Videos
+                  </button>
+                </div>
+              )}
+              {/* Mobile Tabs Fallback (if needed, but for now sticking to maintaining structure) */}
+            </div>
+
+            {/* Mobile Tabs - Visible only on small screens and when not in event view */}
+            {!selectedEvent && (
+              <div className="flex sm:hidden border rounded-lg overflow-hidden mb-4 w-full">
                 <button
                   onClick={() => setActiveTab("image")}
-                  className={`px-4 py-2 text-sm font-medium transition ${activeTab === "image"
+                  className={`flex-1 px-4 py-2 text-sm font-medium transition ${activeTab === "image"
                     ? "bg-blue-600 text-white"
                     : "bg-white text-blue-600"
                     }`}
@@ -971,7 +987,7 @@ const GalleryPage = () => {
 
                 <button
                   onClick={() => setActiveTab("video")}
-                  className={`px-4 py-2 text-sm font-medium transition border-l ${activeTab === "video"
+                  className={`flex-1 px-4 py-2 text-sm font-medium transition border-l ${activeTab === "video"
                     ? "bg-blue-600 text-white"
                     : "bg-white text-blue-600"
                     }`}
@@ -979,8 +995,7 @@ const GalleryPage = () => {
                   Videos
                 </button>
               </div>
-
-            </div>
+            )}
 
             {renderGalleryContent()}
           </div>

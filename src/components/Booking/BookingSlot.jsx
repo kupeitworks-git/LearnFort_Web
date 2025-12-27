@@ -41,10 +41,10 @@ const BookingSlot = () => {
     if (!sportData?.id) {
       return;
     }
-    
+
     try {
       setLoadingSlots(true);
-      
+
       // Prepare params according to the backend API format
       const params = {
         sports_id: sportData.id.toString(),
@@ -56,16 +56,16 @@ const BookingSlot = () => {
         if (isNaN(dateObj.getTime())) {
           throw new Error('Invalid date format');
         }
-        
+
         // Get month as 3-letter abbreviation (JAN, FEB, etc.)
         const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
         const month = monthNames[dateObj.getMonth()];
         const year = dateObj.getFullYear();
-        
+
         params.slot_type = 'MONTH';
         params.type_month = month;
         params.type_year = year;
-        
+
       } else if (date) {
         // For day view
         params.date = date;
@@ -73,7 +73,7 @@ const BookingSlot = () => {
         setAvailableSlots([]);
         return;
       }
-      
+
       // Convert params to URLSearchParams
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
@@ -81,17 +81,17 @@ const BookingSlot = () => {
           queryParams.append(key, value);
         }
       });
-      
+
       const response = await fetch(`${BaseUrl}booking/available-slots?${queryParams}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', errorData);
+        // console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to fetch available slots');
       }
 
@@ -132,7 +132,7 @@ const BookingSlot = () => {
       setAvailableSlots(processedSlots);
 
     } catch (error) {
-      console.error('Error fetching available slots:', error);
+      // console.error('Error fetching available slots:', error);
       toast.error(`Error: ${error.message || 'Failed to load available slots. Please try again.'}`);
       setAvailableSlots([]);
     } finally {
@@ -145,26 +145,26 @@ const BookingSlot = () => {
     const fetchSportDetails = async () => {
       try {
         setLoading(true);
-        
+
         // First, try to fetch all sports and find by name
         const response = await fetch(`${BaseUrl}sports/list`);
         if (!response.ok) {
           throw new Error('Failed to fetch sports list');
         }
-        
+
         const data = await response.json();
         // Convert sportType to a URL-friendly format for comparison
         const formattedSportType = sportType.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        
+
         // Try to find by name first (case insensitive and URL-friendly)
         const selectedSport = data.sports?.find(sport => {
           // Create URL-friendly name for comparison
           const sportNameUrl = sport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          return sportNameUrl === formattedSportType || 
-                 sport._id === sportType ||
-                 sport.name.toLowerCase() === sportType.toLowerCase();
+          return sportNameUrl === formattedSportType ||
+            sport._id === sportType ||
+            sport.name.toLowerCase() === sportType.toLowerCase();
         });
-        
+
         if (selectedSport) {
           setSportData({
             id: selectedSport._id,
@@ -173,7 +173,7 @@ const BookingSlot = () => {
             description: selectedSport.about || `Book your ${selectedSport.name} slot now!`,
             image: selectedSport.imageUrl || (selectedSport.image ? `https://app.learnfortsports.com/${selectedSport.image}` : '')
           });
-          
+
           // Update URL to use the sport name if it's not already
           const sportNameUrl = selectedSport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
           if (sportNameUrl !== sportType) {
@@ -185,7 +185,7 @@ const BookingSlot = () => {
             .split('-')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
-            
+
           setSportData({
             id: sportType,
             name: sportName,
@@ -194,7 +194,7 @@ const BookingSlot = () => {
           });
         }
       } catch (error) {
-        console.error('Error fetching sport details:', error);
+        // console.error('Error fetching sport details:', error);
         toast.error('Failed to load sport details');
       } finally {
         setLoading(false);
@@ -203,7 +203,7 @@ const BookingSlot = () => {
 
     fetchSportDetails();
   }, [sportType]);
-  
+
   // Fetch available slots when date or booking type changes
   useEffect(() => {
     if (selectedDate) {
@@ -220,43 +220,43 @@ const BookingSlot = () => {
 
   const isPastSlot = (slot) => {
     if (!selectedDate) return false;
-    
+
     const [startTime] = slot.split(' - ');
     const [time, period] = startTime.split(' ');
     let [hours, minutes] = time.split(':').map(Number);
-    
+
     // Convert to 24-hour format
     if (period === 'PM' && hours < 12) hours += 12;
-    
+
     const now = new Date();
     const slotDate = new Date(selectedDate);
     slotDate.setHours(hours, minutes, 0, 0);
-    
+
     return slotDate < now;
   };
-  
+
   // Check if a slot is available
   const isSlotAvailable = (slot) => {
     if (!slot) return false;
-    
+
     // For month view, we need to check if the slot's month and year match the selected month
     if (bookingType === 'month' && selectedDate) {
       const selectedDateObj = new Date(selectedDate);
       const selectedMonth = selectedDateObj.getMonth();
       const selectedYear = selectedDateObj.getFullYear();
-      
+
       // Check if slot's month and year match the selected month and year
       const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
       const slotMonth = monthNames.indexOf(slot.type_month);
       const slotYear = parseInt(slot.type_year);
-      
-      const isMatchingMonthYear = 
-        slotMonth === selectedMonth && 
+
+      const isMatchingMonthYear =
+        slotMonth === selectedMonth &&
         slotYear === selectedYear;
-      
+
       return slot.status === 'AVAILABLE' && isMatchingMonthYear;
     }
-    
+
     // For day view, just check the status
     return slot.status === 'AVAILABLE';
   };
@@ -266,36 +266,36 @@ const BookingSlot = () => {
       const [hours, minutes] = timeStr.split(':');
       const date = new Date();
       date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      return date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     };
-    
+
     return `${formatTime(startTime)} - ${formatTime(endTime)}`;
   };
 
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '';
-    
+
     // Ensure we're working with the correct timezone
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    
+
     if (bookingType === 'month') {
-      return date.toLocaleDateString('en-US', { 
+      return date.toLocaleDateString('en-US', {
         timeZone: 'UTC',
-        month: 'long', 
-        year: 'numeric' 
+        month: 'long',
+        year: 'numeric'
       });
     }
-    
-    return date.toLocaleDateString('en-US', { 
+
+    return date.toLocaleDateString('en-US', {
       timeZone: 'UTC',
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -303,7 +303,7 @@ const BookingSlot = () => {
     const date = e.target.value;
     setSelectedDate(date);
     setSelectedSlots([]); // Reset selected slots when date changes
-    
+
     // If in month view, fetch slots for the selected month
     if (bookingType === 'month' && date) {
       fetchAvailableSlots(date);
@@ -313,12 +313,12 @@ const BookingSlot = () => {
   const handleBookingTypeChange = (e) => {
     const newType = e.target.value;
     setBookingType(newType);
-    
+
     // Clear all selections when changing booking type
     setSelectedDate('');
     setSelectedSlots([]);
     setAvailableSlots([]);
-    
+
     // Clear any existing date input
     const dateInput = document.querySelector('input[type="date"], input[type="month"]');
     if (dateInput) dateInput.value = '';
@@ -326,17 +326,17 @@ const BookingSlot = () => {
 
   const handleSlotSelect = (slot) => {
     if (!isSlotAvailable(slot)) return;
-    
+
     setSelectedSlots(prev => {
-      const isSelected = prev.some(s => 
-        s.start_time === slot.start_time && 
+      const isSelected = prev.some(s =>
+        s.start_time === slot.start_time &&
         s.end_time === slot.end_time &&
         s.date === slot.date
       );
-      
+
       if (isSelected) {
-        return prev.filter(s => 
-          !(s.start_time === slot.start_time && 
+        return prev.filter(s =>
+          !(s.start_time === slot.start_time &&
             s.end_time === slot.end_time &&
             s.date === slot.date)
         );
@@ -346,129 +346,129 @@ const BookingSlot = () => {
     });
   };
 
-const handleProceedToPayment = async () => {
-  if (selectedSlots.length === 0) {
-    toast.error('Please select at least one time slot');
-    return;
-  }
-
-  // Check if user is logged in
-  let token = '';
-  try {
-    const stored = localStorage.getItem('lf_user');
-    if (!stored) {
-      // Redirect to login page if user is not logged in
-      toast.info('Please login to continue with booking');
-      navigate('/login', { state: { from: location.pathname } });
+  const handleProceedToPayment = async () => {
+    if (selectedSlots.length === 0) {
+      toast.error('Please select at least one time slot');
       return;
     }
-    
-    const parsed = JSON.parse(stored);
-    token = parsed?.token || '';
-    
-    if (!token) {
-      toast.info('Please login to continue with booking');
-      navigate('/login', { state: { from: location.pathname } });
+
+    // Check if user is logged in
+    let token = '';
+    try {
+      const stored = localStorage.getItem('lf_user');
+      if (!stored) {
+        // Redirect to login page if user is not logged in
+        toast.info('Please login to continue with booking');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+      token = parsed?.token || '';
+
+      if (!token) {
+        toast.info('Please login to continue with booking');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+    } catch (err) {
+      // console.error('Error getting auth token:', err);
+      toast.error('An error occurred. Please try again.');
       return;
     }
-  } catch (err) {
-    console.error('Error getting auth token:', err);
-    toast.error('An error occurred. Please try again.');
-    return;
-  }
 
-  try {
-    setLoadingSummary(true);
+    try {
+      setLoadingSummary(true);
 
-    // Prepare the times array from selected slots
-    const times = selectedSlots.map(slot => ({
-      start_time: slot.startTime,
-      end_time: slot.endTime
-    }));
+      // Prepare the times array from selected slots
+      const times = selectedSlots.map(slot => ({
+        start_time: slot.startTime,
+        end_time: slot.endTime
+      }));
 
-    // Create the booking object
-    const booking = {
-      slot_type: bookingType === 'day' ? 'DAY' : 'MONTH',
-      booking_date: selectedDate, // Just the date part, no time
-      times: times
-    };
+      // Create the booking object
+      const booking = {
+        slot_type: bookingType === 'day' ? 'DAY' : 'MONTH',
+        booking_date: selectedDate, // Just the date part, no time
+        times: times
+      };
 
-    // For month view, add month and year
-    if (bookingType === 'month' && selectedDate) {
-      const date = new Date(selectedDate);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      booking.type_month = monthNames[date.getMonth()];
-      booking.type_year = date.getFullYear().toString();
+      // For month view, add month and year
+      if (bookingType === 'month' && selectedDate) {
+        const date = new Date(selectedDate);
+        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        booking.type_month = monthNames[date.getMonth()];
+        booking.type_year = date.getFullYear().toString();
+      }
+
+      // Create the final payload
+      const payload = {
+        sports_id: sportData?.id || '',
+        no_of_players: parseInt(bookingDetails.players) || 1,
+        bookings: [booking]
+      };
+
+      const response = await fetch(`${BaseUrl}booking/booking-summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to get booking summary');
+      }
+
+      const result = await response.json();
+
+      // Process the response to ensure all required fields are present
+      const processedSummary = {
+        ...result,
+        // Ensure we have the sport name from the response or fallback to the one from props
+        sportName: result?.ground?.sport || result?.slots?.[0]?.sport_name || sportData?.name || 'Not specified',
+        // Ensure we have the number of players
+        no_of_players: result?.no_of_players || parseInt(bookingDetails.players) || 1,
+        // Ensure we have the total amount
+        total_amount: result?.total_amount || result?.totalAmount || 0,
+        // Ensure we have the currency
+        currency: result?.currency || 'INR',
+        // Include the slots data
+        slots: result?.slots || [{
+          booking_date: selectedDate,
+          start_time: selectedSlots[0]?.startTime,
+          end_time: selectedSlots[0]?.endTime,
+          sport_name: sportData?.name
+        }]
+      };
+
+      // Update booking details with the processed summary
+      setBookingDetails(prev => ({
+        ...prev,
+        sport: processedSummary?.ground?.sport || sportData?.name || 'Not specified',
+        date: selectedDate,
+        time: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`,
+        players: processedSummary?.no_of_players || 1,
+        price: processedSummary?.total_amount || 0,
+        currency: processedSummary?.currency || 'INR',
+        timeSlot: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`
+      }));
+
+      // Store the processed booking summary
+      setBookingSummary(processedSummary);
+
+      // Show the confirmation dialog
+      setShowConfirmation(true);
+
+    } catch (error) {
+      // console.error('Error getting booking summary:', error);
+      toast.error(error.message || 'Failed to get booking summary. Please try again.');
+    } finally {
+      setLoadingSummary(false);
     }
-
-    // Create the final payload
-    const payload = {
-      sports_id: sportData?.id || '',
-      no_of_players: parseInt(bookingDetails.players) || 1,
-      bookings: [booking]
-    };
-
-    const response = await fetch(`${BaseUrl}booking/booking-summary`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to get booking summary');
-    }
-    
-    const result = await response.json();
-    
-    // Process the response to ensure all required fields are present
-    const processedSummary = {
-      ...result,
-      // Ensure we have the sport name from the response or fallback to the one from props
-      sportName: result?.ground?.sport || result?.slots?.[0]?.sport_name || sportData?.name || 'Not specified',
-      // Ensure we have the number of players
-      no_of_players: result?.no_of_players || parseInt(bookingDetails.players) || 1,
-      // Ensure we have the total amount
-      total_amount: result?.total_amount || result?.totalAmount || 0,
-      // Ensure we have the currency
-      currency: result?.currency || 'INR',
-      // Include the slots data
-      slots: result?.slots || [{
-        booking_date: selectedDate,
-        start_time: selectedSlots[0]?.startTime,
-        end_time: selectedSlots[0]?.endTime,
-        sport_name: sportData?.name
-      }]
-    };
-    
-    // Update booking details with the processed summary
-    setBookingDetails(prev => ({
-      ...prev,
-      sport: processedSummary?.ground?.sport || sportData?.name || 'Not specified',
-      date: selectedDate,
-      time: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`,
-      players: processedSummary?.no_of_players || 1,
-      price: processedSummary?.total_amount || 0,
-      currency: processedSummary?.currency || 'INR',
-      timeSlot: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`
-    }));
-    
-    // Store the processed booking summary
-    setBookingSummary(processedSummary);
-    
-    // Show the confirmation dialog
-    setShowConfirmation(true);
-    
-  } catch (error) {
-    console.error('Error getting booking summary:', error);
-    toast.error(error.message || 'Failed to get booking summary. Please try again.');
-  } finally {
-    setLoadingSummary(false);
-  }
-};
+  };
   const handleConfirmBooking = async (formData) => {
     try {
       if (!sportData?.id || selectedSlots.length === 0) {
@@ -497,7 +497,7 @@ const handleProceedToPayment = async () => {
         payment_method: bookingPayload.payment_method,
         bookings: [bookingPayload],
       };
-      
+
       const response = await fetch(`${BaseUrl}booking/create`, {
         method: 'POST',
         headers: {
@@ -506,26 +506,26 @@ const handleProceedToPayment = async () => {
         },
         body: JSON.stringify(payload)
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Failed to confirm booking');
       }
-      
+
       // Show success message
       toast.success('Booking confirmed successfully!');
-      
+
       // Reset form
       setShowConfirmation(false);
       setSelectedSlots([]);
       setSelectedDate('');
-      
+
       // Optionally navigate to booking confirmation page or user's bookings
       // navigate('/my-bookings');
-      
+
     } catch (error) {
-      console.error('Error confirming booking:', error);
+      // console.error('Error confirming booking:', error);
       toast.error('Failed to confirm booking. Please try again.');
     }
   };
@@ -593,9 +593,11 @@ const handleProceedToPayment = async () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Choose Date */}
             <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Choose {bookingType === 'day' ? 'Date' : 'Month'}</h2>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="w-full sm:w-32">
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <div className="w-full sm:w-32 relative group">
+                  <div className="absolute -top-2 left-3 px-1 bg-white text-sm font-medium z-10">
+                    Slot Type
+                  </div>
                   <select
                     className="w-full p-3 rounded-lg border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition"
                     value={bookingType}
@@ -605,7 +607,10 @@ const handleProceedToPayment = async () => {
                     <option value="month">Month</option>
                   </select>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 relative group">
+                  <div className="absolute -top-2 left-3 px-1 bg-white text-sm font-medium z-10">
+                    {bookingType === 'day' ? 'Date' : 'Month'}
+                  </div>
                   {bookingType === 'month' ? (
                     <DatePicker
                       selected={selectedDate ? new Date(selectedDate) : null}
@@ -622,6 +627,7 @@ const handleProceedToPayment = async () => {
                       dateFormat="MMM yyyy"
                       showMonthYearPicker
                       className="w-full p-3 rounded-lg border border-gray-200 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition"
+                      wrapperClassName="w-full"
                       placeholderText="Select month"
                       showFullMonthYearPicker
                       showDisabledMonthNavigation
@@ -636,15 +642,15 @@ const handleProceedToPayment = async () => {
                         const now = new Date();
                         const currentYear = now.getFullYear();
                         const currentMonth = now.getMonth();
-                        
+
                         // If the year is in the future, allow all months
                         if (date.getFullYear() > currentYear) return true;
-                        
+
                         // If it's the current year, only allow future months
                         if (date.getFullYear() === currentYear) {
                           return date.getMonth() > currentMonth;
                         }
-                        
+
                         // Past years not allowed
                         return false;
                       }}
@@ -665,24 +671,24 @@ const handleProceedToPayment = async () => {
             <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
-                  {selectedDate 
-                    ? `Available Slots for ${bookingType === 'month' 
-                        ? new Date(selectedDate).toLocaleDateString('en-US', { 
-                            month: 'long', 
-                            year: 'numeric' 
-                          })
-                        : new Date(selectedDate).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })
-                      }`
+                  {selectedDate
+                    ? `Available Slots for ${bookingType === 'month'
+                      ? new Date(selectedDate).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric'
+                      })
+                      : new Date(selectedDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    }`
                     : 'Available Slots'}
                 </h2>
-            
+
               </div>
-              
+
               {loadingSlots ? (
                 <div className="flex justify-center py-8">
                   <div className="flex items-center text-blue-600">
@@ -707,7 +713,7 @@ const handleProceedToPayment = async () => {
                         const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
                         const slotMonth = slot.type_month;
                         const slotYear = parseInt(slot.type_year);
-                        
+
                         return (
                           monthNames[selectedDateObj.getMonth()] === slotMonth &&
                           selectedDateObj.getFullYear() === slotYear
@@ -720,38 +726,37 @@ const handleProceedToPayment = async () => {
                       const isPast = isPastSlot(slotTime);
                       const isBooked = slot.status !== 'AVAILABLE';
                       const isDisabled = isPast || isBooked;
-                      const isSelected = selectedSlots.some(s => 
-                        s.startTime === slot.startTime && 
+                      const isSelected = selectedSlots.some(s =>
+                        s.startTime === slot.startTime &&
                         s.endTime === slot.endTime &&
                         s.date === slot.date
                       );
-                    
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => {
-                          if (!isDisabled) {
-                            handleSlotSelect(slot);
-                          }
-                        }}
-                        className={`
+
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => {
+                            if (!isDisabled) {
+                              handleSlotSelect(slot);
+                            }
+                          }}
+                          className={`
                           p-4 rounded-lg border text-center transition-all
-                          ${
-                            isSelected && !isDisabled
+                          ${isSelected && !isDisabled
                               ? 'border-blue-500 bg-blue-50 text-blue-700'
                               : isDisabled
-                              ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
-                          }
+                                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
+                            }
                         `}
-                      >
-                        <div className="font-medium">{slotTime}</div>
-                        {!slot.available && (
-                          <div className="text-xs text-green-500 font-semibold mt-1">Booked</div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        >
+                          <div className="font-medium">{slotTime}</div>
+                          {!slot.available && (
+                            <div className="text-xs text-green-500 font-semibold mt-1">Booked</div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -774,7 +779,7 @@ const handleProceedToPayment = async () => {
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-700">Number of Players</h3>
                     <div className="flex items-center mt-2">
-                      <button 
+                      <button
                         onClick={() => {
                           setBookingDetails(prev => {
                             const newPlayers = Math.max(1, (prev.players || 1) - 1);
@@ -789,7 +794,7 @@ const handleProceedToPayment = async () => {
                         -
                       </button>
                       <span className="w-8 text-center">{bookingDetails.players || 1}</span>
-                      <button 
+                      <button
                         onClick={() => {
                           setBookingDetails(prev => {
                             const newPlayers = (prev.players || 1) + 1;
@@ -808,7 +813,7 @@ const handleProceedToPayment = async () => {
                 </div>
                 {/* Description Textarea */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  
+
                   <textarea
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     rows="3"
@@ -826,26 +831,26 @@ const handleProceedToPayment = async () => {
                     <span className="text-gray-600">Sport:</span>
                     <span className="font-medium">{sportData?.name || 'Loading...'}</span>
                   </div>
-                  
+
                   <div className="flex justify-between">
                     <span className="text-gray-600">Date:</span>
                     <span className="font-medium">
-                      {selectedDate 
-                        ? new Date(selectedDate).toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            year: 'numeric',
-                            month: 'short', 
-                            day: 'numeric' 
-                          })
+                      {selectedDate
+                        ? new Date(selectedDate).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
                         : 'Not selected'}
                     </span>
                   </div>
-                  
+
                   <div className="mt-6 space-y-4">
-          
+
                     {selectedSlots.length > 0 ? (
                       <div className="space-y-3 max-h-20 overflow-y-auto pr-2">
-                      
+
                         {/* <div className="pt-2 border-t border-gray-200 mt-4">
                           <div className="flex justify-between items-center font-medium text-gray-900">
                             <span>Total ({selectedSlots.length} slots):</span>
@@ -857,15 +862,14 @@ const handleProceedToPayment = async () => {
                       <p className="text-gray-500 italic"></p>
                     )}
                   </div>
-                  
+
                   <button
                     onClick={handleProceedToPayment}
                     disabled={selectedSlots.length === 0 || loadingSummary}
-                    className={`w-full py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center ${
-                      selectedSlots.length > 0 && !loadingSummary
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
+                    className={`w-full py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center ${selectedSlots.length > 0 && !loadingSummary
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      }`}
                   >
                     {loadingSummary ? (
                       <>
@@ -877,7 +881,7 @@ const handleProceedToPayment = async () => {
                       'Select Slots to Continue'
                     )}
                   </button>
-                  
+
                   <p className="text-xs text-gray-500 text-center mt-2">
                     You'll be able to review your booking before payment
                   </p>

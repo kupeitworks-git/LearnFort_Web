@@ -71,7 +71,7 @@ const ProfilePage = () => {
                 setError(data.message || "Failed to fetch profile");
             }
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             setError("Error loading profile data");
         } finally {
             setLoading(false);
@@ -161,7 +161,7 @@ const ProfilePage = () => {
                 showToast(data.message || "Failed to update profile", "error");
             }
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             showToast("Error updating profile", "error");
         } finally {
             setIsSaving(false);

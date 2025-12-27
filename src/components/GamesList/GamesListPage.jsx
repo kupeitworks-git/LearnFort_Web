@@ -38,7 +38,7 @@ const GamesListPage = () => {
         const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
         setSports(sportsList);
       } catch (error) {
-        console.error("Error fetching sports:", error);
+        // console.error("Error fetching sports:", error);
       } finally {
         setLoading(false);
       }
@@ -114,31 +114,29 @@ const GamesListPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   onClick={(e) => handleCardClick(sport, e)}
-                  className={`group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 transform hover:-translate-y-1 ${
-                    sport.status === 'NOT_AVAILABLE' 
-                      ? 'opacity-90 cursor-pointer' 
+                  className={`group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 transform hover:-translate-y-1 ${sport.status === 'NOT_AVAILABLE'
+                      ? 'opacity-90 cursor-pointer'
                       : 'cursor-pointer hover:shadow-xl'
-                  }`}
+                    }`}
                 >
                   {/* Image Section */}
                   <div className="relative h-48 sm:h-52 overflow-hidden">
                     {sport.image || sport.web_banner ? (
                       <div className="relative w-full h-full">
-                      <img
-                        src={sport.image || sport.web_banner}
-                        alt={sport.name}
-                        className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${
-                          sport.status === 'NOT_AVAILABLE' ? 'blur-[2px]' : ''
-                        }`}
-                      />
-                      {/* {sport.status === 'NOT_AVAILABLE' && (
+                        <img
+                          src={sport.image || sport.web_banner}
+                          alt={sport.name}
+                          className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${sport.status === 'NOT_AVAILABLE' ? 'blur-[2px]' : ''
+                            }`}
+                        />
+                        {/* {sport.status === 'NOT_AVAILABLE' && (
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">
                             Not Available
                           </span>
                         </div>
                       )} */}
-                    </div>
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                         <FaRunning className="w-12 h-12 text-blue-300" />
@@ -149,12 +147,11 @@ const GamesListPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                     {/* Price Badge */}
-                    <div className={`absolute top-4 right-4 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                      sport.status === 'NOT_AVAILABLE'
+                    <div className={`absolute top-4 right-4 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm ${sport.status === 'NOT_AVAILABLE'
                         ? 'bg-white/90 text-blue-800'
                         : 'bg-white/90 text-blue-800'
-                    }`}>
-                     ₹${sport.final_price_per_day}/slot
+                      }`}>
+                      ₹${sport.final_price_per_day}/slot
                     </div>
 
                     {/* Title over Image (optional style, or below) - choosing below for cleanliness, kept simple title on image */}
@@ -172,11 +169,10 @@ const GamesListPage = () => {
                     </p>
 
                     <div className="mt-4 flex items-center justify-between">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                        sport.status === 'NOT_AVAILABLE'
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${sport.status === 'NOT_AVAILABLE'
                           ? 'text-gray-600 bg-gray-50 '
                           : 'text-blue-600 bg-blue-50'
-                      }`}>
+                        }`}>
                         {sport.status === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : 'AVAILABLE NOW'}
                       </span>
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
@@ -207,7 +203,7 @@ const GamesListPage = () => {
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Note!</h3>
-              <button 
+              <button
                 onClick={closePopup}
                 className="text-gray-400 hover:text-gray-500"
               >

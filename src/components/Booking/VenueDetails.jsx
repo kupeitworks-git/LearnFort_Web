@@ -46,7 +46,7 @@ const VenueDetails = () => {
                     setError("Sport not found");
                 }
             } catch (error) {
-                console.error("Error fetching sport details:", error);
+                // console.error("Error fetching sport details:", error);
                 setError("Failed to load sport details");
             } finally {
                 setLoading(false);
@@ -298,12 +298,12 @@ const VenueDetails = () => {
                                     <div className="p-4 bg-white rounded-lg border border-gray-200">
                                         <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for day time: (6AM - 6PM)</h4>
                                         <div className="space-y-3">
-                                           
+
                                             <div className="flex justify-between items-center">
                                                 <p>Price:  <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(dayPrice)}
                                                 </span></p>
-                                              
+
                                             </div>
                                         </div>
                                     </div>
@@ -312,12 +312,12 @@ const VenueDetails = () => {
                                     <div className="p-4 bg-white rounded-lg border border-gray-200">
                                         <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for night time: (6PM - 6AM)</h4>
                                         <div className="space-y-3">
-                                           
+
                                             <div className="flex justify-between items-center">
                                                 <p>Price:   <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(nightPrice)}
                                                 </span></p>
-                                             
+
                                             </div>
                                         </div>
                                     </div>
@@ -331,22 +331,21 @@ const VenueDetails = () => {
                                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
                                             Available
                                         </span>
-                                    ) : (
-                                        <span className="inline-flex items-center text-red-600 bg-red-100 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5"></span>
-                                            Unavailable
-                                        </span>
-                                    )}
+                                    ) : null}
                                 </p>
 
                                 <button
-                                    onClick={() => navigate(`/book/${sportType}`)}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                                    disabled={venue.status !== 'AVAILABLE'}
+                                    onClick={() => venue.status === 'AVAILABLE' && navigate(`/book/${sportType}`)}
+                                    className={`w-full font-medium py-3 px-4 rounded-lg transition-colors ${venue.status === 'AVAILABLE'
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
                                 >
-                                    Book Now
+                                    {venue.status === 'AVAILABLE' ? 'Book Now' : 'Not Available'}
                                 </button>
 
-                             
+
                             </div>
                         </div>
                     </div>

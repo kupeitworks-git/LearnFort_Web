@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX, FiCheck, FiArrowLeft, FiArrowRight, FiClock, FiUsers, FiCalendar, FiCreditCard, FiDollarSign } from "react-icons/fi";
+import { FiX, FiCheck, FiArrowLeft, FiArrowRight, FiClock, FiUsers, FiCalendar, FiFileText } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import { BaseUrl } from "../api/api";
 // Utility function to format time in 12-hour format with AM/PM
@@ -163,8 +163,8 @@ const BookingConfirmation = ({
         }
         // Close any open modals
         setShowPaymentModal(false);
-        // Redirect to home page
-        navigate('/', { replace: true });
+        // Close the modal to return to slot selection
+        onClose();
     };
 
     const handleProceedToPay = () => {
@@ -188,11 +188,7 @@ const BookingConfirmation = ({
         setIsLoading(true);
 
         try {
-            // Debug logging
-            console.log('Processing payment with method:', selectedPaymentMode);
-            console.log('Booking Details:', bookingDetails);
-            console.log('Summary Data:', summaryData);
-            console.log('Selected Slots:', selectedSlots);
+
 
             // Get sport ID from the first selected slot or fallback to other sources
             const sportId = selectedSlots?.[0]?.sportId ||
@@ -201,7 +197,7 @@ const BookingConfirmation = ({
                 summaryData?.ground?.sport_id;
 
             if (!sportId) {
-                console.error('Sports ID is missing. Selected slots:', selectedSlots);
+                // console.error('Sports ID is missing. Selected slots:', selectedSlots);
                 throw new Error('Sports ID is missing. Please try selecting a time slot again.');
             }
 
@@ -240,7 +236,7 @@ const BookingConfirmation = ({
                 bookings: [bookingPayload]
             };
 
-            console.log('Sending payload:', payload);
+            // console.log('Sending payload:', payload);
 
             // Get auth token
             let token = '';
@@ -251,7 +247,7 @@ const BookingConfirmation = ({
                     token = parsed?.token || '';
                 }
             } catch (err) {
-                console.error('Error getting auth token:', err);
+                // console.error('Error getting auth token:', err);
                 throw new Error('Authentication error. Please try again.');
             }
 
@@ -266,7 +262,7 @@ const BookingConfirmation = ({
             });
 
             const data = await response.json();
-            console.log('API Response:', data);
+            // console.log('API Response:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to process booking');
@@ -320,7 +316,7 @@ const BookingConfirmation = ({
                                     payment_id: data.payment_id
                                 };
 
-                                console.log('Verifying payment with payload:', verifyPayload);
+                                // console.log('Verifying payment with payload:', verifyPayload);
 
                                 setIsProcessingPayment(true);
 
@@ -338,7 +334,7 @@ const BookingConfirmation = ({
 
                                 if (verifyResponse.ok && (result.success || result.message?.includes('verified'))) {
                                     // Payment verification successful
-                                    console.log('Payment verification successful:', result);
+                                    // console.log('Payment verification successful:', result);
 
                                     // Hide processing indicator and show success popup
                                     setIsProcessingPayment(false);
@@ -351,7 +347,7 @@ const BookingConfirmation = ({
                                     }, 3000);
                                 } else {
                                     // Payment verification failed, cancel the booking
-                                    console.error('Payment verification failed:', result);
+                                    // console.error('Payment verification failed:', result);
                                     const errorMessage = result.message || 'Payment verification failed';
                                     if (!errorMessage.includes('verified')) {
                                         setIsProcessingPayment(false);
@@ -359,7 +355,7 @@ const BookingConfirmation = ({
                                     }
                                 }
                             } catch (error) {
-                                console.error('Payment processing error:', error);
+                                // console.error('Payment processing error:', error);
                                 setIsProcessingPayment(false);
                                 // Only show error alert if it's not a success message
                                 if (!error.message?.includes('verified')) {
@@ -370,13 +366,13 @@ const BookingConfirmation = ({
                         },
                         modal: {
                             ondismiss: async function () {
-                                console.log('Payment modal dismissed by user');
+                                // console.log('Payment modal dismissed by user');
                                 try {
                                     if (data?.payment_id) {
                                         await handlePaymentCancellation(data.payment_id, 'Payment cancelled by user');
                                     }
                                 } catch (err) {
-                                    console.error('Error cancelling booking on dismiss:', err);
+                                    // console.error('Error cancelling booking on dismiss:', err);
                                     setShowPaymentCancelled(true);
                                     window.rzpPaymentData = null;
                                 }
@@ -395,19 +391,19 @@ const BookingConfirmation = ({
 
                     // If we get a failure response from the script, call the cancel API
                     rzp.on('payment.failed', async function (response) {
-                        console.error('Payment failed response:', response);
+                        // console.error('Payment failed response:', response);
                         try {
                             setIsProcessingPayment(false);
                             await handlePaymentCancellation(data.payment_id, 'Payment failed. Your booking has been cancelled.');
                         } catch (err) {
-                            console.error('Error handling payment failure:', err);
+                            // console.error('Error handling payment failure:', err);
                         }
                     });
 
                     rzp.open();
                 };
                 script.onerror = () => {
-                    console.error('Failed to load Razorpay script');
+                    // console.error('Failed to load Razorpay script');
                     alert('Failed to load payment processor. Please try again.');
                     setIsLoading(false);
                 };
@@ -415,7 +411,7 @@ const BookingConfirmation = ({
             }
 
         } catch (error) {
-            console.error('Booking error:', error);
+            // console.error('Booking error:', error);
             alert(error.message || 'Failed to process booking. Please try again.');
         } finally {
             setIsLoading(false);
@@ -431,7 +427,7 @@ const BookingConfirmation = ({
             const token = currentUser?.token || '';
 
             // Call the cancel booking API
-            console.log('CANCEL BOOKING → payment_id=', paymentId);
+            // console.log('CANCEL BOOKING → payment_id=', paymentId);
             const response = await fetch(`${BaseUrl}booking/cancel-booking/${paymentId}`, {
                 method: 'PUT',
                 headers: {
@@ -446,12 +442,12 @@ const BookingConfirmation = ({
                 throw new Error(result.message || 'Failed to cancel booking');
             }
 
-            console.log('Booking cancelled successfully:', result);
+            // console.log('Booking cancelled successfully:', result);
             setIsCancellingPayment(false);
             setShowPaymentCancelled(true);
             return true;
         } catch (error) {
-            console.error('Error cancelling booking:', error);
+            // console.error('Error cancelling booking:', error);
             setIsCancellingPayment(false);
             throw error;
         } finally {
@@ -470,9 +466,8 @@ const BookingConfirmation = ({
             // Clean up payment data
             window.rzpPaymentData = null;
         }
-        // Close the payment modal and redirect home
+        // Just close the payment modal so user sees the summary again
         setShowPaymentModal(false);
-        navigate('/', { replace: true });
     };
 
     const handlePaymentConfirm = () => {
@@ -524,7 +519,7 @@ const BookingConfirmation = ({
 
                 setShowPaymentSuccess(true);
             } catch (error) {
-                console.error('Error confirming booking:', error);
+                // console.error('Error confirming booking:', error);
                 // You might want to show an error toast here
             } finally {
                 setIsLoading(false);

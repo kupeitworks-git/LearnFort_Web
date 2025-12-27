@@ -157,7 +157,7 @@ const EditSport = () => {
         showToast(result.message || "Failed to update sport", "error");
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       showToast("Error updating sport", "error");
     } finally {
       setIsLoading(false);

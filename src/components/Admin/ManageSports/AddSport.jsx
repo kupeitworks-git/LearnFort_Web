@@ -127,14 +127,14 @@ const AddSport = () => {
 
             if (res.ok) {
                 showToast("Sport Added Successfully!", "success");
-                  ("Response:", data);
+                ("Response:", data);
                 setTimeout(() => navigate(-1), 1500);
             } else {
                 showToast(data.message || "Something went wrong!", "error");
             }
 
         } catch (error) {
-            console.error(error);
+            // console.error(error);
             showToast("Error adding sport!", "error");
         } finally {
             setIsLoading(false);

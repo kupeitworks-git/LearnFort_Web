@@ -166,7 +166,7 @@ const BookingsPage = () => {
             pdf.save(`receipt-${selectedBooking?.id || Date.now()}.pdf`);
 
         } catch (error) {
-            console.error('Error generating PDF:', error);
+            // console.error('Error generating PDF:', error);
         } finally {
             // Clean up
             if (container.parentNode) {
@@ -275,7 +275,7 @@ const BookingsPage = () => {
             }));
 
         } catch (error) {
-            console.error(`Fetch Error for ${type} →`, error);
+            // console.error(`Fetch Error for ${type} →`, error);
         } finally {
             setLoading(false);
         }
@@ -315,12 +315,12 @@ const BookingsPage = () => {
     };
 
     return (
-       <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
-        
-        {/* Header */}
-           <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
-  
-                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
+
+            {/* Header */}
+            <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
+
+                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
                     <button
                         onClick={handleBack}
                         className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 mr-4 transition-all duration-300 hover:scale-110 active:scale-95 shadow-inner"

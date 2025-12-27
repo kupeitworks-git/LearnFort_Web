@@ -17,7 +17,7 @@ import {
     FiHome,
     FiChevronLeft,
     FiChevronRight,
-   
+
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '../../api/api';
@@ -49,7 +49,7 @@ const ManageUsers = () => {
         hasNext: false,
         hasPrev: false
     });
-    
+
     const [adminPagination, setAdminPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -57,7 +57,7 @@ const ManageUsers = () => {
         hasNext: false,
         hasPrev: false
     });
-    
+
     const itemsPerPage = 10; // Increased from 5 to 10
 
     // Fetch Users with pagination
@@ -85,7 +85,7 @@ const ManageUsers = () => {
                 // Check if the response has a 'users' array or use the data directly
                 const usersData = response.users || response.data || [];
                 setUsers(usersData);
-                
+
                 // Handle pagination data from the response
                 const pagination = response.pagination || {
                     currentPage: 1,
@@ -94,7 +94,7 @@ const ManageUsers = () => {
                     hasNext: false,
                     hasPrev: false
                 };
-                
+
                 setUserPagination({
                     currentPage: pagination.currentPage || 1,
                     totalPages: pagination.totalPages || 1,
@@ -106,7 +106,7 @@ const ManageUsers = () => {
                 setError(response.message || "Failed to fetch users");
             }
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             setError("Error fetching users");
         } finally {
             setLoading(false);
@@ -138,7 +138,7 @@ const ManageUsers = () => {
                 // Check if the response has an 'admins' array or use the data directly
                 const adminsData = response.admins || response.data || [];
                 setAdmins(adminsData);
-                
+
                 // Handle pagination data from the response
                 const pagination = response.pagination || {
                     currentPage: 1,
@@ -147,7 +147,7 @@ const ManageUsers = () => {
                     hasNext: false,
                     hasPrev: false
                 };
-                
+
                 setAdminPagination({
                     currentPage: pagination.currentPage || 1,
                     totalPages: pagination.totalPages || 1,
@@ -159,7 +159,7 @@ const ManageUsers = () => {
                 setError(response.message || "Failed to fetch admins");
             }
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             setError("Error fetching admins");
         } finally {
             setLoading(false);
@@ -174,7 +174,7 @@ const ManageUsers = () => {
             fetchAdmins(adminPagination.currentPage);
         }
     }, [activeTab, userPagination.currentPage, adminPagination.currentPage]);
-    
+
     // Handle page change for users
     const handleUserPageChange = (page) => {
         setUserPagination(prev => ({
@@ -182,7 +182,7 @@ const ManageUsers = () => {
             currentPage: page
         }));
     };
-    
+
     // Handle page change for admins
     const handleAdminPageChange = (page) => {
         setAdminPagination(prev => ({
@@ -216,59 +216,59 @@ const ManageUsers = () => {
             setShowEditModal(true);
         } else if (action === 'deactivate') {
             // Set the status to 'INACTIVE' when deactivating
-            setSelectedUser({...selectedUser, status: 'INACTIVE'});
+            setSelectedUser({ ...selectedUser, status: 'INACTIVE' });
             setShowConfirmModal(true);
         } else {
             setShowConfirmModal(true);
         }
     };
 
-  const handleStatusUpdate = async (newStatus) => {
-    try {
-        setIsSaving(true);
-        const token = sessionStorage.getItem("token");
-        
-        // Handle null/undefined status and ensure proper case
-        let statusValue = 'INACTIVE'; // Default to INACTIVE if no status provided
-        if (newStatus) {
-            statusValue = newStatus === 'deactivate' ? 'INACTIVE' : newStatus.toUpperCase();
-        }
-        
-        const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status: statusValue }),
-        });
+    const handleStatusUpdate = async (newStatus) => {
+        try {
+            setIsSaving(true);
+            const token = sessionStorage.getItem("token");
 
-        // Rest of the function remains the same...
-        const data = await res.json();
-
-        if (res.ok) {
-            // Update the user in the appropriate list
-            if (activeTab === "Users") {
-                setUsers(users.map(u =>
-                    u._id === selectedUser._id ? { ...u, status: statusValue } : u
-                ));
-            } else {
-                setAdmins(admins.map(a =>
-                    a._id === selectedUser._id ? { ...a, status: statusValue } : a
-                ));
+            // Handle null/undefined status and ensure proper case
+            let statusValue = 'INACTIVE'; // Default to INACTIVE if no status provided
+            if (newStatus) {
+                statusValue = newStatus === 'deactivate' ? 'INACTIVE' : newStatus.toUpperCase();
             }
-            setError(null);
-        } else {
-            throw new Error(data.message || 'Failed to update status');
+
+            const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: statusValue }),
+            });
+
+            // Rest of the function remains the same...
+            const data = await res.json();
+
+            if (res.ok) {
+                // Update the user in the appropriate list
+                if (activeTab === "Users") {
+                    setUsers(users.map(u =>
+                        u._id === selectedUser._id ? { ...u, status: statusValue } : u
+                    ));
+                } else {
+                    setAdmins(admins.map(a =>
+                        a._id === selectedUser._id ? { ...a, status: statusValue } : a
+                    ));
+                }
+                setError(null);
+            } else {
+                throw new Error(data.message || 'Failed to update status');
+            }
+        } catch (err) {
+            // console.error('Error updating status:', err);
+            setError(err.message || 'Failed to update status');
+        } finally {
+            setIsSaving(false);
+            setShowConfirmModal(false);
         }
-    } catch (err) {
-        console.error('Error updating status:', err);
-        setError(err.message || 'Failed to update status');
-    } finally {
-        setIsSaving(false);
-        setShowConfirmModal(false);
-    }
-};
+    };
     const validateAadhar = (aadhar) => {
         if (!aadhar) return true; // Allow empty Aadhar
         return /^\d{12}$/.test(aadhar);
@@ -296,7 +296,7 @@ const ManageUsers = () => {
             setAadharError('Please enter a valid 12-digit Aadhar number');
             return;
         }
-        
+
         try {
             setIsSaving(true);
             const token = sessionStorage.getItem("token");
@@ -354,7 +354,7 @@ const ManageUsers = () => {
                 throw new Error(data.message || 'Failed to update user');
             }
         } catch (err) {
-            console.error('Error updating user:', err);
+            // console.error('Error updating user:', err);
             setError(err.message || 'Failed to update user');
         } finally {
             setIsSaving(false);
@@ -385,7 +385,7 @@ const ManageUsers = () => {
                 throw new Error(data.message || 'Failed to delete user');
             }
         } catch (err) {
-            console.error('Error deleting user:', err);
+            // console.error('Error deleting user:', err);
             setError(err.message || 'Failed to delete user');
         } finally {
             setIsSaving(false);
@@ -413,7 +413,7 @@ const ManageUsers = () => {
                 return [
                     { label: 'Edit', action: 'edit', icon: FiEdit2 },
                     { label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' },
-                  { label: 'Unblock', action: 'unblock', icon: FiCheckCircle, className: 'text-red-600' },
+                    { label: 'Unblock', action: 'unblock', icon: FiCheckCircle, className: 'text-red-600' },
                     { label: 'Deactivate', action: 'Deactivate', icon: FiUserX, className: 'text-Orange-600' },
                     { label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' }
                 ];
@@ -536,17 +536,16 @@ const ManageUsers = () => {
                                     <DetailItem
                                         label="Status"
                                         value={
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                user.status === "ACTIVE" ? "bg-green-100 text-green-700" :
-                                                user.status === "PENDING" ? "bg-blue-100 text-blue-700" :
-                                                user.status === "BLOCKED" ? "bg-red-100 text-red-700" :
-                                                user.status === "UNBLOCKED" ? "bg-blue-200 text-blue-800" :
-                                                user.status === "INACTIVE" ? "bg-gray-100 text-gray-700" :
-                                                "bg-yellow-100 text-yellow-700"
-                                            }`}>
-                                            {user.status === 'INACTIVE' ? 'Inactive' : 
-                                             user.status === 'UNBLOCKED' ? 'Unblocked' : 
-                                             (user.status || "Unknown")}
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "ACTIVE" ? "bg-green-100 text-green-700" :
+                                                    user.status === "PENDING" ? "bg-blue-100 text-blue-700" :
+                                                        user.status === "BLOCKED" ? "bg-red-100 text-red-700" :
+                                                            user.status === "UNBLOCKED" ? "bg-blue-200 text-blue-800" :
+                                                                user.status === "INACTIVE" ? "bg-gray-100 text-gray-700" :
+                                                                    "bg-yellow-100 text-yellow-700"
+                                                }`}>
+                                                {user.status === 'INACTIVE' ? 'Inactive' :
+                                                    user.status === 'UNBLOCKED' ? 'Unblocked' :
+                                                        (user.status || "Unknown")}
                                             </span>
                                         }
                                     />
@@ -577,7 +576,7 @@ const ManageUsers = () => {
         const getPageNumbers = () => {
             const pages = [];
             const maxVisiblePages = 5;
-            
+
             if (totalPages <= maxVisiblePages) {
                 // Show all pages if total pages is less than or equal to maxVisiblePages
                 for (let i = 1; i <= totalPages; i++) {
@@ -586,91 +585,89 @@ const ManageUsers = () => {
             } else {
                 // Always show first page
                 pages.push(1);
-                
+
                 // Calculate start and end page numbers
                 let startPage = Math.max(2, currentPage - 1);
                 let endPage = Math.min(totalPages - 1, currentPage + 1);
-                
+
                 // Adjust if we're at the start or end
                 if (currentPage <= 3) {
                     endPage = 4;
                 } else if (currentPage >= totalPages - 2) {
                     startPage = totalPages - 3;
                 }
-                
+
                 // Add ellipsis if needed
                 if (startPage > 2) {
                     pages.push('...');
                 }
-                
+
                 // Add middle pages
                 for (let i = startPage; i <= endPage; i++) {
                     if (i > 1 && i < totalPages) {
                         pages.push(i);
                     }
                 }
-                
+
                 // Add ellipsis if needed
                 if (endPage < totalPages - 1) {
                     pages.push('...');
                 }
-                
+
                 // Always show last page
                 if (totalPages > 1) {
                     pages.push(totalPages);
                 }
             }
-            
+
             return pages;
         };
 
         return (
-         <div className="mt-6 px-4">
-  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-    
-    {/* Left: Info */}
-    <div className="text-sm text-gray-600">
-      Showing {((currentPage - 1) * itemsPerPage) + 1} to{" "}
-      {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
-    </div>
+            <div className="mt-6 px-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
 
-    {/* Center: Pagination */}
-    <div className="flex items-center space-x-3">
-      
-      {/* Previous */}
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className={`p-2 rounded-md ${
-          currentPage === 1
-            ? "text-gray-400 cursor-not-allowed"
-            : "text-gray-700 hover:bg-gray-100"
-        }`}
-      >
-        <FiChevronLeft className="w-4 h-4" />
-      </button>
+                    {/* Left: Info */}
+                    <div className="text-sm text-gray-600">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to{" "}
+                        {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+                    </div>
 
-      {/* Current Page */}
-      <div className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium">
-        Page {currentPage}
-      </div>
+                    {/* Center: Pagination */}
+                    <div className="flex items-center space-x-3">
 
-      {/* Next */}
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className={`p-2 rounded-md ${
-          currentPage === totalPages
-            ? "text-gray-400 cursor-not-allowed"
-            : "text-gray-700 hover:bg-gray-100"
-        }`}
-      >
-        <FiChevronRight className="w-4 h-4" />
-      </button>
+                        {/* Previous */}
+                        <button
+                            onClick={() => onPageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-md ${currentPage === 1
+                                    ? "text-gray-400 cursor-not-allowed"
+                                    : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                        >
+                            <FiChevronLeft className="w-4 h-4" />
+                        </button>
 
-    </div>
-  </div>
-</div>
+                        {/* Current Page */}
+                        <div className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium">
+                            Page {currentPage}
+                        </div>
+
+                        {/* Next */}
+                        <button
+                            onClick={() => onPageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-md ${currentPage === totalPages
+                                    ? "text-gray-400 cursor-not-allowed"
+                                    : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                        >
+                            <FiChevronRight className="w-4 h-4" />
+                        </button>
+
+                    </div>
+                </div>
+            </div>
 
         );
     };
@@ -759,9 +756,9 @@ const ManageUsers = () => {
                                     <>
                                         <div className="space-y-4">
                                             {admins.map((admin) => (
-                                                <UserCard 
-                                                    key={admin._id || admin.id} 
-                                                    user={admin} 
+                                                <UserCard
+                                                    key={admin._id || admin.id}
+                                                    user={admin}
                                                     onActionClick={handleActionClick}
                                                 />
                                             ))}
@@ -792,9 +789,9 @@ const ManageUsers = () => {
                                     <>
                                         <div className="space-y-4">
                                             {users.map((user) => (
-                                                <UserCard 
-                                                    key={user._id || user.id} 
-                                                    user={user} 
+                                                <UserCard
+                                                    key={user._id || user.id}
+                                                    user={user}
                                                     onActionClick={handleActionClick}
                                                 />
                                             ))}

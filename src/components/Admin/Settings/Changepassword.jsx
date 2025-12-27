@@ -99,7 +99,7 @@ const ChangePassword = () => {
         showToast(data.message || "Failed to update password", "error");
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       showToast("Error updating password", "error");
     } finally {
       setIsLoading(false);

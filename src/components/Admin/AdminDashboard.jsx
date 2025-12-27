@@ -14,18 +14,17 @@ import {
 import { useNavigate, Routes, Route } from "react-router-dom";
 const AdminDashboard = ({ onBack }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
+  // Initialize state from local storage to avoid flicker
+  const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem("lf_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      }
+      return stored ? JSON.parse(stored) : null;
     } catch (err) {
-      // ignore parse errors
+      return null;
     }
-  }, []);
+  });
+
+  // Removed useEffect for fetching user since we do it in initial state
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const displayName = user?.name || (user?.role === "ADMIN" ? "Admin" : user?.role === "SUPER_ADMIN" ? "Super Admin" : "User");
@@ -35,13 +34,13 @@ const AdminDashboard = ({ onBack }) => {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
+      transition: { staggerChildren: 0.05 }, // Speed up stagger
     },
   };
 
   const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    hidden: { opacity: 0, y: 10 }, // Reduce y distance
+    show: { opacity: 1, y: 0, transition: { duration: 0.3 } }, // Speed up duration
   };
 
   const baseMenuItems = [
@@ -82,7 +81,7 @@ const AdminDashboard = ({ onBack }) => {
       gradient: "bg-gradient-to-r from-indigo-600 to-blue-500",
     },
 
-     {
+    {
       id: "settings",
       label: "Manage Settings",
       icon: <FiSettings />,
@@ -93,8 +92,8 @@ const AdminDashboard = ({ onBack }) => {
   const menuItems = isAdmin
     ? baseMenuItems
     : baseMenuItems.filter((item) =>
-        ["profile", "bookings", "settings"].includes(item.id)
-      );
+      ["profile", "bookings", "settings"].includes(item.id)
+    );
 
   const handleBack = () => (onBack ? onBack() : navigate("/"));
   const [activeMenu, setActiveMenu] = useState(null);
@@ -111,28 +110,29 @@ const AdminDashboard = ({ onBack }) => {
       navigate("/contact");
     } else if (menuId === "sports") {
       navigate("/sports");
-    }else if (menuId === "gallery") 
-      navigate("/gallery", { state: { fromAdmin: true } 
+    } else if (menuId === "gallery")
+      navigate("/gallery", {
+        state: { fromAdmin: true }
       });
-      else if (menuId === "settings") 
+    else if (menuId === "settings")
       navigate("/settings");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
-  <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
-                    >
-                        <FiArrowLeft className="w-5 h-5" />
-                    </button>
-                    <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-                        Admin Dashboard
-                    </h1>
-                </div>
-            </header>    
+      <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
+          >
+            <FiArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
+            Admin Dashboard
+          </h1>
+        </div>
+      </header>
 
       {/* Main Content */}
       <motion.main
@@ -187,7 +187,7 @@ const AdminDashboard = ({ onBack }) => {
         </motion.div>
       </motion.main>
 
-      
+
     </div>
   );
 };

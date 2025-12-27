@@ -24,9 +24,9 @@ const HomePage = () => {
   // Menu items data
   const menuItems = [
     { id: 'games', label: 'Our Sports List', submenu: [] }, // no submenu
-    { 
-      id: 'book', 
-      label: 'Book Slot', 
+    {
+      id: 'book',
+      label: 'Book Slot',
       submenu: [],
       onClick: () => navigate('/explore-sports')
     },
@@ -44,12 +44,12 @@ const HomePage = () => {
   // Fetch sports data
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const closePopup = (e) => {
     e?.stopPropagation();
     setShowMaintenancePopup(false);
   };
-  
+
   const handleBookNow = (sport, e) => {
     e?.stopPropagation();
     if (sport.status === 'NOT_AVAILABLE') {
@@ -71,7 +71,7 @@ const HomePage = () => {
         const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
         setSports(sportsList);
       } catch (error) {
-        console.error("Error fetching sports:", error);
+        // console.error("Error fetching sports:", error);
       } finally {
         setLoading(false);
       }
@@ -399,7 +399,7 @@ const HomePage = () => {
             <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-900">Note!</h3>
-                <button 
+                <button
                   onClick={closePopup}
                   className="text-gray-400 hover:text-gray-500"
                 >
@@ -482,11 +482,10 @@ const HomePage = () => {
                           e.stopPropagation();
                           handleBookNow(turf, e);
                         }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          turf.status === 'NOT_AVAILABLE' 
-                            ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400' 
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${turf.status === 'NOT_AVAILABLE'
+                            ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
+                          }`}
                       >
                         {turf.status === 'NOT_AVAILABLE' ? 'Not Available' : 'Book Now'}
                       </button>
