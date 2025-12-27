@@ -191,17 +191,6 @@ function Footer() {
                 Contact Info
               </h4>
 
-<<<<<<< HEAD
-  <ul className="space-y-2 text-sm text-slate-200 text-left">
-    
-    {/* Address */}
-    <li className="flex items-start gap-3">
-      <FiMapPin className="mt-0.5 text-cyan-300 flex-shrink-0" />
-      <span className="break-words">
-        LearnFort Sports Park, Batlagundu road, Bangalapatti, Nilakottai(Taluk), Dindigul(Dist), Tamil Nadu, India, 624202
-      </span>
-    </li>
-=======
               <div className="space-y-6 text-sm text-left">
                 <div className="flex items-start gap-4">
                   <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
@@ -216,7 +205,6 @@ function Footer() {
                     </div>
                   </div>
                 </div>
->>>>>>> be1d3ce543f4f2c17fbd9b53861fedb8e54d3c41
 
                 <div className="flex items-start gap-4">
                   <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
@@ -242,64 +230,6 @@ function Footer() {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-    {/* Landline Number */}
-    <li className="flex items-center gap-3">
-      <FiPhone className="text-cyan-300" />
-      <a
-        href="tel:+914543245622"
-        className="hover:text-cyan-300 hover:underline"
-      >
-      Phone:  +91 45432 45622
-      </a>
-    </li>
-
-    {/* WhatsApp Number */}
-    <li className="flex items-center gap-3">
-      <FiPhone className="text-cyan-300" />
-      <a
-        href="https://wa.me/918124745622"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hover:text-cyan-300 hover:underline"
-      >
-        Mobile: +91 81247 45622
-      </a>
-    </li>
-    <li className="flex items-center gap-3">
-      <FiPhone className="text-cyan-300" />
-      <a
-        href="https://wa.me/919444123722"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hover:text-cyan-300 hover:underline"
-      >
-        WhatsApp: +91 94441 23722
-      </a>
-    </li>
-
-    {/* Email */}
-    <li className="flex items-center gap-3">
-      <FiMail className="text-cyan-300" />
-      <a
-        href="mailto:info@learnfortsports.com"
-        className="hover:text-cyan-300 hover:underline"
-      >
-        info@learnfortsports.com
-      </a>
-    </li>
-    <li className="flex items-center gap-3">
-      <FiMail className="text-cyan-300" />
-      <a
-        href="mailto:learnfortsports@gmail.com"
-        className="hover:text-cyan-300 hover:underline"
-      >
-        learnfortsports@gmail.com
-      </a>
-    </li>
-  </ul>
-</div>
-=======
                 <div className="flex items-start gap-4">
                   <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                     <FiMail className="w-4 h-4" />
@@ -314,7 +244,6 @@ function Footer() {
                 </div>
               </div>
             </div>
->>>>>>> be1d3ce543f4f2c17fbd9b53861fedb8e54d3c41
 
           </div>
         </div>
