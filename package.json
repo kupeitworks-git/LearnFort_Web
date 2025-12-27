@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://sujee-arun31.github.io/LearnFortSportsPark/",
+  "homepage": "https://kupeitworks-git.github.io/LearnFort_Web",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
