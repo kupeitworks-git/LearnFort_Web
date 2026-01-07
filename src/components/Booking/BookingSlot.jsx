@@ -142,12 +142,18 @@ const BookingSlot = () => {
 
   // Fetch sport details on component mount
   useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/";
+      return;
+    }
+
     const fetchSportDetails = async () => {
       try {
         setLoading(true);
 
         // First, try to fetch all sports and find by name
-        const response = await fetch(`${BaseUrl}sports/list`);
+        const response = await fetch(`${BaseUrl}sports/list?limit=100`);
         if (!response.ok) {
           throw new Error('Failed to fetch sports list');
         }

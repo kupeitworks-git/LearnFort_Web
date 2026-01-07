@@ -579,9 +579,9 @@ const AddSport = () => {
                                 placeholder="Write a detailed description about this sport, including any special rules or requirements..."
                                 className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
                             ></textarea>
-                            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                            {/* <div className="absolute bottom-3 right-3 text-xs text-gray-400">
                                 <span className="font-medium">0</span>/500 characters
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 

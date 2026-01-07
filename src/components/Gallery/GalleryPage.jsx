@@ -104,7 +104,7 @@ const GalleryPage = () => {
       try {
         setLoading(true);
         // ('Fetching sports list...');
-        const response = await axios.get(`${BaseUrl}sports/list`, {
+        const response = await axios.get(`${BaseUrl}sports/list?limit=100`, {
           headers: {
             // 'Authorization': `Bearer ${token}`
           }
@@ -335,7 +335,7 @@ const GalleryPage = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`${BaseUrl}sports/list`, {
+      const response = await axios.get(`${BaseUrl}sports/list?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

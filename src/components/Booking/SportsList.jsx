@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import "react-datepicker/dist/react-datepicker.css";
 import { BaseUrl } from "../api/api";
+import Pagination from "../common/Pagination";
 
 // Gradient colors for different sports
 const sportGradients = {
@@ -118,8 +119,8 @@ const SportsCard = ({ sport, onClick }) => {
           whileTap={!isDisabled ? { scale: 0.97 } : { scale: 0.98 }}
           onClick={handleClick}
           className={`px-4 py-2 rounded-full font-medium text-sm flex items-center shadow-md ${isDisabled
-              ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400'
-              : 'bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:shadow-lg'
+            ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400'
+            : 'bg-gradient-to-r from-blue-600 to-sky-500 text-white hover:shadow-lg'
             }`}
         >
           {isDisabled ? 'Not Available' : 'Book Now'}
@@ -138,16 +139,23 @@ const SportsList = ({ onBack }) => {
   const [sports, setSports] = useState([]);
   const [error, setError] = useState(null);
 
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalDocs: 0
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchSports();
-  }, []);
+    fetchSports(pagination.currentPage);
+  }, [pagination.currentPage]);
 
-  const fetchSports = async () => {
+  const fetchSports = async (page = 1) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`${BaseUrl}sports/list`);
+      const limit = 100;
+      const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -176,12 +184,24 @@ const SportsList = ({ onBack }) => {
       }));
 
       setSports(formattedSports);
+
+      if (result.pagination) {
+        setPagination({
+          currentPage: result.pagination.currentPage,
+          totalPages: result.pagination.totalPages,
+          totalDocs: result.pagination.totalDocs
+        });
+      }
     } catch (err) {
       // console.error('Error fetching sports:', err);
       setError('Failed to load sports. Please try again later.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
   const filteredSports = sports.filter(
@@ -262,49 +282,64 @@ const SportsList = ({ onBack }) => {
         </motion.div>
 
         {/* Sports Grid */}
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-        >
-          {isLoading ? (
-            // Loading skeleton
-            Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md h-64 animate-pulse">
-                <div className="w-24 h-24 bg-gray-200 rounded-2xl mb-4 mx-auto"></div>
-                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6 mx-auto mb-4"></div>
-                <div className="h-10 bg-gray-200 rounded-full w-32 mx-auto"></div>
-              </div>
-            ))
-          ) : error ? (
-            <div className="col-span-full text-center py-12">
-              <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-800 mb-2">Failed to load sports</h3>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <button
-                onClick={fetchSports}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          ) : filteredSports.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No sports found</h3>
-              <p className="text-gray-600">Try adjusting your search or check back later.</p>
-            </div>
-          ) : (
-            filteredSports.map((sport) => (
-              <SportsCard
-                key={sport.id}
-                sport={sport}
-                onClick={() => handleSportSelect(sport)}
-              />
-            ))
-          )}
-        </motion.div>
+        <div className="max-w-6xl mx-auto">
+          <div className="max-h-[65vh] overflow-y-auto pr-4 pb-6 custom-scrollbar">
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+            >
+              {isLoading ? (
+                // Loading skeleton
+                Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md h-64 animate-pulse">
+                    <div className="w-24 h-24 bg-gray-200 rounded-2xl mb-4 mx-auto"></div>
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 mx-auto mb-4"></div>
+                    <div className="h-10 bg-gray-200 rounded-full w-32 mx-auto"></div>
+                  </div>
+                ))
+              ) : error ? (
+                <div className="col-span-full text-center py-12 bg-white/50 rounded-3xl backdrop-blur-sm border border-white">
+                  <FiAlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">Failed to load sports</h3>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <button
+                    onClick={fetchSports}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 hover:shadow-blue-300"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : filteredSports.length === 0 ? (
+                <div className="col-span-full text-center py-12 bg-white/50 rounded-3xl backdrop-blur-sm border border-white">
+                  <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiSearch className="text-blue-200 w-10 h-10" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">No sports found</h3>
+                  <p className="text-gray-600">Try adjusting your search or check back later.</p>
+                </div>
+              ) : (
+                filteredSports.map((sport) => (
+                  <SportsCard
+                    key={sport.id}
+                    sport={sport}
+                    onClick={() => handleSportSelect(sport)}
+                  />
+                ))
+              )}
+            </motion.div>
+          </div>
+        </div>
+
+        {!isLoading && !searchQuery && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {/* Footer */}
         <motion.div

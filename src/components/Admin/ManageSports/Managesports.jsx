@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { FiArrowLeft, FiAlertTriangle, FiCheck, FiInfo } from "react-icons/fi";
-import {BaseUrl} from '../../api/api'
+import { BaseUrl } from '../../api/api'
+import Pagination from "../../common/Pagination";
 
 
 // Confirmation Popup Component
@@ -55,16 +56,25 @@ const ManageSports = () => {
     setTimeout(() => setToast({ message: "", type: "" }), 3000);
   };
 
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalDocs: 0
+  });
+
   // 🔥 Fetch sports list from API
-  const fetchSports = async () => {
+  const fetchSports = async (page = 1) => {
     try {
+      setLoading(true);
       const token = sessionStorage.getItem("token");
       if (!token) {
-        alert("Login session expired. Please login again.");
+        // alert("Login session expired. Please login again.");
+        window.location.href = "/";
         return;
       }
 
-      const res = await fetch(`${BaseUrl}sports/list`, {
+      const limit = 100;
+      const res = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -72,11 +82,18 @@ const ManageSports = () => {
 
       if (res.ok) {
         setSportsData(data.sports);
+        if (data.pagination) {
+          setPagination({
+            currentPage: data.pagination.currentPage,
+            totalPages: data.pagination.totalPages,
+            totalDocs: data.pagination.totalDocs
+          });
+        }
       } else {
         alert("Failed to fetch sports list");
       }
     } catch (err) {
-        (err);
+      (err);
       alert("Error fetching sports");
     } finally {
       setLoading(false); // 🟢 Stop loading
@@ -84,8 +101,12 @@ const ManageSports = () => {
   };
 
   useEffect(() => {
-    fetchSports();
-  }, []);
+    fetchSports(pagination.currentPage);
+  }, [pagination.currentPage]);
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
 
   const handleDeleteClick = (sport) => {
     setSelectedSport(sport);
@@ -270,6 +291,14 @@ const ManageSports = () => {
               </p>
             )}
           </div>
+
+          {!loading && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       )}
 

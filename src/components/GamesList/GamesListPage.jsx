@@ -4,6 +4,7 @@ import { FiArrowLeft, FiSearch } from "react-icons/fi";
 import { BaseUrl } from "../api/api";
 import { motion } from "framer-motion";
 import { FaRunning } from "react-icons/fa";
+import Pagination from "../common/Pagination";
 
 const GamesListPage = () => {
   const navigate = useNavigate();
@@ -29,23 +30,45 @@ const GamesListPage = () => {
     return true;
   };
 
-  useEffect(() => {
-    const fetchSports = async () => {
-      try {
-        const response = await fetch(`${BaseUrl}sports/list`);
-        const data = await response.json();
-        // Handle different API response structures just in case
-        const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
-        setSports(sportsList);
-      } catch (error) {
-        // console.error("Error fetching sports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalDocs: 0
+  });
 
-    fetchSports();
-  }, []);
+  const fetchSports = async (page = 1) => {
+    try {
+      setLoading(true);
+      const limit = 100;
+      const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
+      const data = await response.json();
+
+      // Handle different API response structures
+      const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
+      setSports(sportsList);
+
+      if (data.pagination) {
+        setPagination({
+          currentPage: data.pagination.currentPage,
+          totalPages: data.pagination.totalPages,
+          totalDocs: data.pagination.totalDocs
+        });
+      }
+    } catch (error) {
+      // console.error("Error fetching sports:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSports(pagination.currentPage);
+  }, [pagination.currentPage]);
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Filter sports based on search
   const filteredSports = sports.filter((sport) =>
@@ -105,95 +128,97 @@ const GamesListPage = () => {
             <p className="text-gray-500 font-medium">Loading sports...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredSports.length > 0 ? (
-              filteredSports.map((sport, index) => (
-                <motion.div
-                  key={sport._id || index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  onClick={(e) => handleCardClick(sport, e)}
-                  className={`group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 transform hover:-translate-y-1 ${sport.status === 'NOT_AVAILABLE'
-                      ? 'opacity-90 cursor-pointer'
-                      : 'cursor-pointer hover:shadow-xl'
-                    }`}
-                >
-                  {/* Image Section */}
-                  <div className="relative h-48 sm:h-52 overflow-hidden">
-                    {sport.image || sport.web_banner ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={sport.image || sport.web_banner}
-                          alt={sport.name}
-                          className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${sport.status === 'NOT_AVAILABLE' ? 'blur-[2px]' : ''
-                            }`}
-                        />
-                        {/* {sport.status === 'NOT_AVAILABLE' && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Not Available
-                          </span>
+          <div className="max-w-6xl mx-auto">
+            <div className="max-h-[75vh] min-h-[400px] overflow-y-auto pr-4 pb-6 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredSports.length > 0 ? (
+                  filteredSports.map((sport, index) => (
+                    <motion.div
+                      key={sport._id || index}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      onClick={(e) => handleCardClick(sport, e)}
+                      className={`group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 transform hover:-translate-y-1 ${sport.status === 'NOT_AVAILABLE'
+                        ? 'opacity-90 cursor-pointer'
+                        : 'cursor-pointer hover:shadow-xl'
+                        }`}
+                    >
+                      {/* Image Section */}
+                      <div className="relative h-48 sm:h-52 overflow-hidden">
+                        {sport.image || sport.web_banner ? (
+                          <div className="relative w-full h-full">
+                            <img
+                              src={sport.image || sport.web_banner}
+                              alt={sport.name}
+                              className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${sport.status === 'NOT_AVAILABLE' ? 'blur-[1px]' : ''
+                                }`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                            <FaRunning className="w-12 h-12 text-blue-300" />
+                          </div>
+                        )}
+
+                        {/* Overlay Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+                        {/* Price Badge */}
+                        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold shadow-lg text-blue-900 flex items-center gap-1 border border-blue-100">
+                          <span className="text-gray-400 font-normal">Starting</span> ₹{sport.final_price_per_day}
                         </div>
-                      )} */}
+
+                        {/* Title over Image */}
+                        <div className="absolute bottom-4 left-4 text-white">
+                          <h3 className="text-xl font-bold tracking-wide drop-shadow-md capitalize">
+                            {sport.name}
+                          </h3>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                        <FaRunning className="w-12 h-12 text-blue-300" />
+
+                      {/* Content Section */}
+                      <div className="p-5">
+                        <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed h-8">
+                          {sport.description || `Experience premium ${sport.name} facilities with LearnFort Sports Park.`}
+                        </p>
+
+                        <div className="mt-6 flex items-center justify-between">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${sport.status === 'NOT_AVAILABLE'
+                            ? 'text-gray-500 bg-gray-100'
+                            : 'text-blue-600 bg-blue-50 border border-blue-100'
+                            }`}>
+                            {sport.status === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : 'AVAILABLE NOW'}
+                          </span>
+                          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-all duration-300 shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Overlay Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-
-                    {/* Price Badge */}
-                    <div className={`absolute top-4 right-4 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm ${sport.status === 'NOT_AVAILABLE'
-                        ? 'bg-white/90 text-blue-800'
-                        : 'bg-white/90 text-blue-800'
-                      }`}>
-                      ₹${sport.final_price_per_day}/slot
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 mt-4">
+                    <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FiSearch className="text-blue-200 w-8 h-8" />
                     </div>
-
-                    {/* Title over Image (optional style, or below) - choosing below for cleanliness, kept simple title on image */}
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <h3 className="text-xl font-bold tracking-wide drop-shadow-md capitalize">
-                        {sport.name}
-                      </h3>
-                    </div>
+                    <h3 className="text-gray-800 font-semibold text-lg">No sports found</h3>
+                    <p className="text-gray-500 text-sm mt-1">Try adjusting your search terms.</p>
                   </div>
-
-                  {/* Content Section */}
-                  <div className="p-5">
-                    <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-                      {sport.description || `Experience premium ${sport.name} facilities with LearnFort Sports Park.`}
-                    </p>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded ${sport.status === 'NOT_AVAILABLE'
-                          ? 'text-gray-600 bg-gray-50 '
-                          : 'text-blue-600 bg-blue-50'
-                        }`}>
-                        {sport.status === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : 'AVAILABLE NOW'}
-                      </span>
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-20">
-                <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FiSearch className="text-gray-400 w-8 h-8" />
-                </div>
-                <h3 className="text-gray-800 font-semibold text-lg">No sports found</h3>
-                <p className="text-gray-500 text-sm mt-1">Try adjusting your search terms.</p>
+                )}
               </div>
-            )}
+            </div>
           </div>
+        )}
+
+        {!loading && !searchTerm && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
 

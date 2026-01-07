@@ -33,7 +33,7 @@ const VenueDetails = () => {
         const fetchSportDetails = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${BaseUrl}sports/list`);
+                const response = await fetch(`${BaseUrl}sports/list?limit=100`);
                 const data = await response.json();
                 const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
 

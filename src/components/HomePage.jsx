@@ -6,6 +6,7 @@ import SportsList from './Booking/SportsList';
 import Contacting from './Contacting';
 import AdminDashboard from './Admin/AdminDashboard';
 import LearnFortLogo from '../images/LearnFort.png';
+import Pagination from './common/Pagination';
 
 
 
@@ -61,15 +62,30 @@ const HomePage = () => {
     return true;
   };
 
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalDocs: 0
+  });
+
   useEffect(() => {
-    const fetchSports = async () => {
+    const fetchSports = async (page = 1) => {
       try {
         setLoading(true);
-        const response = await fetch(`${BaseUrl}sports/list`);
+        const limit = 100;
+        const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
         const data = await response.json();
         // Handle response structure (assuming array or object with data property)
-        const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
+        const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
         setSports(sportsList);
+
+        if (data.pagination) {
+          setPagination({
+            currentPage: data.pagination.currentPage,
+            totalPages: data.pagination.totalPages,
+            totalDocs: data.pagination.totalDocs
+          });
+        }
       } catch (error) {
         // console.error("Error fetching sports:", error);
       } finally {
@@ -77,8 +93,12 @@ const HomePage = () => {
       }
     };
 
-    fetchSports();
-  }, []);
+    fetchSports(pagination.currentPage);
+  }, [pagination.currentPage]);
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
 
   // Auto-rotate banners
   useEffect(() => {
@@ -420,80 +440,84 @@ const HomePage = () => {
         )}
 
         {/* Available Turfs */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Trending Games</h2>
+        <div className="mb-12">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Trending Games</h2>
+            <button
+              onClick={() => navigate('/games')}
+              className="text-blue-600 font-semibold hover:text-blue-700 transition-colors text-sm flex items-center gap-1"
+            >
+              View All <FiChevronRight />
+            </button>
+          </div>
+
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse">
-                  <div className="h-48 bg-gray-200"></div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between">
-                      <div className="h-6 w-1/2 bg-gray-200 rounded"></div>
-                      <div className="h-6 w-1/4 bg-gray-200 rounded"></div>
-                    </div>
-                    <div className="h-4 w-1/3 bg-gray-200 rounded"></div>
-                    <div className="flex justify-between items-center pt-2">
-                      <div className="h-4 w-1/4 bg-gray-200 rounded"></div>
-                      <div className="h-8 w-24 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 font-medium">Loading sports...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sports.map((turf) => (
-                <div key={turf._id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                  <div className="relative h-48">
-                    <img
-                      src={turf.image}
-                      alt={turf.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-800 px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-                    <FiStar className="mr-1" /> {turf.rating}
-                  </div> */}
-                  </div>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-800">{turf.name || turf.name}</h3>
-                        <div className="flex items-center text-gray-500 text-sm mt-1">
-                          <FiMapPin className="mr-1" size={14} />
-                          <span>{turf.ground_name || 'LearnFort Sports Park'}</span>
+            <div className="max-w-6xl mx-auto">
+              <div className="max-h-[75vh] min-h-[400px] overflow-y-auto pr-4 pb-6 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {sports.map((turf) => (
+                    <div
+                      key={turf._id}
+                      className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                    >
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={turf.image}
+                          alt={turf.name}
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                        />
+                      </div>
+                      <div className="p-5">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{turf.name}</h3>
+                            <div className="flex items-center text-gray-500 text-xs mt-1">
+                              <FiMapPin className="mr-1" size={12} />
+                              <span className="truncate">{turf.ground_name || 'LearnFort Sports Park'}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}</p>
+                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">/ Slot</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${turf.status === 'NOT_AVAILABLE' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                            {turf.status === 'NOT_AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE'}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBookNow(turf, e);
+                            }}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${turf.status === 'NOT_AVAILABLE'
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-200'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'
+                              }`}
+                          >
+                            {turf.status === 'NOT_AVAILABLE' ? 'Info' : 'Book Now'}
+                          </button>
                         </div>
                       </div>
-                      <div className="text-right">
-                        {turf.actual_price_per_day && (
-                          <span className="text-gray-400 text-sm line-through">₹{turf.actual_price_per_day}</span>
-                        )}
-                        <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}<span className="text-sm text-gray-500">/slot</span></p>
-                      </div>
                     </div>
-                    {/* <div className="flex items-center text-gray-500 text-sm mt-2">
-                    <FiClock className="mr-1" size={14} />
-                    <span>{turf.timings}</span>
-                  </div> */}
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
-                      <span className="text-sm text-gray-500">{turf.distance}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBookNow(turf, e);
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${turf.status === 'NOT_AVAILABLE'
-                            ? 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
-                      >
-                        {turf.status === 'NOT_AVAILABLE' ? 'Not Available' : 'Book Now'}
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
+          )}
+
+          {!loading && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
           )}
         </div>
       </main>
