@@ -484,30 +484,24 @@ const HomePage = () => {
                         />
                       </div>
                       <div className="p-5">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{turf.name}</h3>
-                            <div className="flex items-center text-gray-500 text-xs mt-1">
-                              <FiMapPin className="mr-1" size={12} />
-                              <span className="truncate">{turf.ground_name || 'LearnFort Sports Park'}</span>
-                            </div>
+                        <div className="mb-2">
+                          <h3 className="font-bold text-lg text-gray-800">{turf.name}</h3>
+                          <div className="flex items-center text-gray-500 text-xs mt-1">
+                            <FiMapPin className="mr-1" size={12} />
+                            <span className="flex-1">{turf.ground_name || 'LearnFort Sports Park'}</span>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}</p>
-                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">/ Slot</span>
+                          <div className="mt-2">
+                            <span className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}/slot</span>
                           </div>
                         </div>
 
-                        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${turf.status === 'NOT_AVAILABLE' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                            {turf.status === 'NOT_AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE'}
-                          </span>
+                        <div className="flex justify-center items-center mt-6 pt-4 border-t border-gray-100">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleBookNow(turf, e);
                             }}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${turf.status === 'NOT_AVAILABLE'
+                            className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all ${turf.status === 'NOT_AVAILABLE'
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-200'
                               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'
                               }`}
