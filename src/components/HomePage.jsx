@@ -72,7 +72,7 @@ const HomePage = () => {
     const fetchSports = async (page = 1) => {
       try {
         setLoading(true);
-        const limit = 100;
+        const limit = 10;
         const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
         const data = await response.json();
         // Handle response structure (assuming array or object with data property)
@@ -352,18 +352,24 @@ const HomePage = () => {
           sports.length > 0 && (
             <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg">
               <div
-                className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-                style={{
-                  backgroundImage: `url(${sports[currentBanner]?.web_banner})`
-                }}
+                className="absolute inset-0 bg-gray-200 animate-pulse transition-all duration-700 overflow-hidden"
               >
+                <img
+                  src={sports[currentBanner]?.web_banner}
+                  alt={sports[currentBanner]?.name}
+                  className="w-full h-full object-cover opacity-0 transition-opacity duration-700"
+                  onLoad={(e) => {
+                    e.target.style.opacity = '1';
+                    e.target.parentElement.classList.remove('animate-pulse', 'bg-gray-200');
+                  }}
+                />
                 {/* Clickable center area opens venue details */}
                 <button
                   type="button"
                   onClick={() =>
                     navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
                   }
-                  className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
+                  className="absolute inset-0 bg-black/40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
                 >
                   <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
                     {sports[currentBanner]?.name}
@@ -465,11 +471,16 @@ const HomePage = () => {
                       key={turf._id}
                       className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                     >
-                      <div className="relative h-48 overflow-hidden">
+                      <div className="relative h-48 overflow-hidden bg-gray-100 animate-pulse">
                         <img
                           src={turf.image}
                           alt={turf.name}
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                          loading="lazy"
+                          className="w-full h-full object-cover opacity-0 transition-all duration-500 hover:scale-110"
+                          onLoad={(e) => {
+                            e.target.style.opacity = '1';
+                            e.target.parentElement.classList.remove('animate-pulse', 'bg-gray-100');
+                          }}
                         />
                       </div>
                       <div className="p-5">

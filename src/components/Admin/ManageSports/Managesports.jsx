@@ -69,11 +69,12 @@ const ManageSports = () => {
       const token = sessionStorage.getItem("token");
       if (!token) {
         // alert("Login session expired. Please login again.");
-        window.location.href = "/";
+        sessionStorage.clear();
+        navigate("/login");
         return;
       }
 
-      const limit = 100;
+      const limit = 10;
       const res = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -81,7 +82,9 @@ const ManageSports = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setSportsData(data.sports);
+        // Sort sports by ID descending to show most recent first
+        const sortedSports = [...data.sports].sort((a, b) => (b._id || '').localeCompare(a._id || ''));
+        setSportsData(sortedSports);
         if (data.pagination) {
           setPagination({
             currentPage: data.pagination.currentPage,
@@ -90,7 +93,12 @@ const ManageSports = () => {
           });
         }
       } else {
-        alert("Failed to fetch sports list");
+        if (data.message === "jwt expired") {
+          sessionStorage.clear();
+          navigate("/login");
+        } else {
+          alert("Failed to fetch sports list");
+        }
       }
     } catch (err) {
       (err);
@@ -131,7 +139,13 @@ const ManageSports = () => {
         setSelectedSport(null);
         showToast("Sport deleted successfully!", "success");
       } else {
-        showToast("Failed to delete sport", "error");
+        const data = await res.json();
+        if (data.message === "jwt expired") {
+          sessionStorage.clear();
+          navigate("/login");
+        } else {
+          showToast("Failed to delete sport", "error");
+        }
       }
     } catch (err) {
       showToast("Error deleting sport", "error");
@@ -196,9 +210,7 @@ const ManageSports = () => {
               {/* ⭐ STICKY HEADER */}
               <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                    S.No
-                  </th>
+
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
                     Image
                   </th>
@@ -226,14 +238,24 @@ const ManageSports = () => {
               <tbody className="divide-y divide-gray-200">
                 {sportsData.map((sport, index) => (
                   <tr key={sport._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4 text-sm">{index + 1}</td>
 
-                    <td className="py-4 px-4">
-                      <img
-                        src={sport.image}
-                        alt={sport.name}
-                        className="w-14 h-14 object-cover rounded-lg border shadow-sm"
-                      />
+                    <td className="py-4 px-4 text-sm">
+                      <div className="w-14 h-14 bg-gray-100 animate-pulse rounded-lg border shadow-sm overflow-hidden flex items-center justify-center">
+                        <img
+                          src={sport.image}
+                          alt={sport.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                          onLoad={(e) => {
+                            e.target.style.opacity = '1';
+                            e.target.parentElement.classList.remove('animate-pulse', 'bg-gray-100');
+                          }}
+                          onError={(e) => {
+                            e.target.parentElement.classList.remove('animate-pulse');
+                            e.target.parentElement.innerHTML = '<span class="text-[10px] text-gray-400">Error</span>';
+                          }}
+                        />
+                      </div>
                     </td>
 
                     <td className="py-4 px-4 text-sm font-medium text-gray-800">

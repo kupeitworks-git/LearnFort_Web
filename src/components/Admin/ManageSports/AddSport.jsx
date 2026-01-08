@@ -12,7 +12,7 @@ const AddSport = () => {
 
     // Form States
     const [status, setStatus] = useState(true);
-    const [sportPriceType, setSportPriceType] = useState(null);
+    const [sportPriceType, setSportPriceType] = useState("INDIVIDUAL");
     const [sportImage, setSportImage] = useState(null);
     const [bannerImage, setBannerImage] = useState(null);
     const [webBannerImage, setWebBannerImage] = useState(null);
@@ -48,25 +48,85 @@ const AddSport = () => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
+    // 🔹 Image Compression Helper
+    const compressImage = (file, width, height) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }));
+                    }, 'image/jpeg', 0.8);
+                };
+            };
+        });
+    };
+
     // 🔹 Handle images
-    const handleSportImageChange = (e) => {
+    const handleSportImageChange = async (e) => {
         const file = e.target.files[0];
-        setSportImage(URL.createObjectURL(file));
-        setSportImageFile(file); // Store actual file for upload
+        if (file) {
+            const img = new Image();
+            img.onload = async () => {
+                if (img.width === 150 && img.height === 150) {
+                    const compressed = await compressImage(file, 150, 150);
+                    setSportImage(URL.createObjectURL(compressed));
+                    setSportImageFile(compressed);
+                } else {
+                    showToast("Sport Image must be exactly 150x150 pixels!", "error");
+                    e.target.value = null;
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        }
     };
 
-    const handleBannerImageChange = (e) => {
+    const handleBannerImageChange = async (e) => {
         const file = e.target.files[0];
-        setBannerImage(URL.createObjectURL(file));
-        setBannerImageFile(file);
+        if (file) {
+            const img = new Image();
+            img.onload = async () => {
+                if (img.width === 350 && img.height === 150) {
+                    const compressed = await compressImage(file, 350, 150);
+                    setBannerImage(URL.createObjectURL(compressed));
+                    setBannerImageFile(compressed);
+                } else {
+                    showToast("Banner Image must be exactly 350x150 pixels!", "error");
+                    e.target.value = null;
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        }
     };
 
-    const handleWebBannerImageChange = (e) => {
+    const handleWebBannerImageChange = async (e) => {
         const file = e.target.files[0];
-        setWebBannerImage(URL.createObjectURL(file));
-        setWebBannerImageFile(file);
+        if (file) {
+            const img = new Image();
+            img.onload = async () => {
+                if (img.width === 200 && img.height === 400) {
+                    const compressed = await compressImage(file, 200, 400);
+                    setWebBannerImage(URL.createObjectURL(compressed));
+                    setWebBannerImageFile(compressed);
+                } else {
+                    showToast("Web Banner Image must be exactly 200x400 pixels!", "error");
+                    e.target.value = null;
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        }
     };
-
     const [toast, setToast] = useState({ message: "", type: "" });
     const [isLoading, setIsLoading] = useState(false);
 
@@ -81,6 +141,21 @@ const AddSport = () => {
         setIsLoading(true);
 
         try {
+            if (!sportImageFile) {
+                showToast("Sport Image is required!", "error");
+                setIsLoading(false);
+                return;
+            }
+            if (!bannerImageFile) {
+                showToast("Banner Image is required!", "error");
+                setIsLoading(false);
+                return;
+            }
+            if (!webBannerImageFile) {
+                showToast("Web Banner Image is required!", "error");
+                setIsLoading(false);
+                return;
+            }
             const token = sessionStorage.getItem("token");
 
             if (!token) {
@@ -100,7 +175,7 @@ const AddSport = () => {
             formData.append("final_price_per_day_light", form.final_price_per_day_light);
             formData.append("actual_price_per_month", form.actual_price_per_month);
             formData.append("final_price_per_month", form.final_price_per_month);
-            formData.append("actual_price_per_month_light", form.actual_price_per_month_light);
+            formData.append("actual_price_per_month_light", form.final_price_per_month_light);
             formData.append("final_price_per_month_light", form.final_price_per_month_light);
             formData.append("actual_price_per_year", form.actual_price_per_year);
             formData.append("final_price_per_year", form.final_price_per_year);
@@ -130,7 +205,12 @@ const AddSport = () => {
                 ("Response:", data);
                 setTimeout(() => navigate(-1), 1500);
             } else {
-                showToast(data.message || "Something went wrong!", "error");
+                if (data.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                } else {
+                    showToast(data.message || "Something went wrong!", "error");
+                }
             }
 
         } catch (error) {
@@ -574,6 +654,8 @@ const AddSport = () => {
                         <div className="relative">
                             <textarea
                                 rows="4"
+                                name="about"
+                                value={form.about}
                                 required
                                 onChange={handleChange}
                                 placeholder="Write a detailed description about this sport, including any special rules or requirements..."
@@ -609,15 +691,9 @@ const AddSport = () => {
                                         Upload Sport Image
                                     </p>
 
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        PNG, JPG, JPEG up to 5MB
-                                    </p>
-
-                                    <p className="text-xs text-gray-400 italic mt-1">
-                                        Recommended sizes:<br />
-                                        <span className="font-medium text-gray-600">
-                                            320×120 (Sports Image) • 1200×400 (Website)
-                                        </span>
+                                    <p className="text-gray-500 mb-2">PNG, JPG, JPEG up to 5MB</p>
+                                    <p className="text-red-500 text-xs font-bold italic">
+                                        Required size: 150×150 pixels
                                     </p>
 
                                     {/* Hidden File Input */}
@@ -625,7 +701,6 @@ const AddSport = () => {
                                         type="file"
                                         accept="image/*"
                                         ref={sportInputRef}
-                                        required
                                         className="hidden"
                                         onChange={handleSportImageChange}
                                     />
@@ -657,7 +732,7 @@ const AddSport = () => {
                         {/* BANNER IMAGE */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Banner Image <span className="text-blue-500">(Optional)</span>
+                                Banner Image <span className="text-red-500">*</span>
                             </label>
 
                             <div
@@ -681,7 +756,6 @@ const AddSport = () => {
                                         type="file"
                                         accept="image/*"
                                         ref={bannerInputRef}
-                                        required
                                         className="hidden"
                                         onChange={handleBannerImageChange}
                                     />
@@ -715,7 +789,7 @@ const AddSport = () => {
                         {/* WEB BANNER IMAGE */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Web Banner Image <span className="text-blue-500">(Optional)</span>
+                                Web Banner Image <span className="text-red-500">*</span>
                             </label>
 
                             <div

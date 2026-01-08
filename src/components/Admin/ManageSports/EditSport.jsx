@@ -9,7 +9,7 @@ const EditSport = () => {
   const sportData = location.state?.sport;
 
   const [status, setStatus] = useState(true);
-  const [sportPriceType, setSportPriceType] = useState(null);
+  const [sportPriceType, setSportPriceType] = useState("INDIVIDUAL");
   const [sportImage, setSportImage] = useState(null);
   const [bannerImage, setBannerImage] = useState(null);
   const [webBannerImage, setWebBannerImage] = useState(null);
@@ -68,34 +68,89 @@ const EditSport = () => {
         about: sportData.about || "",
       });
       setStatus(sportData.status === "AVAILABLE");
-      setSportPriceType(sportData.sport_price_type || "GROUP");
+      setSportPriceType(sportData.sport_price_type || "INDIVIDUAL");
       setSportImage(sportData.image || null);
       setBannerImage(sportData.banner || null);
       setWebBannerImage(sportData.web_banner || null);
     }
   }, [sportData]);
 
-  const handleSportImageChange = (e) => {
+  // 🔹 Image Compression Helper
+  const compressImage = (file, width, height) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            }));
+          }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
+  const handleSportImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setSportImage(URL.createObjectURL(file));
-      setSportImageFile(file);
+      const img = new Image();
+      img.onload = async () => {
+        if (img.width === 150 && img.height === 150) {
+          const compressed = await compressImage(file, 150, 150);
+          setSportImage(URL.createObjectURL(compressed));
+          setSportImageFile(compressed);
+        } else {
+          showToast("Sport Image must be exactly 150x150 pixels!", "error");
+          e.target.value = null;
+        }
+      };
+      img.src = URL.createObjectURL(file);
     }
   };
 
-  const handleBannerImageChange = (e) => {
+  const handleBannerImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setBannerImage(URL.createObjectURL(file));
-      setBannerImageFile(file);
+      const img = new Image();
+      img.onload = async () => {
+        if (img.width === 350 && img.height === 150) {
+          const compressed = await compressImage(file, 350, 150);
+          setBannerImage(URL.createObjectURL(compressed));
+          setBannerImageFile(compressed);
+        } else {
+          showToast("Banner Image must be exactly 350x150 pixels!", "error");
+          e.target.value = null;
+        }
+      };
+      img.src = URL.createObjectURL(file);
     }
   };
 
-  const handleWebBannerImageChange = (e) => {
+  const handleWebBannerImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setWebBannerImage(URL.createObjectURL(file));
-      setWebBannerImageFile(file);
+      const img = new Image();
+      img.onload = async () => {
+        if (img.width === 200 && img.height === 400) {
+          const compressed = await compressImage(file, 200, 400);
+          setWebBannerImage(URL.createObjectURL(compressed));
+          setWebBannerImageFile(compressed);
+        } else {
+          showToast("Web Banner Image must be exactly 200x400 pixels!", "error");
+          e.target.value = null;
+        }
+      };
+      img.src = URL.createObjectURL(file);
     }
   };
 
@@ -112,6 +167,21 @@ const EditSport = () => {
     setIsLoading(true);
 
     try {
+      if (!sportImage) {
+        showToast("Sport Image is required!", "error");
+        setIsLoading(false);
+        return;
+      }
+      if (!bannerImage) {
+        showToast("Banner Image is required!", "error");
+        setIsLoading(false);
+        return;
+      }
+      if (!webBannerImage) {
+        showToast("Web Banner Image is required!", "error");
+        setIsLoading(false);
+        return;
+      }
       const token = sessionStorage.getItem("token");
       if (!token) {
         showToast("No token found. Please login first.", "error");
@@ -154,7 +224,12 @@ const EditSport = () => {
         showToast("Sport Updated Successfully!", "success");
         setTimeout(() => navigate("/sports"), 1500);
       } else {
-        showToast(result.message || "Failed to update sport", "error");
+        if (result.message === "jwt expired") {
+          sessionStorage.clear();
+          navigate("/login");
+        } else {
+          showToast(result.message || "Failed to update sport", "error");
+        }
       }
     } catch (error) {
       // console.error(error);
@@ -607,9 +682,7 @@ const EditSport = () => {
                 placeholder="Write a detailed description about this sport..."
                 className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
               ></textarea>
-              <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                <span className="font-medium">{formData.about?.length || 0}</span>/500 characters
-              </div>
+
             </div>
           </div>
 
@@ -633,6 +706,7 @@ const EditSport = () => {
                     <p className="text-xs text-gray-500 mb-2">
                       {sportImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
                     </p>
+                    <p className="text-red-500 text-xs font-bold italic">Required size: 150x150 pixels</p>
                   </div>
 
                   <input
@@ -668,7 +742,7 @@ const EditSport = () => {
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Banner Image
-                <span className="text-blue-500 ml-1">(Optional)</span>
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${bannerImage ? 'border-purple-200 bg-purple-50' : 'border-gray-300 hover:border-blue-400 bg-gray-50'
                 }`}>
@@ -681,8 +755,9 @@ const EditSport = () => {
                       {bannerImage ? 'Banner Uploaded' : 'Upload Banner Image'}
                     </p>
                     <p className="text-xs text-gray-500 mb-3">
-                      {bannerImage ? 'Click to change' : 'Recommended size: 1200x400px'}
+                      {bannerImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
                     </p>
+                    <p className="text-red-500 text-xs font-bold italic">Required size: 350x150 pixels</p>
                   </div>
                   <input
                     type="file"
@@ -717,7 +792,7 @@ const EditSport = () => {
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Web Banner Image
-                <span className="text-blue-500 ml-1">(Optional)</span>
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${webBannerImage ? 'border-purple-200 bg-purple-50' : 'border-gray-300 hover:border-blue-400 bg-gray-50'
                 }`}>

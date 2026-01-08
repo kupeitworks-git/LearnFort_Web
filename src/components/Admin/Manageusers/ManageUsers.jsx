@@ -21,6 +21,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '../../api/api';
+import Pagination from "../../common/Pagination";
 
 const ManageUsers = () => {
     const navigate = useNavigate();
@@ -103,7 +104,12 @@ const ManageUsers = () => {
                     hasPrev: pagination.hasPrev || false
                 });
             } else {
-                setError(response.message || "Failed to fetch users");
+                if (response.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                } else {
+                    setError(response.message || "Failed to fetch users");
+                }
             }
         } catch (err) {
             // console.error(err);
@@ -156,7 +162,12 @@ const ManageUsers = () => {
                     hasPrev: pagination.hasPrev || false
                 });
             } else {
-                setError(response.message || "Failed to fetch admins");
+                if (response.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                } else {
+                    setError(response.message || "Failed to fetch admins");
+                }
             }
         } catch (err) {
             // console.error(err);
@@ -259,6 +270,11 @@ const ManageUsers = () => {
                 }
                 setError(null);
             } else {
+                if (data.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                    return;
+                }
                 throw new Error(data.message || 'Failed to update status');
             }
         } catch (err) {
@@ -351,6 +367,11 @@ const ManageUsers = () => {
                 setShowEditModal(false);
                 showToast("User updated successfully!", "success");
             } else {
+                if (data.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                    return;
+                }
                 throw new Error(data.message || 'Failed to update user');
             }
         } catch (err) {
@@ -382,6 +403,11 @@ const ManageUsers = () => {
                     setAdmins(admins.filter(a => a._id !== selectedUser._id));
                 }
             } else {
+                if (data.message === "jwt expired") {
+                    sessionStorage.clear();
+                    navigate("/login");
+                    return;
+                }
                 throw new Error(data.message || 'Failed to delete user');
             }
         } catch (err) {
@@ -537,11 +563,11 @@ const ManageUsers = () => {
                                         label="Status"
                                         value={
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "ACTIVE" ? "bg-green-100 text-green-700" :
-                                                    user.status === "PENDING" ? "bg-blue-100 text-blue-700" :
-                                                        user.status === "BLOCKED" ? "bg-red-100 text-red-700" :
-                                                            user.status === "UNBLOCKED" ? "bg-blue-200 text-blue-800" :
-                                                                user.status === "INACTIVE" ? "bg-gray-100 text-gray-700" :
-                                                                    "bg-yellow-100 text-yellow-700"
+                                                user.status === "PENDING" ? "bg-blue-100 text-blue-700" :
+                                                    user.status === "BLOCKED" ? "bg-red-100 text-red-700" :
+                                                        user.status === "UNBLOCKED" ? "bg-blue-200 text-blue-800" :
+                                                            user.status === "INACTIVE" ? "bg-gray-100 text-gray-700" :
+                                                                "bg-yellow-100 text-yellow-700"
                                                 }`}>
                                                 {user.status === 'INACTIVE' ? 'Inactive' :
                                                     user.status === 'UNBLOCKED' ? 'Unblocked' :
@@ -569,108 +595,7 @@ const ManageUsers = () => {
     // Removed getPaginatedData and getTotalPages as we're using server-side pagination now
 
     // Pagination Component
-    const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
-        if (totalPages <= 1) return null;
 
-        // Generate page numbers to show (current page and 2 pages before/after)
-        const getPageNumbers = () => {
-            const pages = [];
-            const maxVisiblePages = 5;
-
-            if (totalPages <= maxVisiblePages) {
-                // Show all pages if total pages is less than or equal to maxVisiblePages
-                for (let i = 1; i <= totalPages; i++) {
-                    pages.push(i);
-                }
-            } else {
-                // Always show first page
-                pages.push(1);
-
-                // Calculate start and end page numbers
-                let startPage = Math.max(2, currentPage - 1);
-                let endPage = Math.min(totalPages - 1, currentPage + 1);
-
-                // Adjust if we're at the start or end
-                if (currentPage <= 3) {
-                    endPage = 4;
-                } else if (currentPage >= totalPages - 2) {
-                    startPage = totalPages - 3;
-                }
-
-                // Add ellipsis if needed
-                if (startPage > 2) {
-                    pages.push('...');
-                }
-
-                // Add middle pages
-                for (let i = startPage; i <= endPage; i++) {
-                    if (i > 1 && i < totalPages) {
-                        pages.push(i);
-                    }
-                }
-
-                // Add ellipsis if needed
-                if (endPage < totalPages - 1) {
-                    pages.push('...');
-                }
-
-                // Always show last page
-                if (totalPages > 1) {
-                    pages.push(totalPages);
-                }
-            }
-
-            return pages;
-        };
-
-        return (
-            <div className="mt-6 px-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-
-                    {/* Left: Info */}
-                    <div className="text-sm text-gray-600">
-                        Showing {((currentPage - 1) * itemsPerPage) + 1} to{" "}
-                        {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
-                    </div>
-
-                    {/* Center: Pagination */}
-                    <div className="flex items-center space-x-3">
-
-                        {/* Previous */}
-                        <button
-                            onClick={() => onPageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className={`p-2 rounded-md ${currentPage === 1
-                                    ? "text-gray-400 cursor-not-allowed"
-                                    : "text-gray-700 hover:bg-gray-100"
-                                }`}
-                        >
-                            <FiChevronLeft className="w-4 h-4" />
-                        </button>
-
-                        {/* Current Page */}
-                        <div className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium">
-                            Page {currentPage}
-                        </div>
-
-                        {/* Next */}
-                        <button
-                            onClick={() => onPageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className={`p-2 rounded-md ${currentPage === totalPages
-                                    ? "text-gray-400 cursor-not-allowed"
-                                    : "text-gray-700 hover:bg-gray-100"
-                                }`}
-                        >
-                            <FiChevronRight className="w-4 h-4" />
-                        </button>
-
-                    </div>
-                </div>
-            </div>
-
-        );
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white flex flex-col">
