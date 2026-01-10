@@ -1,7 +1,7 @@
 // src/components/Admin/Settings/Settings.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiLock, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
+import { FiLock, FiArrowRight, FiArrowLeft, FiHome } from 'react-icons/fi';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -31,6 +31,13 @@ const Settings = () => {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
             Settings
           </h1>
+          <button
+            onClick={() => navigate('/')}
+            className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/10 transition"
+            title="Go Home"
+          >
+            <FiHome className="w-5 h-5" />
+          </button>
         </div>
       </header>
 

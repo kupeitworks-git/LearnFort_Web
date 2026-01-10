@@ -66,6 +66,13 @@ const AboutUs = () => {
         <h1 className="text-xl font-bold tracking-wide">
           About LearnFort
         </h1>
+        <button
+          onClick={() => navigate('/')}
+          className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+          title="Go Home"
+        >
+          <FiHome className="h-5 w-5" />
+        </button>
       </motion.header>
 
       {/* Hero Section */}

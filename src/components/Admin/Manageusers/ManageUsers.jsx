@@ -469,7 +469,7 @@ const ManageUsers = () => {
             case 'activate': return 'ACTIVE';
             case 'deactivate': return 'INACTIVE';
             case 'block': return 'BLOCKED';
-            case 'unblock': return 'UNBLOCKED';
+            case 'unblock': return 'ACTIVE'; // Changed from 'UNBLOCKED' to 'ACTIVE'
             default: return null;
         }
     };
@@ -622,6 +622,13 @@ const ManageUsers = () => {
                     <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
                         Manage Users
                     </h1>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+                        title="Go Home"
+                    >
+                        <FiHome className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 

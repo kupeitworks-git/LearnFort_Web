@@ -1,15 +1,15 @@
 import React from "react";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiHome } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 const TermsAndConditions = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif]">
+    <div className="bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif]">
       {/* Header */}
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
@@ -19,6 +19,13 @@ const TermsAndConditions = () => {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
             Terms & Conditions
           </h1>
+          <button
+            onClick={() => navigate('/')}
+            className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+            title="Go Home"
+          >
+            <FiHome className="w-5 h-5" />
+          </button>
         </div>
       </header>
 

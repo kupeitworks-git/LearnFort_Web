@@ -223,8 +223,15 @@ const ProfilePage = () => {
                         <FiArrowLeft className="w-5 h-5" />
                     </button>
                     <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-                        Manage Profile
+                        My Profile
                     </h1>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+                        title="Go Home"
+                    >
+                        <FiHome className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiMapPin, FiChevronDown, FiSun, FiMoon } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiChevronDown, FiSun, FiMoon, FiHome } from "react-icons/fi";
 import { FaWifi, FaParking, FaTshirt, FaUtensils, FaDumbbell, FaChild } from "react-icons/fa";
 import { BaseUrl } from "../api/api";
 
@@ -165,11 +165,12 @@ const VenueDetails = () => {
         <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
 
             {/* HERO IMAGE */}
-            <div className="relative w-full h-60 md:h-80 overflow-hidden  shadow-lg">
+            <div className="relative w-full h-60 md:h-80 overflow-hidden shadow-lg">
                 <img
                     src={venue.image}
                     alt={venue.name}
                     className="w-full h-full object-cover"
+                    loading="eager"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
@@ -180,6 +181,15 @@ const VenueDetails = () => {
                 >
                     <FiArrowLeft />
                     Back
+                </button>
+
+                {/* HOME BUTTON */}
+                <button
+                    onClick={() => navigate('/')}
+                    className="absolute top-4 right-4 bg-black/60 hover:bg-black/75 text-white p-2 rounded-full shadow-lg transition"
+                    title="Go Home"
+                >
+                    <FiHome className="w-5 h-5" />
                 </button>
             </div>
 
@@ -351,7 +361,7 @@ const VenueDetails = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

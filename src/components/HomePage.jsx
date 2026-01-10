@@ -69,23 +69,15 @@ const HomePage = () => {
   });
 
   useEffect(() => {
-    const fetchSports = async (page = 1) => {
+    const fetchSports = async () => {
       try {
         setLoading(true);
-        const limit = 10;
-        const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
+        // Fetch all sports without pagination
+        const response = await fetch(`${BaseUrl}sports/list`);
         const data = await response.json();
         // Handle response structure (assuming array or object with data property)
         const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
         setSports(sportsList);
-
-        if (data.pagination) {
-          setPagination({
-            currentPage: data.pagination.currentPage,
-            totalPages: data.pagination.totalPages,
-            totalDocs: data.pagination.totalDocs
-          });
-        }
       } catch (error) {
         // console.error("Error fetching sports:", error);
       } finally {
@@ -93,8 +85,8 @@ const HomePage = () => {
       }
     };
 
-    fetchSports(pagination.currentPage);
-  }, [pagination.currentPage]);
+    fetchSports();
+  }, []);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, currentPage: newPage }));
@@ -351,34 +343,27 @@ const HomePage = () => {
         ) : (
           sports.length > 0 && (
             <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg">
-              <div
-                className="absolute inset-0 bg-gray-200 animate-pulse transition-all duration-700 overflow-hidden"
+              <img
+                src={sports[currentBanner]?.web_banner}
+                alt={sports[currentBanner]?.name}
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
+              {/* Clickable center area opens venue details */}
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
+                }
+                className="absolute inset-0 bg-black/40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
               >
-                <img
-                  src={sports[currentBanner]?.web_banner}
-                  alt={sports[currentBanner]?.name}
-                  className="w-full h-full object-cover opacity-0 transition-opacity duration-700"
-                  onLoad={(e) => {
-                    e.target.style.opacity = '1';
-                    e.target.parentElement.classList.remove('animate-pulse', 'bg-gray-200');
-                  }}
-                />
-                {/* Clickable center area opens venue details */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
-                  }
-                  className="absolute inset-0 bg-black/40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
-                >
-                  <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
-                    {sports[currentBanner]?.name}
-                  </h2>
-                </button>
-              </div>
+                <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
+                  {sports[currentBanner]?.name}
+                </h2>
+              </button>
 
               {/* Arrows (only slide, no navigation) */}
-              <button
+              {/* <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -397,10 +382,10 @@ const HomePage = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
               >
                 <FiChevronRight className="w-6 h-6 text-gray-800" />
-              </button>
+              </button> */}
 
               {/* Dots */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+              {/* <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
                 {sports.map((_, index) => (
                   <button
                     key={index}
@@ -413,7 +398,7 @@ const HomePage = () => {
                       }`}
                   />
                 ))}
-              </div>
+              </div> */}
             </div>
           )
         )}
@@ -464,66 +449,60 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="max-w-6xl mx-auto">
-              <div className="max-h-[75vh] min-h-[400px] overflow-y-auto pr-4 pb-6 custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {sports.map((turf) => (
-                    <div
-                      key={turf._id}
-                      className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                    >
-                      <div className="relative h-48 overflow-hidden bg-gray-100 animate-pulse">
-                        <img
-                          src={turf.image}
-                          alt={turf.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover opacity-0 transition-all duration-500 hover:scale-110"
-                          onLoad={(e) => {
-                            e.target.style.opacity = '1';
-                            e.target.parentElement.classList.remove('animate-pulse', 'bg-gray-100');
-                          }}
-                        />
-                      </div>
-                      <div className="p-5">
-                        <div className="mb-2">
-                          <h3 className="font-bold text-lg text-gray-800">{turf.name}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {sports.map((turf) => (
+                  <div
+                    key={turf._id}
+                    className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={turf.image}
+                        alt={turf.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
+                      />
+                    </div>
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-2 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-lg text-gray-800 break-words">{turf.name}</h3>
                           <div className="flex items-center text-gray-500 text-xs mt-1">
-                            <FiMapPin className="mr-1" size={12} />
-                            <span className="flex-1">{turf.ground_name || 'LearnFort Sports Park'}</span>
-                          </div>
-                          <div className="mt-2">
-                            <span className="text-lg font-bold text-blue-600">₹{turf.final_price_per_day}/slot</span>
+                            <FiMapPin className="mr-1 flex-shrink-0" size={12} />
+                            <span className="truncate">{turf.ground_name || 'LearnFort Sports Park'}</span>
                           </div>
                         </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-lg font-bold text-blue-600 whitespace-nowrap">₹{turf.final_price_per_day}</p>
+                          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider whitespace-nowrap">/ Slot</span>
+                        </div>
+                      </div>
 
-                        <div className="flex justify-center items-center mt-6 pt-4 border-t border-gray-100">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBookNow(turf, e);
-                            }}
-                            className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all ${turf.status === 'NOT_AVAILABLE'
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-200'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'
-                              }`}
-                          >
-                            {turf.status === 'NOT_AVAILABLE' ? 'Info' : 'Book Now'}
-                          </button>
-                        </div>
+                      <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${turf.status === 'NOT_AVAILABLE' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                          {turf.status === 'NOT_AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE'}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBookNow(turf, e);
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${turf.status === 'NOT_AVAILABLE'
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-200'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200'
+                            }`}
+                        >
+                          {turf.status === 'NOT_AVAILABLE' ? 'Info' : 'Book Now'}
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {!loading && (
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
+          {/* Pagination removed - showing all sports */}
         </div>
       </main>
     </div>

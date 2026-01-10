@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { FiArrowLeft, FiAlertTriangle, FiCheck, FiInfo } from "react-icons/fi";
+import { FiArrowLeft, FiAlertTriangle, FiCheck, FiInfo, FiHome } from "react-icons/fi";
 import { BaseUrl } from '../../api/api'
 import Pagination from "../../common/Pagination";
 
@@ -179,6 +179,13 @@ const ManageSports = () => {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
             Manage Sports
           </h1>
+          <button
+            onClick={() => navigate('/')}
+            className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/10 transition"
+            title="Go Home"
+          >
+            <FiHome className="w-5 h-5" />
+          </button>
         </div>
       </header>
 

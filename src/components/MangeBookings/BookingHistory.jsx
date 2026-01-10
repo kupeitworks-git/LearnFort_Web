@@ -12,7 +12,8 @@ import {
     FiX,
     FiUser,
     FiLayers,
-    FiChevronRight
+    FiChevronRight,
+    FiHome
 } from "react-icons/fi";
 import {
     GiSoccerBall,
@@ -132,6 +133,12 @@ const BookingsPage = () => {
             downloadButtons.forEach(btn => {
                 btn.style.display = 'none';
             });
+
+            // Remove the header bar from the clone
+            const headerBar = receiptClone.querySelector('.receipt-header');
+            if (headerBar) {
+                headerBar.remove();
+            }
 
             // Use html2canvas with the clone
             const canvas = await html2canvas(receiptClone, {
@@ -330,6 +337,13 @@ const BookingsPage = () => {
                     <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                         {viewMode === "selection" ? "Booking History" : (historyType === "all" ? "All Bookings" : "My Bookings")}
                     </h1>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="ml-auto p-2.5 rounded-full bg-white/15 hover:bg-white/25 transition-all duration-300 hover:scale-110 active:scale-95 shadow-inner"
+                        title="Go Home"
+                    >
+                        <FiHome className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 
@@ -609,7 +623,7 @@ const BookingsPage = () => {
                         style={{ maxHeight: '90vh' }}
                     >
                         {/* Header Bar */}
-                        <div className="bg-[#3B5998] text-white p-4 flex items-center justify-between">
+                        <div className="receipt-header bg-[#3B5998] text-white p-4 flex items-center justify-between">
                             <button
                                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
                                 onClick={() => {
@@ -657,7 +671,7 @@ const BookingsPage = () => {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-blue-300 font-medium">Email:</span>
-                                        <span className="text-gray-700 font-medium text-right truncate max-w-[180px]">{selectedBooking.customer.email}</span>
+                                        <span className="text-gray-700 font-medium text-right break-all">{selectedBooking.customer.email}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-blue-300 font-medium">Native:</span>

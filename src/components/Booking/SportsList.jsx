@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiChevronRight, FiSearch, FiAlertCircle } from "react-icons/fi";
+import { FiArrowLeft, FiChevronRight, FiSearch, FiAlertCircle, FiHome } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import "react-datepicker/dist/react-datepicker.css";
@@ -103,6 +103,7 @@ const SportsCard = ({ sport, onClick }) => {
           <img
             src={getImageUrl(sport.image || sport.banner)}
             alt={sport.name}
+            loading="lazy"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.target.onerror = null;
@@ -139,23 +140,18 @@ const SportsList = ({ onBack }) => {
   const [sports, setSports] = useState([]);
   const [error, setError] = useState(null);
 
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalDocs: 0
-  });
-
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchSports(pagination.currentPage);
-  }, [pagination.currentPage]);
+    fetchSports();
+  }, []);
 
-  const fetchSports = async (page = 1) => {
+  const fetchSports = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const limit = 100;
-      const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
+      // Fetch all sports without pagination limits (setting a high limit)
+      const limit = 1000;
+      const response = await fetch(`${BaseUrl}sports/list?limit=${limit}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -184,24 +180,12 @@ const SportsList = ({ onBack }) => {
       }));
 
       setSports(formattedSports);
-
-      if (result.pagination) {
-        setPagination({
-          currentPage: result.pagination.currentPage,
-          totalPages: result.pagination.totalPages,
-          totalDocs: result.pagination.totalDocs
-        });
-      }
     } catch (err) {
       // console.error('Error fetching sports:', err);
       setError('Failed to load sports. Please try again later.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
   const filteredSports = sports.filter(
@@ -219,7 +203,7 @@ const SportsList = ({ onBack }) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-[#EAF3FF] via-[#F3F8FF] to-[#E0EEFF] px-6 md:px-12 py-10 relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-[#EAF3FF] via-[#F3F8FF] to-[#E0EEFF] relative overflow-hidden flex flex-col"
     >
       {/* Background Glow */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -227,25 +211,31 @@ const SportsList = ({ onBack }) => {
         <div className="absolute bottom-1/3 right-0 w-96 h-96 bg-sky-200/40 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto">
-        {/* Back Button */}
-        <motion.button
-          onClick={onBack}
-          whileHover={{ x: -4 }}
-          className="flex items-center text-blue-600 mb-6 hover:text-blue-800 font-medium bg-transparent border-none focus:outline-none"
-        >
-          <FiArrowLeft className="mr-2" /> Back to Booking
-        </motion.button>
+      {/* Header */}
+      <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack || (() => navigate(-1))}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+            >
+              <FiArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
+              Explore Available Sports
+            </h1>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
+            title="Go Home"
+          >
+            <FiHome className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
 
-        {/* Title */}
-        <motion.h1
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="text-4xl font-extrabold text-center text-[#1E40AF] mb-10 tracking-wide"
-        >
-          Explore Available Sports
-        </motion.h1>
+      <div className="max-w-7xl mx-auto px-4 py-8 w-full">
 
         {/* Search and Filters */}
         <motion.div variants={fadeUp} initial="hidden" animate="visible">
@@ -283,7 +273,7 @@ const SportsList = ({ onBack }) => {
 
         {/* Sports Grid */}
         <div className="max-w-6xl mx-auto">
-          <div className="max-h-[65vh] overflow-y-auto pr-4 pb-6 custom-scrollbar">
+          <div className="pb-6">
             <motion.div
               variants={fadeUp}
               initial="hidden"
@@ -333,13 +323,7 @@ const SportsList = ({ onBack }) => {
           </div>
         </div>
 
-        {!isLoading && !searchQuery && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
+        {/* Pagination removed */}
 
         {/* Footer */}
         <motion.div
