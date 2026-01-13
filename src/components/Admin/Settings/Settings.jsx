@@ -23,7 +23,7 @@ const Settings = () => {
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/admin')}
             className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
           >
             <FiArrowLeft className="w-5 h-5" />

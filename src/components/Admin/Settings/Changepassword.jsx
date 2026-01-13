@@ -124,7 +124,7 @@ const ChangePassword = () => {
       <div className="relative w-full max-w-md bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl shadow-xl p-8 transition-all duration-300 hover:shadow-2xl">
         {/* Back Button */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/settings')}
           className="absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-900 transition-all"
         >
           <FiArrowLeft className="mr-2" /> <span className="text-sm">Back</span>

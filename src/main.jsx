@@ -8,7 +8,26 @@ import {
 } from "react-router-dom";
 import './index.css'
 import App from './App.jsx'
-import { FiMail, FiPhone, FiMapPin, FiArrowUp } from 'react-icons/fi'
+import axios from 'axios';
+import { FiMail, FiPhone, FiMapPin, FiArrowUp } from 'react-icons/fi';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Axios global interceptor for handling 401 errors (token expired)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Clear session data
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('lf_user');
+      // Redirect to login using window.location since we're outside React lifecycle here
+      // or we can use a custom event. But HashRouter uses #/ so:
+      window.location.href = '#/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 function scrollToTop() {
   window.scrollTo({
@@ -21,7 +40,7 @@ function Footer() {
   const { pathname } = useLocation()
   const year = new Date().getFullYear()
   const isAdmin = pathname.startsWith('/admin')
-  
+
   const handleNavigation = (e) => {
     // Only scroll to top if the click is on a navigation link
     if (e.target.closest('a[href^="/"]')) {
@@ -237,8 +256,22 @@ function Footer() {
                   <div className="space-y-2">
                     <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
                     <div className="flex flex-col gap-1 text-slate-200/90">
-                      <a href="mailto:info@learnfortsports.com" className="hover:text-cyan-300 hover:underline">info@learnfortsports.com</a>
-                      <a href="mailto:learnfortsports@gmail.com" className="hover:text-cyan-300 hover:underline">learnfortsports@gmail.com</a>
+                      <a
+                        href="https://mail.google.com/mail/?view=cm&fs=1&to=info@learnfortsports.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-cyan-300 hover:underline"
+                      >
+                        info@learnfortsports.com
+                      </a>
+                      <a
+                        href="https://mail.google.com/mail/?view=cm&fs=1&to=learnfortsports@gmail.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-cyan-300 hover:underline"
+                      >
+                        learnfortsports@gmail.com
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -254,9 +287,9 @@ function Footer() {
           </div>
         </div>
       </div>
-      
+
       {/* Scroll to top button */}
-      <button 
+      <button
         onClick={scrollToTop}
         className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
         aria-label="Scroll to top"
@@ -272,6 +305,7 @@ createRoot(document.getElementById("root")).render(
     <Router>
       <App />
       <Footer />
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   </StrictMode>
 );

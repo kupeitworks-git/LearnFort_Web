@@ -217,22 +217,13 @@ const VenueDetails = () => {
                     {/* Grid Layout */}
                     <div className="md:px-8 md:py-10 px-5 py-6 grid md:grid-cols-[2fr,1.3fr] gap-10">
 
-                        {/* LEFT SECTION — ABOUT + FACILITIES */}
+                        {/* LEFT SECTION — FACILITIES + ABOUT */}
                         <div>
-                            <h2 className="text-xl font-semibold text-slate-800 mb-3">
-                                About {sportLabel}
-                            </h2>
-
-                            <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                                {venue.about}
-                            </p>
-
-
-                            <h3 className="mt-8 text-xl font-semibold text-slate-800 mb-4">
+                            <h3 className="text-xl font-semibold text-slate-800 mb-4">
                                 Facilities Available
                             </h3>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                                 {venue.facilities.map((facility) => (
                                     <div
                                         key={facility}
@@ -243,6 +234,14 @@ const VenueDetails = () => {
                                     </div>
                                 ))}
                             </div>
+
+                            <h2 className="text-xl font-semibold text-slate-800 mb-3">
+                                About {sportLabel}
+                            </h2>
+
+                            <p className="text-slate-600 text-sm leading-relaxed mb-6 text-left">
+                                {venue.about}
+                            </p>
                         </div>
 
                         {/* RIGHT SECTION — BOOKING CARD */}
@@ -252,6 +251,9 @@ const VenueDetails = () => {
                                 <div className="mb-6">
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">Details</h3>
                                     <div className="bg-gray-50 p-4 rounded-lg">
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium text-blue-600">Sport Name:</span> {sportLabel}
+                                        </p>
                                         <p className="text-sm text-gray-600">
                                             <span className="font-medium text-blue-600">Ground Name:</span> {venue.groundName}
                                         </p>

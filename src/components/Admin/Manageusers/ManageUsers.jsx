@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '../../api/api';
 import Pagination from "../../common/Pagination";
+import { toast } from 'react-toastify';
 
 const ManageUsers = () => {
     const navigate = useNavigate();
@@ -40,7 +41,6 @@ const ManageUsers = () => {
     const [editedUser, setEditedUser] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [aadharError, setAadharError] = useState('');
-    const [toast, setToast] = useState({ message: "", type: "" });
 
     // Pagination state
     const [userPagination, setUserPagination] = useState({
@@ -113,6 +113,7 @@ const ManageUsers = () => {
             }
         } catch (err) {
             // console.error(err);
+            toast.error("Error fetching users");
             setError("Error fetching users");
         } finally {
             setLoading(false);
@@ -171,6 +172,7 @@ const ManageUsers = () => {
             }
         } catch (err) {
             // console.error(err);
+            toast.error("Error fetching admins");
             setError("Error fetching admins");
         } finally {
             setLoading(false);
@@ -279,6 +281,7 @@ const ManageUsers = () => {
             }
         } catch (err) {
             // console.error('Error updating status:', err);
+            toast.error(err.message || 'Failed to update status');
             setError(err.message || 'Failed to update status');
         } finally {
             setIsSaving(false);
@@ -301,10 +304,6 @@ const ManageUsers = () => {
         }
     };
 
-    const showToast = (message, type) => {
-        setToast({ message, type });
-        setTimeout(() => setToast({ message: "", type: "" }), 3000);
-    };
 
     const handleEditSave = async () => {
         // Validate Aadhar number before saving
@@ -365,7 +364,7 @@ const ManageUsers = () => {
                     ));
                 }
                 setShowEditModal(false);
-                showToast("User updated successfully!", "success");
+                toast.success("User updated successfully!");
             } else {
                 if (data.message === "jwt expired") {
                     sessionStorage.clear();
@@ -376,6 +375,7 @@ const ManageUsers = () => {
             }
         } catch (err) {
             // console.error('Error updating user:', err);
+            toast.error(err.message || 'Failed to update user');
             setError(err.message || 'Failed to update user');
         } finally {
             setIsSaving(false);
@@ -402,6 +402,7 @@ const ManageUsers = () => {
                 } else {
                     setAdmins(admins.filter(a => a._id !== selectedUser._id));
                 }
+                toast.success("User deleted successfully!");
             } else {
                 if (data.message === "jwt expired") {
                     sessionStorage.clear();
@@ -412,6 +413,7 @@ const ManageUsers = () => {
             }
         } catch (err) {
             // console.error('Error deleting user:', err);
+            toast.error(err.message || 'Failed to delete user');
             setError(err.message || 'Failed to delete user');
         } finally {
             setIsSaving(false);
@@ -599,22 +601,10 @@ const ManageUsers = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white flex flex-col">
-            {/* Toast Notification */}
-            {toast.message && (
-                <div
-                    className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
-                        ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
-                >
-                    <div className="flex items-center space-x-2">
-                        {toast.type === "success" ? <FiCheckCircle className="w-5 h-5" /> : <FiX className="w-5 h-5" />}
-                        <span>{toast.message}</span>
-                    </div>
-                </div>
-            )}
             <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate('/admin')}
                         className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
                     >
                         <FiArrowLeft className="w-5 h-5" />
@@ -658,16 +648,6 @@ const ManageUsers = () => {
                         <p className="mt-4 text-gray-600 font-medium">
                             Loading {activeTab.toLowerCase()}...
                         </p>
-                    </div>
-                ) : error ? (
-                    <div className="text-center py-20">
-                        <p className="text-red-600 font-medium">{error}</p>
-                        <button
-                            onClick={() => (activeTab === "Users" ? fetchUsers() : fetchAdmins())}
-                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                        >
-                            Retry
-                        </button>
                     </div>
                 ) : (
                     <AnimatePresence mode="wait">
@@ -788,7 +768,7 @@ const ManageUsers = () => {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiUser className="inline mr-1 w-4 h-4" />
                                         Full Name
                                     </label>
@@ -801,7 +781,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiUser className="inline mr-1 w-4 h-4" />
                                         Father's Name
                                     </label>
@@ -814,7 +794,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiPhone className="inline mr-1 w-4 h-4" />
                                         Mobile Number
                                     </label>
@@ -827,7 +807,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiMail className="inline mr-1 w-4 h-4" />
                                         Email
                                     </label>
@@ -840,7 +820,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiMapPin className="inline mr-1 w-4 h-4" />
                                         Native Place
                                     </label>
@@ -853,7 +833,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiCreditCard className="inline mr-1 w-4 h-4" />
                                         Aadhar Number
                                     </label>
@@ -870,7 +850,7 @@ const ManageUsers = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiHome className="inline mr-1 w-4 h-4" />
                                         Address
                                     </label>

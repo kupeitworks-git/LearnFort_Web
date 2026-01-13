@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  FiArrowLeft,
+  FiHome,
   FiUser,
   FiCalendar,
   FiUsers,
@@ -123,10 +123,10 @@ const AdminDashboard = ({ onBack }) => {
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
           >
-            <FiArrowLeft className="w-5 h-5" />
+            <FiHome className="w-5 h-5" />
           </button>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
             Admin Dashboard

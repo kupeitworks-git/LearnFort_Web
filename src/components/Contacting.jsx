@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiSend, FiUser, FiPhone, FiMail, FiFileText, FiChevronDown, FiArrowLeft, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import {BaseUrl} from '../components/api/api'
+import { BaseUrl } from '../components/api/api'
 
 const Contacting = () => {
   const navigate = useNavigate();
@@ -193,9 +193,9 @@ const Contacting = () => {
                   <div className="text-slate-200/90 text-sm leading-relaxed">
                     <span className="block font-semibold text-slate-50">LearnFort Sports Park</span>
                     <span>Batlagundu Road,</span>
-                    <span>Bangalapatti,<br/> Nilakottai (Taluk),</span>
-                    <span>Dindigul (Dist),<br/>Tamil Nadu, India - 624202</span>
-                    
+                    <span>Bangalapatti,<br /> Nilakottai (Taluk),</span>
+                    <span>Dindigul (Dist),<br />Tamil Nadu, India - 624202</span>
+
                   </div>
                 </div>
               </div>
@@ -208,11 +208,18 @@ const Contacting = () => {
                   <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Contact Numbers</p>
                   <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
                     <span className="font-medium text-slate-50">Phone</span>
-                    <span>+91 45432 45622</span>
+                    <a href="tel:+914543245622" className="hover:text-cyan-300 hover:underline">+91 45432 45622</a>
                     <span className="font-medium text-slate-50">Mobile</span>
-                    <span>+91 81247 45622</span>
+                    <a href="tel:+918124745622" className="hover:text-cyan-300 hover:underline">+91 81247 45622</a>
                     <span className="font-medium text-slate-50">WhatsApp</span>
-                    <span>+91 94441 23722</span>
+                    <a
+                      href="https://wa.me/919444123722"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-cyan-300 hover:underline"
+                    >
+                      +91 94441 23722
+                    </a>
                   </div>
                 </div>
               </div>
@@ -223,10 +230,24 @@ const Contacting = () => {
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
-                   <div className="flex flex-col gap-1 text-slate-200/90">
-                      <a href="mailto:info@learnfortsports.com" className="hover:text-cyan-300 hover:underline">info@learnfortsports.com</a>
-                      <a href="mailto:learnfortsports@gmail.com" className="hover:text-cyan-300 hover:underline">learnfortsports@gmail.com</a>
-                    </div>
+                  <div className="flex flex-col gap-1 text-slate-200/90">
+                    <a
+                      href="https://mail.google.com/mail/?view=cm&fs=1&to=info@learnfortsports.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-cyan-300 hover:underline"
+                    >
+                      info@learnfortsports.com
+                    </a>
+                    <a
+                      href="https://mail.google.com/mail/?view=cm&fs=1&to=learnfortsports@gmail.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-cyan-300 hover:underline"
+                    >
+                      learnfortsports@gmail.com
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -431,9 +452,8 @@ const Contacting = () => {
                   </button>
                   {toast.message && (
                     <div
-                      className={`text-xs sm:text-sm mt-1 text-left sm:text-right ${
-                        toast.type === 'success' ? 'text-green-600' : 'text-red-600'
-                      }`}
+                      className={`text-xs sm:text-sm mt-1 text-left sm:text-right ${toast.type === 'success' ? 'text-green-600' : 'text-red-600'
+                        }`}
                     >
                       {toast.message}
                     </div>

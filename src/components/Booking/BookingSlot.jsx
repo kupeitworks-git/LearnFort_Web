@@ -579,7 +579,7 @@ const BookingSlot = () => {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
+        <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
             <button
               onClick={() => navigate(-1)}

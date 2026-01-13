@@ -100,57 +100,42 @@ const EditSport = () => {
     });
   };
 
-  const handleSportImageChange = async (e) => {
+  const handleSportImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const img = new Image();
-      img.onload = async () => {
-        if (img.width === 150 && img.height === 150) {
-          const compressed = await compressImage(file, 150, 150);
-          setSportImage(URL.createObjectURL(compressed));
-          setSportImageFile(compressed);
-        } else {
-          showToast("Sport Image must be exactly 150x150 pixels!", "error");
-          e.target.value = null;
-        }
-      };
-      img.src = URL.createObjectURL(file);
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("Sport Image size must be below 5MB!", "error");
+        e.target.value = null;
+        return;
+      }
+      setSportImage(URL.createObjectURL(file));
+      setSportImageFile(file);
     }
   };
 
-  const handleBannerImageChange = async (e) => {
+  const handleBannerImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const img = new Image();
-      img.onload = async () => {
-        if (img.width === 350 && img.height === 150) {
-          const compressed = await compressImage(file, 350, 150);
-          setBannerImage(URL.createObjectURL(compressed));
-          setBannerImageFile(compressed);
-        } else {
-          showToast("Banner Image must be exactly 350x150 pixels!", "error");
-          e.target.value = null;
-        }
-      };
-      img.src = URL.createObjectURL(file);
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("Banner Image size must be below 5MB!", "error");
+        e.target.value = null;
+        return;
+      }
+      setBannerImage(URL.createObjectURL(file));
+      setBannerImageFile(file);
     }
   };
 
-  const handleWebBannerImageChange = async (e) => {
+  const handleWebBannerImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const img = new Image();
-      img.onload = async () => {
-        if (img.width === 200 && img.height === 400) {
-          const compressed = await compressImage(file, 200, 400);
-          setWebBannerImage(URL.createObjectURL(compressed));
-          setWebBannerImageFile(compressed);
-        } else {
-          showToast("Web Banner Image must be exactly 200x400 pixels!", "error");
-          e.target.value = null;
-        }
-      };
-      img.src = URL.createObjectURL(file);
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("Web Banner Image size must be below 5MB!", "error");
+        e.target.value = null;
+        return;
+      }
+      setWebBannerImage(URL.createObjectURL(file));
+      setWebBannerImageFile(file);
     }
   };
 
@@ -222,7 +207,7 @@ const EditSport = () => {
 
       if (res.ok) {
         showToast("Sport Updated Successfully!", "success");
-        setTimeout(() => navigate("/sports"), 1500);
+        setTimeout(() => navigate("/sports", { replace: true }), 1500);
       } else {
         if (result.message === "jwt expired") {
           sessionStorage.clear();
@@ -706,7 +691,7 @@ const EditSport = () => {
                     <p className="text-xs text-gray-500 mb-2">
                       {sportImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
                     </p>
-                    <p className="text-red-500 text-xs font-bold italic">Required size: 150x150 pixels</p>
+                    <p className="text-blue-500 text-xs font-bold italic">Recommended: Square Image</p>
                   </div>
 
                   <input
@@ -757,7 +742,7 @@ const EditSport = () => {
                     <p className="text-xs text-gray-500 mb-3">
                       {bannerImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
                     </p>
-                    <p className="text-red-500 text-xs font-bold italic">Required size: 350x150 pixels</p>
+                    <p className="text-blue-500 text-xs font-bold italic">Recommended: 1200x400px</p>
                   </div>
                   <input
                     type="file"
@@ -805,8 +790,9 @@ const EditSport = () => {
                       {webBannerImage ? 'Web Banner Uploaded' : 'Upload Web Banner Image'}
                     </p>
                     <p className="text-xs text-gray-500 mb-3">
-                      {webBannerImage ? 'Click to change' : 'Recommended size: 1200x400px'}
+                      {webBannerImage ? 'Click to change' : 'PNG, JPG, JPEG up to 5MB'}
                     </p>
+                    <p className="text-blue-500 text-xs font-bold italic">Recommended: 1200x400px</p>
                   </div>
                   <input
                     type="file"

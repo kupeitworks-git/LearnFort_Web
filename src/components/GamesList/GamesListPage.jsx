@@ -40,7 +40,8 @@ const GamesListPage = () => {
     try {
       setLoading(true);
       // Fetch all sports without pagination
-      const response = await fetch(`${BaseUrl}sports/list`);
+      const limit = 1000;
+      const response = await fetch(`${BaseUrl}sports/list?limit=${limit}`);
       const data = await response.json();
 
       // Handle different API response structures
@@ -180,7 +181,7 @@ const GamesListPage = () => {
 
                     {/* Content Section */}
                     <div className="p-5">
-                      <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed h-8">
+                      <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
                         {sport.description || `Experience premium ${sport.name} facilities with LearnFort Sports Park.`}
                       </p>
 

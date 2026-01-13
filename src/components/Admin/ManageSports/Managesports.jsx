@@ -74,7 +74,7 @@ const ManageSports = () => {
         return;
       }
 
-      const limit = 10;
+      const limit = 100;
       const res = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -171,7 +171,7 @@ const ManageSports = () => {
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/admin')}
             className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
           >
             <FiArrowLeft className="w-5 h-5" />
@@ -265,11 +265,11 @@ const ManageSports = () => {
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-sm font-medium text-gray-800">
+                    <td className="py-4 px-4 text-sm font-medium text-gray-800 text-left">
                       {sport.name}
                     </td>
 
-                    <td className="py-4 px-4 text-sm text-gray-700">
+                    <td className="py-4 px-4 text-sm text-gray-700 text-left">
                       {sport.ground_name}
                     </td>
 

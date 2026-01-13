@@ -4,12 +4,21 @@ import { FiArrowLeft, FiCheck, FiInfo, FiHome } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { BaseUrl } from '../api/api';
+import { toast } from 'react-toastify';
 
 const initialSportsData = {};
 
 const GalleryPage = () => {
+  // Helper to show toast notifications
+  const showToast = (message, type = 'info') => {
+    if (type === 'success') toast.success(message);
+    else if (type === 'error') toast.error(message);
+    else if (type === 'info') toast.info(message);
+    else toast(message);
+  };
+
   const navigate = useNavigate();
-  const [toast, setToast] = useState({ message: "", type: "" });
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteType, setDeleteType] = useState(''); // 'single' or 'all'
@@ -17,12 +26,6 @@ const GalleryPage = () => {
   const [deleteSportId, setDeleteSportId] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const showToast = (message, type) => {
-    setToast({ message, type });
-    if (message) {
-      setTimeout(() => setToast({ message: "", type: "" }), 3000);
-    }
-  };
   const [sportsData, setSportsData] = useState(initialSportsData);
   const [sportsList, setSportsList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,13 @@ const GalleryPage = () => {
   const isFromAdmin = location.state?.fromAdmin || false;
   const [user, setUser] = useState(null);
   const token = sessionStorage.getItem('token');
+
+  // Check for expired token or no token
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+    }
+  }, [token, navigate]);
 
   // Get user data from localStorage on component mount
   useEffect(() => {
@@ -163,12 +173,28 @@ const GalleryPage = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
 
-    // Store actual files to send to API
-    setSelectedImages(files);
-
     // Create preview URLs
     const previewUrls = files.map((file) => URL.createObjectURL(file));
-    setPreviewImages(previewUrls);
+    setPreviewImages([...previewImages, ...previewUrls]);
+    setSelectedImages([...selectedImages, ...files]);
+
+    // Reset file input value so same files can be selected again
+    e.target.value = "";
+  };
+
+  const handleRemoveImage = (index) => {
+    const updatedPreviews = [...previewImages];
+    const updatedSelected = [...selectedImages];
+    updatedPreviews.splice(index, 1);
+    updatedSelected.splice(index, 1);
+    setPreviewImages(updatedPreviews);
+    setSelectedImages(updatedSelected);
+  };
+
+  const handleRemoveVideoField = (index) => {
+    const updated = [...videoLinks];
+    updated.splice(index, 1);
+    setVideoLinks(updated);
   };
 
   const formatDateForInput = (date) => {
@@ -188,6 +214,7 @@ const GalleryPage = () => {
     setEventName("");
     setGalleryTitle("");
     setConductedTime("");
+    setSelectedSportId("");
     setStatus("PENDING");
     setFormError("");
   };
@@ -323,7 +350,7 @@ const GalleryPage = () => {
 
       } catch (error) {
         // console.error("Bulk delete error:", error);
-        showToast(`Error occurred while deleting ${type}.`, "error");
+        toast.error(`Error occurred while deleting ${type}.`);
       } finally {
         setIsDeleting(false);
       }
@@ -362,7 +389,9 @@ const GalleryPage = () => {
     if (!sportId) return;
 
     try {
-      setLoadingGallery(true);
+      if (sportGalleries.length === 0) {
+        setLoadingGallery(true);
+      }
       const response = await axios.get(`${BaseUrl}gallery/list/${sportId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -429,9 +458,20 @@ const GalleryPage = () => {
       return;
     }
 
-    if (galleryType === "video" && videoLinks.some(link => !link)) {
-      showToast("Please fill in all video links or remove empty fields", "error");
+    if (!eventName.trim() || !galleryTitle.trim()) {
+      showToast("Please fill in event name and gallery title", "error");
       return;
+    }
+
+    if (galleryType === "video") {
+      if (videoLinks.length === 0 || videoLinks.every(link => !link.trim())) {
+        showToast("Please add at least one video link", "error");
+        return;
+      }
+      if (videoLinks.some(link => !link.trim())) {
+        showToast("Please fill in all video links or remove empty fields", "error");
+        return;
+      }
     }
 
     if (galleryType === "image" && selectedImages.length === 0) {
@@ -483,11 +523,9 @@ const GalleryPage = () => {
       // Show success message
       showToast("Gallery added successfully!", 'success');
 
-      // Reset form and refresh data
       handleFormReset();
       await fetchSportGallery(selectedSportId);
       await refreshSportsData();
-      showToast("Gallery updated successfully!", "success");
     } catch (error) {
       // console.error('Error uploading gallery items:', error);
       const errorMessage = "Failed to upload gallery items. Please try again.";
@@ -499,13 +537,7 @@ const GalleryPage = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <FaSpinner className="animate-spin text-blue-500 text-4xl" />
-      </div>
-    );
-  }
+
 
   if (error) {
     return (
@@ -747,21 +779,23 @@ const GalleryPage = () => {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">{selectedSport} Gallery</h2>
-            <button
-              onClick={() => {
-                setDeleteType('all');
-                setDeleteSportId(selectedSportId);
-                setShowDeleteModal(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-              disabled={sportGalleries.length === 0}
-            >
-              <FaTrash />
-              Delete All {activeTab === 'image' ? 'Images' : 'Videos'}
-            </button>
-            {isAdminUser && (
+            {isAdminUser && isFromAdmin && (
               <button
-                onClick={() => setShowForm(true)}
+                onClick={() => {
+                  setDeleteType('all');
+                  setDeleteSportId(selectedSportId);
+                  setShowDeleteModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                disabled={sportGalleries.length === 0}
+              >
+                <FaTrash />
+                Delete All {activeTab === 'image' ? 'Images' : 'Videos'}
+              </button>
+            )}
+            {isAdminUser && isFromAdmin && (
+              <button
+                onClick={() => { handleFormReset(); setShowForm(true); }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
               >
                 + Add New Gallery
@@ -770,9 +804,9 @@ const GalleryPage = () => {
           </div>
           <div className="text-center py-10">
             <p className="text-gray-500">No sports available. Please add some sports to get started.</p>
-            {isAdminUser && (
+            {isAdminUser && isFromAdmin && (
               <button
-                onClick={() => setShowForm(true)}
+                onClick={() => { handleFormReset(); setShowForm(true); }}
                 className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
               >
                 + Add Your First Sport
@@ -787,9 +821,9 @@ const GalleryPage = () => {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{selectedSport} Gallery</h2>
-          {isAdminUser && (
+          {isAdminUser && isFromAdmin && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => { handleFormReset(); setShowForm(true); }}
               className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition"
             >
               + Add New Gallery
@@ -887,28 +921,12 @@ const GalleryPage = () => {
         </div>
       )}
       {/* Toast Notification */}
-      {toast.message && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
-            ${toast.type === "success" ? "bg-green-600" :
-              toast.type === "error" ? "bg-red-600" :
-                "bg-blue-600"}`}
-        >
-          <div className="flex items-center space-x-2">
-            {toast.type === "success" ? (
-              <FiCheck className="w-5 h-5" />
-            ) : (
-              <FiInfo className="w-5 h-5" />
-            )}
-            <span>{toast.message}</span>
-          </div>
-        </div>
-      )}
+
       {/* Header */}
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => location.state?.fromAdmin ? navigate('/admin') : navigate(-1)}
             className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
           >
             <FiArrowLeft className="w-5 h-5" />
@@ -928,7 +946,11 @@ const GalleryPage = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-        {selectedSport ? (
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <FaSpinner className="animate-spin text-blue-500 text-4xl" />
+          </div>
+        ) : selectedSport ? (
           <div>
             <div className="relative flex items-center justify-center mb-6 min-h-[42px]">
 
@@ -1023,7 +1045,10 @@ const GalleryPage = () => {
                   setGalleryType("image");
                   setVideoLinks([""]);
                   setSelectedImages([]);
-                  setSelectedSportId("");
+                  setPreviewImages([]);
+                  setEventName("");
+                  setGalleryTitle("");
+                  setConductedTime("");
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -1059,6 +1084,7 @@ const GalleryPage = () => {
                 onChange={(e) => setEventName(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg"
                 placeholder="Event Name"
+                required
               />
 
               {/* Gallery Title */}
@@ -1068,6 +1094,7 @@ const GalleryPage = () => {
                 onChange={(e) => setGalleryTitle(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg"
                 placeholder="Gallery Title"
+                required
               />
 
               <div className="relative">
@@ -1136,11 +1163,19 @@ const GalleryPage = () => {
                   {previewImages.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 mt-3">
                       {previewImages.map((src, i) => (
-                        <img
-                          key={i}
-                          src={src}
-                          className="w-full h-20 object-cover rounded-md"
-                        />
+                        <div key={i} className="relative group">
+                          <img
+                            src={src}
+                            className="w-full h-20 object-cover rounded-md"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(i)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <FaTimes size={10} />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1151,14 +1186,24 @@ const GalleryPage = () => {
               {galleryType === "video" && (
                 <div className="space-y-2">
                   {videoLinks.map((link, index) => (
-                    <input
-                      key={index}
-                      type="text"
-                      value={link}
-                      onChange={(e) => handleVideoChange(index, e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                      placeholder="YouTube Video Link"
-                    />
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={link}
+                        onChange={(e) => handleVideoChange(index, e.target.value)}
+                        className="flex-1 p-3 border border-gray-300 rounded-lg"
+                        placeholder="YouTube Video Link"
+                      />
+                      {videoLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVideoField(index)}
+                          className="px-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                   <button
                     type="button"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FiArrowLeft, FiClock, FiX, FiLoader, FiAlertCircle, FiHome } from "react-icons/fi";
+import { FiArrowLeft, FiClock, FiX, FiLoader, FiAlertCircle, FiHome, FiPhone, FiMail } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from "../api/api";
 
@@ -11,7 +11,7 @@ const ContactUsPage = () => {
   const [reply, setReply] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMarkReadConfirm, setShowMarkReadConfirm] = useState(false);
-  const [issues, setIssues] = useState({ reply: [], completed: [], unread: [] });
+  const [issues, setIssues] = useState({ pending: [], completed: [], unread: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
@@ -162,7 +162,7 @@ const ContactUsPage = () => {
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/admin')}
             className="p-2 rounded-full bg-white/10 hover:bg-white/10 mr-4 transition"
           >
             <FiArrowLeft className="w-5 h-5" />
@@ -251,7 +251,7 @@ const ContactUsPage = () => {
           {getIssues().length > 0 ? (
             getIssues().map((issue) => (
               <motion.div
-                key={issue.id}
+                key={issue._id}
                 whileHover={{ scale: 1.02 }}
                 onClick={() => setSelectedIssue(issue)}
                 className={`bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex items-center justify-between cursor-pointer`}
@@ -276,9 +276,23 @@ const ContactUsPage = () => {
                       <span className="font-medium">Message:</span>  {issue.message}
                     </h3>
 
-                    <p className="flex items-center space-x-1 text-xs text-gray-500 mt-1 whitespace-normal break-words">
-                      <span className="font-medium">From:</span> {issue.name}
-                    </p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                      <p className="flex items-center space-x-1 text-xs text-gray-500 whitespace-normal break-words">
+                        <span className="font-medium">From:</span> {issue.name}
+                      </p>
+                      {issue.mobile && (
+                        <p className="flex items-center space-x-1 text-xs text-blue-600 whitespace-normal break-words">
+                          <FiPhone className="w-3 h-3 flex-shrink-0" />
+                          <span>{issue.mobile}</span>
+                        </p>
+                      )}
+                      {issue.email && (
+                        <p className="flex items-center space-x-1 text-xs text-blue-600 whitespace-normal break-words">
+                          <FiMail className="w-3 h-3 flex-shrink-0" />
+                          <span>{issue.email}</span>
+                        </p>
+                      )}
+                    </div>
                     <div className="flex items-center space-x-1 text-xs text-gray-400 mt-1">
                       <FiClock className="w-3 h-3 flex-shrink-0" />
                       <span className="whitespace-normal break-words">
@@ -431,10 +445,10 @@ const ContactUsPage = () => {
             </button>
 
             <h2 className="text-xl font-semibold text-blue-700 mb-2">
-              Reply to {selectedIssue.customer}
+              Reply to {selectedIssue.name}
             </h2>
             <p className="text-sm text-gray-600 mb-1">
-              <span className="font-medium">{selectedIssue.issue}</span>
+              <span className="font-medium">{selectedIssue.contact_type}</span>
             </p>
             <p className="text-sm text-gray-500 italic border-l-4 border-blue-200 pl-3 mt-2 mb-4">
               "{selectedIssue.message}"

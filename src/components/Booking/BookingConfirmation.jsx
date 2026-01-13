@@ -373,13 +373,17 @@ const BookingConfirmation = ({
                                     }
                                 } catch (err) {
                                     // console.error('Error cancelling booking on dismiss:', err);
+                                    setIsProcessingPayment(false);
+                                    setIsCancellingPayment(false);
                                     setShowPaymentCancelled(true);
                                     window.rzpPaymentData = null;
                                 }
-
+                                // No direct redirect - allow user to see cancellation message or return to summary
+                                /* 
                                 setTimeout(() => {
                                     navigate('/', { replace: true });
                                 }, 3000);
+                                */
                             }
                         },
                         theme: {
@@ -452,6 +456,8 @@ const BookingConfirmation = ({
             throw error;
         } finally {
             setIsLoading(false);
+            setIsProcessingPayment(false);
+            setIsCancellingPayment(false);
             setShowPaymentModal(false);
             setShowPaymentSuccess(false);
             // Clean up
@@ -1265,13 +1271,15 @@ const BookingConfirmation = ({
                     <p className="text-gray-600 mb-6">Your booking has been cancelled.</p>
                     <button
                         onClick={() => {
+                            setIsLoading(false);
+                            setIsProcessingPayment(false);
+                            setIsCancellingPayment(false);
                             setShowPaymentCancelled(false);
-                            onClose();
-                            navigate('/');
+                            // Removed onClose() and navigate('/') to stay on the same page
                         }}
                         className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
-                        Back to Home
+                        Back to Summary
                     </button>
                 </div>
             </div>

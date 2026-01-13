@@ -74,57 +74,42 @@ const AddSport = () => {
     };
 
     // 🔹 Handle images
-    const handleSportImageChange = async (e) => {
+    const handleSportImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const img = new Image();
-            img.onload = async () => {
-                if (img.width === 150 && img.height === 150) {
-                    const compressed = await compressImage(file, 150, 150);
-                    setSportImage(URL.createObjectURL(compressed));
-                    setSportImageFile(compressed);
-                } else {
-                    showToast("Sport Image must be exactly 150x150 pixels!", "error");
-                    e.target.value = null;
-                }
-            };
-            img.src = URL.createObjectURL(file);
+            if (file.size > 5 * 1024 * 1024) {
+                showToast("Sport Image size must be below 5MB!", "error");
+                e.target.value = null;
+                return;
+            }
+            setSportImage(URL.createObjectURL(file));
+            setSportImageFile(file);
         }
     };
 
-    const handleBannerImageChange = async (e) => {
+    const handleBannerImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const img = new Image();
-            img.onload = async () => {
-                if (img.width === 350 && img.height === 150) {
-                    const compressed = await compressImage(file, 350, 150);
-                    setBannerImage(URL.createObjectURL(compressed));
-                    setBannerImageFile(compressed);
-                } else {
-                    showToast("Banner Image must be exactly 350x150 pixels!", "error");
-                    e.target.value = null;
-                }
-            };
-            img.src = URL.createObjectURL(file);
+            if (file.size > 5 * 1024 * 1024) {
+                showToast("Banner Image size must be below 5MB!", "error");
+                e.target.value = null;
+                return;
+            }
+            setBannerImage(URL.createObjectURL(file));
+            setBannerImageFile(file);
         }
     };
 
-    const handleWebBannerImageChange = async (e) => {
+    const handleWebBannerImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const img = new Image();
-            img.onload = async () => {
-                if (img.width === 200 && img.height === 400) {
-                    const compressed = await compressImage(file, 200, 400);
-                    setWebBannerImage(URL.createObjectURL(compressed));
-                    setWebBannerImageFile(compressed);
-                } else {
-                    showToast("Web Banner Image must be exactly 200x400 pixels!", "error");
-                    e.target.value = null;
-                }
-            };
-            img.src = URL.createObjectURL(file);
+            if (file.size > 5 * 1024 * 1024) {
+                showToast("Web Banner Image size must be below 5MB!", "error");
+                e.target.value = null;
+                return;
+            }
+            setWebBannerImage(URL.createObjectURL(file));
+            setWebBannerImageFile(file);
         }
     };
     const [toast, setToast] = useState({ message: "", type: "" });
@@ -203,7 +188,7 @@ const AddSport = () => {
             if (res.ok) {
                 showToast("Sport Added Successfully!", "success");
                 ("Response:", data);
-                setTimeout(() => navigate(-1), 1500);
+                setTimeout(() => navigate("/sports", { replace: true }), 1500);
             } else {
                 if (data.message === "jwt expired") {
                     sessionStorage.clear();
@@ -692,8 +677,8 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-gray-500 mb-2">PNG, JPG, JPEG up to 5MB</p>
-                                    <p className="text-red-500 text-xs font-bold italic">
-                                        Required size: 150×150 pixels
+                                    <p className="text-blue-500 text-xs font-bold italic">
+                                        Recommended Size: Square Image
                                     </p>
 
                                     {/* Hidden File Input */}
@@ -749,7 +734,7 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Recommended size: 1200×400px, JPG or PNG up to 2MB
+                                        Recommended size: 1200×400px, JPG or PNG up to 5MB
                                     </p>
 
                                     <input
@@ -806,7 +791,7 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Recommended size: 1200×400px, JPG or PNG up to 2MB
+                                        Recommended size: 1200×400px, JPG or PNG up to 5MB
                                     </p>
 
                                     <input

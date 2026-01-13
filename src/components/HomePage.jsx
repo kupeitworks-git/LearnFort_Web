@@ -29,7 +29,13 @@ const HomePage = () => {
       id: 'book',
       label: 'Book Slot',
       submenu: [],
-      onClick: () => navigate('/explore-sports')
+      onClick: () => {
+        if (currentUser) {
+          navigate('/explore-sports');
+        } else {
+          navigate('/login');
+        }
+      }
     },
     { id: 'gallery', label: 'Gallery', submenu: [] }, // ✅ changed
     { id: 'contact', label: 'Contact Us', submenu: [] },
@@ -53,6 +59,10 @@ const HomePage = () => {
 
   const handleBookNow = (sport, e) => {
     e?.stopPropagation();
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
     if (sport.status === 'NOT_AVAILABLE') {
       setSelectedSport(sport);
       setShowMaintenancePopup(true);
@@ -73,7 +83,7 @@ const HomePage = () => {
       try {
         setLoading(true);
         // Fetch all sports without pagination
-        const response = await fetch(`${BaseUrl}sports/list`);
+        const response = await fetch(`${BaseUrl}sports/list?limit=100`);
         const data = await response.json();
         // Handle response structure (assuming array or object with data property)
         const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
@@ -92,14 +102,29 @@ const HomePage = () => {
     setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
+  // Preload banner image
+  const goToBanner = (index) => {
+    if (!sports[index]?.web_banner) {
+      setCurrentBanner(index);
+      return;
+    }
+
+    const img = new Image();
+    img.src = sports[index].web_banner;
+    img.onload = () => {
+      setCurrentBanner(index);
+    };
+  };
+
   // Auto-rotate banners
   useEffect(() => {
     if (sports.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % sports.length);
+      const nextIndex = (currentBanner + 1) % sports.length;
+      goToBanner(nextIndex);
     }, 5000);
     return () => clearInterval(timer);
-  }, [sports]);
+  }, [sports, currentBanner]);
 
   // Read logged-in user from localStorage
   useEffect(() => {
@@ -113,13 +138,15 @@ const HomePage = () => {
 
   const nextBanner = () => {
     if (sports.length > 0) {
-      setCurrentBanner((prev) => (prev + 1) % sports.length);
+      const nextIndex = (currentBanner + 1) % sports.length;
+      goToBanner(nextIndex);
     }
   };
 
   const prevBanner = () => {
     if (sports.length > 0) {
-      setCurrentBanner((prev) => (prev - 1 + sports.length) % sports.length);
+      const prevIndex = (currentBanner - 1 + sports.length) % sports.length;
+      goToBanner(prevIndex);
     }
   };
 
@@ -363,7 +390,7 @@ const HomePage = () => {
               </button>
 
               {/* Arrows (only slide, no navigation) */}
-              {/* <button
+              <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -382,7 +409,7 @@ const HomePage = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
               >
                 <FiChevronRight className="w-6 h-6 text-gray-800" />
-              </button> */}
+              </button>
 
               {/* Dots */}
               {/* <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">

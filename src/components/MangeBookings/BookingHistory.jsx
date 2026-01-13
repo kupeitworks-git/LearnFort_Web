@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BaseUrl } from "../api/api";
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import LearnFortLogo from '../../images/LearnFort.png';
 import {
     FiArrowLeft,
     FiClock,
@@ -89,12 +90,12 @@ const BookingsPage = () => {
 
         // Create a temporary container for the receipt (completely off-screen)
         const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '0';
+        container.style.position = 'absolute';
+        container.style.left = '-9999px'; // Move far off-screen to avoid visual flash
         container.style.top = '0';
-        container.style.width = '100%';
+        container.style.width = '800px'; // Use a fixed width for consistent capture
         container.style.zIndex = '9999';
-        container.style.visibility = 'hidden';
+        container.style.visibility = 'visible';
 
         // Create a clone of the receipt element with print-specific styles
         const receiptClone = receiptElement.cloneNode(true);
@@ -115,11 +116,10 @@ const BookingsPage = () => {
         document.body.appendChild(container);
 
         try {
-            // Make the container visible for capture
-            container.style.visibility = 'visible';
+            // Already visible but off-screen to avoid flash
 
-            // Wait for the browser to render the element
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait slightly longer for images and fonts to settle correctly
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Get the scrollable content and make it fully visible
             const scrollableContent = receiptClone.querySelector('.custom-scrollbar');
@@ -205,10 +205,12 @@ const BookingsPage = () => {
     const handleBack = () => {
         if (viewMode === "history") {
             setViewMode("selection");
-            // Reset bookings for the new context if needed, 
-            // but keeping them might be fine unless user wants a fresh fetch every time
         } else {
-            navigate(-1);
+            if (isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate(-1);
+            }
         }
     };
 
@@ -466,7 +468,6 @@ const BookingsPage = () => {
                                     return (
                                         <motion.div
                                             key={uniqueKey}
-                                            layout
                                             className="bg-white rounded-xl overflow-hidden shadow-sm border border-purple-100"
                                         >
                                             {/* Card Header (Always Visible) */}
@@ -590,12 +591,12 @@ const BookingsPage = () => {
                                     </button>
                                 </div>
 
-                                {loading && (
+                                {/* {loading && (
                                     <div className="flex items-center gap-2 text-blue-600 font-medium">
                                         <FaSpinner className="animate-spin" />
                                         <span className="text-sm">Loading records...</span>
                                     </div>
-                                )}
+                                )} */}
                             </div>
                         )}
                     </motion.div>
@@ -650,7 +651,7 @@ const BookingsPage = () => {
                             <div className="flex flex-col items-center mb-6">
                                 <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-3 p-2">
                                     {/* Placeholder for Logo - You can replace with actual Image */}
-                                    <GiSoccerBall className="w-full h-full text-[#1E3A8A]" />
+                                    <img src={LearnFortLogo} alt="LearnFort Sports Park" className="w-full h-full object-contain" />
                                 </div>
                                 <h2 className="text-xl font-bold text-[#3B5998] text-center">LearnFort Sports Park</h2>
                                 <p className="text-gray-500 font-medium">Booking Receipt</p>
@@ -662,19 +663,19 @@ const BookingsPage = () => {
                                 <h3 className="text-[#1E3A8A] font-bold text-lg mb-3 text-center">Customer Details</h3>
                                 <div className="space-y-3 px-2">
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Name:</span>
+                                        <span className="text-blue-600 font-medium">Name:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.customer.name}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Mobile:</span>
+                                        <span className="text-blue-600 font-medium">Mobile:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.customer.phone}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Email:</span>
+                                        <span className="text-blue-600 font-medium">Email:</span>
                                         <span className="text-gray-700 font-medium text-right break-all">{selectedBooking.customer.email}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Native:</span>
+                                        <span className="text-blue-600 font-medium">Native:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.customer.native}</span>
                                     </div>
                                 </div>
@@ -685,15 +686,15 @@ const BookingsPage = () => {
                                 <h3 className="text-[#1E3A8A] font-bold text-lg mb-3 text-center">Booking Details</h3>
                                 <div className="space-y-3 px-2">
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Sport:</span>
+                                        <span className="text-blue-600 font-medium">Sport:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.game}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Date:</span>
+                                        <span className="text-blue-600 font-medium">Date:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.date}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Time Slot:</span>
+                                        <span className="text-blue-600 font-medium">Time Slot:</span>
                                         {/* Use raw time or 24h format if that's what screenshot had, but user asked for 12h in list. 
                                             Screenshot 2 shows '19:00 - 20:00'. Let's stick to what's in list for consistency or 
                                             reuse formatTo12Hour if preferred. Screenshot shows 24h. I'll use list's format (12h) 
@@ -702,11 +703,11 @@ const BookingsPage = () => {
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.time}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Duration:</span>
+                                        <span className="text-blue-600 font-medium">Duration:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.duration}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-blue-300 font-medium">Turf:</span>
+                                        <span className="text-blue-600 font-medium">Turf:</span>
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.turf}</span>
                                     </div>
                                 </div>
@@ -717,11 +718,11 @@ const BookingsPage = () => {
                                 <h3 className="text-[#1E3A8A] font-bold text-lg mb-3 text-center">Payment Details</h3>
                                 <div className="bg-[#E8F5E9] border border-[#C8E6C9] rounded-xl p-4">
                                     <div className="flex justify-between mb-2">
-                                        <span className="text-blue-300 font-medium">Amount:</span>
+                                        <span className="text-blue-600 font-medium">Amount:</span>
                                         <span className="text-gray-800 font-bold">₹{selectedBooking.amount}</span>
                                     </div>
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className="text-blue-300 font-medium">Payment Mode:</span>
+                                        <span className="text-blue-600 font-medium">Payment Mode:</span>
                                         <div className="text-right">
                                             <span className="text-gray-800 font-medium block">Online</span>
                                             <span className="text-gray-800 font-medium block">Payment</span>
