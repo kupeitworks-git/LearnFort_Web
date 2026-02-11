@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
 import { BaseUrl } from './api/api';
 import { FiSearch, FiBell, FiChevronLeft, FiChevronRight, FiChevronDown, FiMenu, FiX, FiMapPin, FiStar, FiClock, FiUser } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import SportsList from './Booking/SportsList';
-import Contacting from './Contacting';
-import AdminDashboard from './Admin/AdminDashboard';
+// Lazy load components
+const SportsList = React.lazy(() => import('./Booking/SportsList'));
+// import Contacting from './Contacting'; // Unused
+// import AdminDashboard from './Admin/AdminDashboard'; // Unused
 import LearnFortLogo from '../images/LearnFort.png';
 import Pagination from './common/Pagination';
 
@@ -12,6 +16,7 @@ import Pagination from './common/Pagination';
 
 const HomePage = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [direction, setDirection] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState('');
   const [selectedBookingType, setSelectedBookingType] = useState(null);
@@ -24,10 +29,10 @@ const HomePage = () => {
   // Menu items data
   // Menu items data
   const menuItems = [
-    { id: 'games', label: 'Our Sports List', submenu: [] }, // no submenu
+    { id: 'games', label: 'List Of Sports', submenu: [] }, // no submenu
     {
       id: 'book',
-      label: 'Book Slot',
+      label: 'Book Your Slot',
       submenu: [],
       onClick: () => {
         if (currentUser) {
@@ -48,9 +53,52 @@ const HomePage = () => {
 
 
 
-  // Fetch sports data
-  const [sports, setSports] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Fetch sports data using TanStack Query
+  const fetchSports = async (page = 1) => {
+    const limit = 8; // Number of items per page for infinite scroll
+    const response = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    const sportsData = data.sports || (Array.isArray(data) ? data : (data.data || []));
+    return {
+      sports: sportsData,
+      pagination: data.pagination || {
+        currentPage: page,
+        totalPages: 1,
+        totalDocs: sportsData.length
+      }
+    };
+  };
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: loading
+  } = useInfiniteQuery({
+    queryKey: ['sports_home'],
+    queryFn: ({ pageParam = 1 }) => fetchSports(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.currentPage < lastPage.pagination.totalPages) {
+        return lastPage.pagination.currentPage + 1;
+      }
+      return undefined;
+    },
+  });
+
+  const sports = data?.pages.flatMap(page => page.sports) || [];
+
+  const { ref, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const closePopup = (e) => {
     e?.stopPropagation();
@@ -59,10 +107,6 @@ const HomePage = () => {
 
   const handleBookNow = (sport, e) => {
     e?.stopPropagation();
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
     if (sport.status === 'NOT_AVAILABLE') {
       setSelectedSport(sport);
       setShowMaintenancePopup(true);
@@ -78,42 +122,16 @@ const HomePage = () => {
     totalDocs: 0
   });
 
-  useEffect(() => {
-    const fetchSports = async () => {
-      try {
-        setLoading(true);
-        // Fetch all sports without pagination
-        const response = await fetch(`${BaseUrl}sports/list?limit=100`);
-        const data = await response.json();
-        // Handle response structure (assuming array or object with data property)
-        const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
-        setSports(sportsList);
-      } catch (error) {
-        // console.error("Error fetching sports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchSports();
-  }, []);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
-  // Preload banner image
-  const goToBanner = (index) => {
-    if (!sports[index]?.web_banner) {
-      setCurrentBanner(index);
-      return;
-    }
-
-    const img = new Image();
-    img.src = sports[index].web_banner;
-    img.onload = () => {
-      setCurrentBanner(index);
-    };
+  // Preload banner image - REMOVED (caused issues). Implementing direct state change with animation.
+  const goToBanner = (index, dir = 1) => {
+    setDirection(dir);
+    setCurrentBanner(index);
   };
 
   // Auto-rotate banners
@@ -121,10 +139,28 @@ const HomePage = () => {
     if (sports.length === 0) return;
     const timer = setInterval(() => {
       const nextIndex = (currentBanner + 1) % sports.length;
-      goToBanner(nextIndex);
+      goToBanner(nextIndex, 1);
     }, 5000);
     return () => clearInterval(timer);
   }, [sports, currentBanner]);
+
+  // Preload adjacent images for smoother transitions
+  useEffect(() => {
+    if (sports.length === 0) return;
+
+    const indicesToPreload = [
+      (currentBanner + 1) % sports.length,
+      (currentBanner + 2) % sports.length,
+      (currentBanner - 1 + sports.length) % sports.length
+    ];
+
+    indicesToPreload.forEach(index => {
+      if (sports[index]?.web_banner) {
+        const img = new Image();
+        img.src = sports[index].web_banner;
+      }
+    });
+  }, [currentBanner, sports]);
 
   // Read logged-in user from localStorage
   useEffect(() => {
@@ -139,14 +175,14 @@ const HomePage = () => {
   const nextBanner = () => {
     if (sports.length > 0) {
       const nextIndex = (currentBanner + 1) % sports.length;
-      goToBanner(nextIndex);
+      goToBanner(nextIndex, 1);
     }
   };
 
   const prevBanner = () => {
     if (sports.length > 0) {
       const prevIndex = (currentBanner - 1 + sports.length) % sports.length;
-      goToBanner(prevIndex);
+      goToBanner(prevIndex, -1);
     }
   };
 
@@ -238,7 +274,15 @@ const HomePage = () => {
 
   // Show sports list when a booking type is selected
   if (selectedBookingType) {
-    return <SportsList onBack={() => setSelectedBookingType(null)} />;
+    return (
+      <React.Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }>
+        <SportsList onBack={() => setSelectedBookingType(null)} />
+      </React.Suspense>
+    );
   }
 
 
@@ -301,18 +345,13 @@ const HomePage = () => {
             <img
               src={LearnFortLogo}
               alt="LearnFort Logo"
-              className="w-14 h-14 object-cover rounded-full shadow-md mb-2 border-2 border-white/30"
+              className="w-20 h-20 object-cover rounded-full shadow-md mb-2 border-2 border-white/30"
             />
 
             {/* Title */}
             <h1 className="text-base font-bold leading-tight tracking-wide">
               LearnFort Sports Park
             </h1>
-
-            {/* Subtext */}
-            <p className="text-xs text-blue-200 mt-1 italic">
-              An unit of Eshvar Edu Foundation
-            </p>
 
             {/* Close Button (top-right corner) */}
             <button
@@ -369,25 +408,56 @@ const HomePage = () => {
           </div>
         ) : (
           sports.length > 0 && (
-            <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg">
-              <img
-                src={sports[currentBanner]?.web_banner}
-                alt={sports[currentBanner]?.name}
-                className="w-full h-full object-cover"
-                loading="eager"
-              />
-              {/* Clickable center area opens venue details */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
-                }
-                className="absolute inset-0 bg-black/40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
-              >
-                <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
-                  {sports[currentBanner]?.name}
-                </h2>
-              </button>
+            <div className="relative mb-10 rounded-3xl overflow-hidden h-64 shadow-lg bg-gray-100">
+              <AnimatePresence initial={false} custom={direction}>
+                <motion.div
+                  key={currentBanner}
+                  custom={direction}
+                  variants={{
+                    enter: (direction) => ({
+                      x: direction > 0 ? "100%" : "-100%",
+                      opacity: 0
+                    }),
+                    center: {
+                      zIndex: 1,
+                      x: 0,
+                      opacity: 1
+                    },
+                    exit: (direction) => ({
+                      zIndex: 0,
+                      x: direction < 0 ? "100%" : "-100%",
+                      opacity: 0
+                    })
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <img
+                    src={sports[currentBanner]?.web_banner}
+                    alt={sports[currentBanner]?.name}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                  />
+                  {/* Clickable center area opens venue details */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/venue/${sports[currentBanner]?.name?.toLowerCase()}`)
+                    }
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center w-full h-full focus:outline-none cursor-pointer"
+                  >
+                    <h2 className="text-3xl font-bold text-white tracking-wide drop-shadow-lg">
+                      {sports[currentBanner]?.name}
+                    </h2>
+                  </button>
+                </motion.div>
+              </AnimatePresence>
 
               {/* Arrows (only slide, no navigation) */}
               <button
@@ -396,9 +466,9 @@ const HomePage = () => {
                   e.stopPropagation();
                   prevBanner();
                 }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-gray-800 rounded-full p-2 shadow-md hover:scale-110 active:scale-95 transition-all z-10"
               >
-                <FiChevronLeft className="w-6 h-6 text-gray-800" />
+                <FiChevronLeft className="w-6 h-6" />
               </button>
               <button
                 type="button"
@@ -406,26 +476,10 @@ const HomePage = () => {
                   e.stopPropagation();
                   nextBanner();
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-full p-2 shadow-md transition-all"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-gray-800 rounded-full p-2 shadow-md hover:scale-110 active:scale-95 transition-all z-10"
               >
-                <FiChevronRight className="w-6 h-6 text-gray-800" />
+                <FiChevronRight className="w-6 h-6" />
               </button>
-
-              {/* Dots */}
-              {/* <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-                {sports.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentBanner(index);
-                    }}
-                    className={`w-3 h-3 rounded-full transition-all ${currentBanner === index ? 'bg-white' : 'bg-white/50'
-                      }`}
-                  />
-                ))}
-              </div> */}
             </div>
           )
         )}
@@ -470,9 +524,22 @@ const HomePage = () => {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-500 font-medium">Loading sports...</p>
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse">
+                    <div className="h-48 bg-gray-200"></div>
+                    <div className="p-5 space-y-3">
+                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      <div className="pt-4 border-t border-gray-100 flex justify-between">
+                        <div className="h-6 bg-gray-200 rounded w-16"></div>
+                        <div className="h-8 bg-gray-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="max-w-6xl mx-auto">
@@ -529,7 +596,21 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* Pagination removed - showing all sports */}
+          {/* Infinite Scroll Loader Sentinel */}
+          {!loading && (
+            <div ref={ref} className="mt-10 py-4 flex justify-center">
+              {isFetchingNextPage ? (
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="mt-2 text-sm text-gray-500 font-medium">Loading more games...</p>
+                </div>
+              ) : hasNextPage ? (
+                <div className="h-4"></div>
+              ) : sports.length > 0 ? (
+                <p className="text-sm text-gray-400 font-medium italic">— No more games to show —</p>
+              ) : null}
+            </div>
+          )}
         </div>
       </main>
     </div>

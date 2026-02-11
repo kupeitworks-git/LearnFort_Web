@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import {BaseUrl} from '../api/api'
+import { BaseUrl } from '../api/api'
 
 
 // Independent Input Component (THIS FIXES YOUR ISSUE)
@@ -36,7 +37,7 @@ const CreateAccount = () => {
 
   const [activeTab, setActiveTab] = useState("USER");
   const [toast, setToast] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // Managed by mutation
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -57,7 +58,44 @@ const CreateAccount = () => {
     }));
   };
 
-  const onSubmit = async (e) => {
+  // React Query Mutation for Registration
+  const registerMutation = useMutation({
+    mutationFn: async (formData) => {
+      let url;
+      if (activeTab === "ADMIN") {
+        url = `${BaseUrl}admin/register`;
+      } else if (activeTab === "SUPER ADMIN") {
+        url = `${BaseUrl}super-admin/register`;
+      } else {
+        url = `${BaseUrl}user/register`;
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          country_code: "in",
+          mobile_code: "91",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Registration failed");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      setToast("Registered successfully!");
+      setTimeout(() => navigate("/login"), 1200);
+    },
+    onError: (error) => {
+      setToast(error.message || "Something went wrong");
+    }
+  });
+
+  const onSubmit = (e) => {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
@@ -65,44 +103,11 @@ const CreateAccount = () => {
       return;
     }
 
-    let url;
-    if (activeTab === "ADMIN") {
-      url = `${BaseUrl}admin/register`;
-    } else if (activeTab === "SUPER ADMIN") {
-      url = `${BaseUrl}super-admin/register`; // Make sure this endpoint exists on your backend
-    } else {
-      url = `${BaseUrl}user/register`;
-    }
-
-    setIsLoading(true);
     setToast("");
-
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          country_code: "in",
-          mobile_code: "91",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setToast(data.error || data.message || "Registration failed");
-        return;
-      }
-
-      setToast("Registered successfully!");
-      setTimeout(() => navigate("/login"), 1200);
-    } catch {
-      setToast("Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
+    registerMutation.mutate(form);
   };
+
+  const isLoading = registerMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -127,11 +132,10 @@ const CreateAccount = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 -mb-px border-b-2 text-sm font-semibold ${
-                  activeTab === tab
-                    ? "border-blue-700 text-blue-700"
-                    : "border-transparent text-gray-600"
-                }`}
+                className={`px-4 py-2 -mb-px border-b-2 text-sm font-semibold ${activeTab === tab
+                  ? "border-blue-700 text-blue-700"
+                  : "border-transparent text-gray-600"
+                  }`}
               >
                 {tab}
               </button>
@@ -227,9 +231,8 @@ const CreateAccount = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full bg-blue-700 text-white rounded-lg py-3 font-medium hover:bg-blue-800 ${
-                isLoading ? "opacity-70 cursor-not-allowed" : ""
-              }`}
+              className={`w-full bg-blue-700 text-white rounded-lg py-3 font-medium hover:bg-blue-800 ${isLoading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
             >
               {isLoading ? "Registering..." : "Register Now"}
             </button>

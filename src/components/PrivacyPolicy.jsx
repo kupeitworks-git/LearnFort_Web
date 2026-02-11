@@ -52,6 +52,8 @@ const PrivacyPolicy = () => {
             </p>
           </section>
 
+
+
           <section>
             <h2 className="text-lg font-semibold text-blue-800 mb-2">Player’s Information</h2>
             <p>
@@ -132,6 +134,8 @@ const PrivacyPolicy = () => {
               LearnFort Sports Park may share personal information with law enforcement if required to do so by law or if we believe that sharing the information is necessary to protect our rights or the rights of others.
             </p>
           </section>
+
+
 
           <section>
             <h2 className="text-lg font-semibold text-blue-800 mb-2">Consent</h2>

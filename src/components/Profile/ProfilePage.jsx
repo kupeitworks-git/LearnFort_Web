@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BaseUrl } from '../api/api'
 
 import {
@@ -17,11 +18,12 @@ import { motion } from "framer-motion";
 
 const ProfilePage = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const queryClient = useQueryClient();
+    // const [user, setUser] = useState(null); // Replaced by useQuery data
+    // const [loading, setLoading] = useState(true); // Replaced by useQuery isLoading
+    // const [error, setError] = useState(null); // Replaced by useQuery isError
     const [isEditing, setIsEditing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    // const [isSaving, setIsSaving] = useState(false); // Replaced by useMutation isPending
     const [toast, setToast] = useState({ message: "", type: "" });
 
     const [formData, setFormData] = useState({
@@ -38,14 +40,14 @@ const ProfilePage = () => {
         setTimeout(() => setToast({ message: "", type: "" }), 3000);
     };
 
-    const fetchProfile = async () => {
-        try {
+    // Fetch Profile Query
+    const { data: user, isLoading: loading, isError: error } = useQuery({
+        queryKey: ['userProfile'],
+        queryFn: async () => {
             const token = sessionStorage.getItem("token");
-
             if (!token) {
-                setError("No authentication token found. Please login again.");
-                setLoading(false);
-                return;
+                navigate("/login");
+                throw new Error("No token found");
             }
 
             const res = await fetch(`${BaseUrl}user/profile`, {
@@ -58,29 +60,74 @@ const ProfilePage = () => {
             const data = await res.json();
 
             if (res.ok) {
-                setUser(data.user);
-                setFormData({
-                    name: data.user.name || "",
-                    father_name: data.user.father_name || "",
-                    email: data.user.email || "",
-                    native_place: data.user.native_place || "",
-                    aadhar_number: data.user.aadhar_number || "",
-                    address: data.user.address || "",
-                });
+                return data.user;
             } else {
-                setError(data.message || "Failed to fetch profile");
+                if (res.status === 401 || res.status === 403) {
+                    sessionStorage.removeItem("token");
+                    navigate("/login");
+                    throw new Error("Unauthorized");
+                }
+                throw new Error(data.message || "Failed to fetch profile");
             }
-        } catch (err) {
-            // console.error(err);
-            setError("Error loading profile data");
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        retry: false
+    });
 
+    // Update form data when user data is fetched
     useEffect(() => {
-        fetchProfile();
-    }, []);
+        if (user) {
+            setFormData({
+                name: user.name || "",
+                father_name: user.father_name || "",
+                email: user.email || "",
+                native_place: user.native_place || "",
+                aadhar_number: user.aadhar_number || "",
+                address: user.address || "",
+            });
+        }
+    }, [user]);
+
+    // Update Profile Mutation
+    const updateProfileMutation = useMutation({
+        mutationFn: async (payload) => {
+            const token = sessionStorage.getItem("token");
+            if (!token) {
+                navigate("/login");
+                throw new Error("No token found");
+            }
+
+            const res = await fetch(`${BaseUrl}user/update/${user._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                    sessionStorage.removeItem("token");
+                    navigate("/login");
+                    throw new Error("Unauthorized");
+                }
+                throw new Error(data.message || "Failed to update profile");
+            }
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['userProfile']);
+            setIsEditing(false);
+            showToast("Profile updated successfully!", "success");
+        },
+        onError: (error) => {
+            showToast(error.message || "Error updating profile", "error");
+        }
+    });
+
+    const isSaving = updateProfileMutation.isPending;
 
 
     const handleInputChange = (e) => {
@@ -108,64 +155,29 @@ const ProfilePage = () => {
         });
     };
 
-    const handleSaveProfile = async () => {
-        setIsSaving(true);
-        try {
-            const token = sessionStorage.getItem("token");
-
-            if (!token) {
-                showToast("No authentication token found. Please login again.", "error");
-                setIsSaving(false);
-                return;
-            }
-
-            if (!user?._id) {
-                showToast("User ID not found. Please refresh and try again.", "error");
-                setIsSaving(false);
-                return;
-            }
-
-            // Calculate changed fields
-            const payload = {};
-            Object.keys(formData).forEach((key) => {
-                const originalValue = user[key] || "";
-                const currentValue = formData[key];
-                if (currentValue !== originalValue) {
-                    payload[key] = currentValue;
-                }
-            });
-
-            if (Object.keys(payload).length === 0) {
-                showToast("No changes detected.", "info");
-                setIsEditing(false);
-                setIsSaving(false);
-                return;
-            }
-
-            const res = await fetch(`${BaseUrl}user/update/${user._id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                await fetchProfile();
-                setIsEditing(false);
-                showToast("Profile updated successfully!", "success");
-            } else {
-                showToast(data.message || "Failed to update profile", "error");
-            }
-        } catch (err) {
-            // console.error(err);
-            showToast("Error updating profile", "error");
-        } finally {
-            setIsSaving(false);
+    const handleSaveProfile = () => {
+        if (!user?._id) {
+            showToast("User ID not found. Please refresh and try again.", "error");
+            return;
         }
+
+        // Calculate changed fields
+        const payload = {};
+        Object.keys(formData).forEach((key) => {
+            const originalValue = user[key] || "";
+            const currentValue = formData[key];
+            if (currentValue !== originalValue) {
+                payload[key] = currentValue;
+            }
+        });
+
+        if (Object.keys(payload).length === 0) {
+            showToast("No changes detected.", "info");
+            setIsEditing(false);
+            return;
+        }
+
+        updateProfileMutation.mutate(payload);
     };
 
     const displayName = user?.name || "Guest";
@@ -178,22 +190,6 @@ const ProfilePage = () => {
                 <div className="flex flex-col items-center">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <p className="mt-4 text-gray-600 font-medium">Loading profile...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 via-indigo-50 to-white">
-                <div className="text-center">
-                    <p className="text-red-600 font-medium">{error}</p>
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                        Go Back
-                    </button>
                 </div>
             </div>
         );

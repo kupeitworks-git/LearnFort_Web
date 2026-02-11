@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { FiSend, FiUser, FiPhone, FiMail, FiFileText, FiChevronDown, FiArrowLeft, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +9,7 @@ const Contacting = () => {
   const navigate = useNavigate();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [isSubmitting, setIsSubmitting] = useState(false); // Managed by mutation
   const [toast, setToast] = useState({ message: '', type: '' });
   const [formData, setFormData] = useState({
     name: '',
@@ -45,7 +46,62 @@ const Contacting = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const submitEnquiryMutation = useMutation({
+    mutationFn: async (payload) => {
+      // Get auth token from stored user (set during login)
+      let token = '';
+      try {
+        const stored = localStorage.getItem('lf_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          token = parsed?.token || '';
+        }
+      } catch (err) {
+        token = '';
+      }
+
+      const res = await fetch(`${BaseUrl}contact/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        let message = 'Failed to submit enquiry';
+        if (errorText) {
+          try {
+            const parsed = JSON.parse(errorText);
+            message = parsed.message || parsed.error || message;
+          } catch {
+            message = errorText;
+          }
+        }
+        throw new Error(message);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      showToast('Your enquiry has been submitted successfully.', 'success');
+      setFormData({
+        name: '',
+        fatherName: '',
+        mobileNumber: '',
+        email: '',
+        native: '',
+        contactType: 'General Inquiry',
+        notes: '',
+      });
+    },
+    onError: (error) => {
+      showToast(error.message || 'Something went wrong while submitting your enquiry.', 'error');
+    }
+  });
+
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     const { name, fatherName, mobileNumber, email, native, contactType, notes } = formData;
@@ -88,67 +144,10 @@ const Contacting = () => {
       device_id: 'web-device',
     };
 
-    try {
-      // Get auth token from stored user (set during login)
-      let token = '';
-      try {
-        const stored = localStorage.getItem('lf_user');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          token = parsed?.token || '';
-        }
-      } catch (err) {
-        token = '';
-      }
-
-      // if (!token) {
-      //   showToast('Your session has expired. Please log in again to submit an enquiry.', 'error');
-      //   return;
-      // }
-
-      setIsSubmitting(true);
-
-      const res = await fetch(`${BaseUrl}contact/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        let message = 'Failed to submit enquiry';
-        if (errorText) {
-          try {
-            const parsed = JSON.parse(errorText);
-            message = parsed.message || parsed.error || message;
-          } catch {
-            message = errorText;
-          }
-        }
-        throw new Error(message);
-      }
-
-      showToast('Your enquiry has been submitted successfully.', 'success');
-
-      // Optionally clear the form
-      setFormData({
-        name: '',
-        fatherName: '',
-        mobileNumber: '',
-        email: '',
-        native: '',
-        contactType: 'General Inquiry',
-        notes: '',
-      });
-    } catch (err) {
-      showToast(err.message || 'Something went wrong while submitting your enquiry.', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
+    submitEnquiryMutation.mutate(payload);
   };
+
+  const isSubmitting = submitEnquiryMutation.isPending;
 
   const handleBack = () => navigate(-1);
 

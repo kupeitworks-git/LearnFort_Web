@@ -3,7 +3,7 @@ import { FiArrowLeft, FiMail, FiPhone, FiMapPin } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import bluwave from '../../images/bluewae.png'
-import premium from '../../images/premeium.png'
+import premium from '../../images/premeium.jpeg'
 import { FiSunrise, FiHome, FiZap } from "react-icons/fi";
 import {
   GiCricketBat,
@@ -21,8 +21,7 @@ export const amenities = [
   { name: "Children Play Area", icon: GiBabyFace },
   { name: "Rest Rooms", icon: FiHome },
   { name: "Food Court", icon: GiForkKnifeSpoon },
-  { name: "Walking Pathway", icon: GiPathDistance },
-  { name: "EV Charging Station", icon: FiZap },
+  { name: "Walking Pathway", icon: GiPathDistance }
 ];
 
 const AboutUs = () => {
@@ -31,7 +30,7 @@ const AboutUs = () => {
   const sports = [
     "Skating", "Basketball", "Football (Turf)", "Volleyball",
     "Cricket (Turf)", "Net Practice", "Pickleball", "Kabbadi",
-    "Karate", "Athletic Track", "Archery", "Badminton (Outdoor)"
+    "Karate", "Athletic Track", "Archery", "Badminton (Outdoor)", "Badminton (Indoor)"
   ];
 
 
@@ -87,7 +86,7 @@ const AboutUs = () => {
             Welcome to LearnFort Sports Park
           </h2>
           <p className="text-white/90 max-w-2xl mx-auto">
-            Where passion meets performance in the heart of Dindigul
+            Where passion meets performance in the heart of Nilakkottai
           </p>
         </div>
         <div
@@ -115,12 +114,7 @@ const AboutUs = () => {
                     alt="LearnFort Sports Park"
                     className="w-full h-64 md:h-80 object-cover transition-transform duration-500 hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-                    <div className="text-white">
-                      <h3 className="text-xl font-bold mb-1">14,000 sq.ft</h3>
-                      <p className="text-sm text-blue-200">Premium Sports Facility</p>
-                    </div>
-                  </div>
+
                 </div>
               </div>
 

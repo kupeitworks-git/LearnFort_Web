@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BaseUrl } from "../api/api";
@@ -25,7 +26,7 @@ import {
 } from "react-icons/gi";
 import { FaSpinner } from "react-icons/fa";
 
-const BookingsPage = () => {
+const BookingHistory = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("upcoming");
     const [expandedBooking, setExpandedBooking] = useState(null);
@@ -37,40 +38,15 @@ const BookingsPage = () => {
     const [viewMode, setViewMode] = useState("selection"); // 'selection' or 'history'
     const [historyType, setHistoryType] = useState("my"); // 'my' or 'all'
 
-    // State for pagination and data
-    const [bookings, setBookings] = useState({
-        upcoming: [],
-        live: [],
-        completed: [],
-        "my-bookings": [],
-        all: []
-    });
-
-    // Page counters (start at 0, increment before fetch)
+    // State for pagination only (data will be handled by useQuery)
     const [pages, setPages] = useState({
-        upcoming: 0,
-        live: 0,
-        completed: 0,
-        "my-bookings": 0,
-        all: 0
+        upcoming: 1,
+        live: 1,
+        completed: 1,
+        "my-bookings": 1,
+        all: 1
     });
 
-    const [hasMore, setHasMore] = useState({
-        upcoming: true,
-        live: true,
-        completed: true,
-        "my-bookings": true,
-        all: true
-    });
-
-    const [loading, setLoading] = useState(false);
-    const [totalItems, setTotalItems] = useState({
-        upcoming: 0,
-        live: 0,
-        completed: 0,
-        "my-bookings": 0,
-        all: 0
-    });
     const receiptRef = useRef(null);
 
     // Get user and handle initial view
@@ -214,7 +190,7 @@ const BookingsPage = () => {
         }
     };
 
-    // Helper to format API data to match UI expected fields
+    // Format Booking Data
     // Assuming API returns standard fields, but we map safe properties
     const mapBookingData = (item) => ({
         id: item._id || item.id,
@@ -240,16 +216,15 @@ const BookingsPage = () => {
         rawDate: item.booking_date // Keep raw for receipts if needed
     });
 
-    const fetchBookings = React.useCallback(async (type, pageNum) => {
-        if (loading) return;
-
-        setLoading(true);
-        try {
+    // Fetch bookings using TanStack Query
+    const { data: queryData = { bookings: [], total: 0, totalPages: 1 }, isLoading: loading, isPlaceholderData } = useQuery({
+        queryKey: ['bookings', historyType, activeTab, pages[activeTab]],
+        queryFn: async () => {
             const token = sessionStorage.getItem('token');
-            let status = type;
+            let status = activeTab;
             let filter = historyType === "all" ? "all" : "my-bookings";
 
-            let url = `${BaseUrl}booking/booking-details?status=${status}&limit=50&page=${pageNum}`;
+            let url = `${BaseUrl}booking/booking-details?status=${status}&limit=10&page=${pages[activeTab]}`;
             if (filter) {
                 url += `&filter=${filter}`;
             }
@@ -261,59 +236,48 @@ const BookingsPage = () => {
             });
             const result = await response.json();
 
+            // Handle JWT expiration or unauthorized errors
+            if (!response.ok || result.message === 'jwt expired' || result.message === 'Unauthorized') {
+                sessionStorage.removeItem('token');
+                localStorage.removeItem('lf_user');
+                navigate('/login');
+                throw new Error('Session expired. Please login again.');
+            }
+
             const newItems = (result.data || result.bookings || []).map(mapBookingData);
+            // Read pagination info directly from the API response
+            const total = result.pagination?.totalDocs || result.total || result.total_count || 0;
+            const totalPages = result.pagination?.totalPages || Math.ceil(total / 10) || 1;
 
-            // If API provides total items, store it. Otherwise estimate from results.
-            const total = result.total || result.total_count || (newItems.length < 50 ? (pageNum - 1) * 50 + newItems.length : 1000);
+            return { bookings: newItems, total, totalPages };
+        },
+        enabled: viewMode === "history",
+        placeholderData: keepPreviousData,
+        staleTime: 5000
+    });
 
-            setTotalItems(prev => ({ ...prev, [type]: total }));
-
-            setBookings(prev => ({
-                ...prev,
-                [type]: newItems
-            }));
-
-            setHasMore(prev => ({
-                ...prev,
-                [type]: newItems.length === 50
-            }));
-
-            setPages(prev => ({
-                ...prev,
-                [type]: pageNum
-            }));
-
-        } catch (error) {
-            // console.error(`Fetch Error for ${type} →`, error);
-        } finally {
-            setLoading(false);
-        }
-    }, [historyType]); // Removed loading from dependencies to keep the function stable
+    const currentBookings = queryData.bookings || [];
+    const totalPages = queryData.totalPages;
+    const hasMoreData = pages[activeTab] < totalPages;
 
     const handlePrevPage = () => {
-        if (pages[activeTab] > 1) {
-            fetchBookings(activeTab, pages[activeTab] - 1);
-        }
+        setPages(prev => ({
+            ...prev,
+            [activeTab]: Math.max(prev[activeTab] - 1, 1)
+        }));
     };
 
     const handleNextPage = () => {
-        if (hasMore[activeTab]) {
-            fetchBookings(activeTab, pages[activeTab] + 1);
+        if (!isPlaceholderData && hasMoreData) {
+            setPages(prev => ({
+                ...prev,
+                [activeTab]: prev[activeTab] + 1
+            }));
         }
     };
 
-
-    // Update the useEffect to use useCallback memoized loadMore
-    React.useEffect(() => {
-        const fetchInitialData = async () => {
-            if (viewMode === "history" && bookings[activeTab].length === 0 && !loading) {
-                await fetchBookings(activeTab, 1);
-            }
-        };
-
-        fetchInitialData();
-    }, [activeTab, viewMode, historyType, fetchBookings]); // Removed 'bookings' to break the loop
-    const getBookings = () => bookings[activeTab] || [];
+    // Removed manual fetchBookings and useEffect for fetching
+    const getBookings = () => currentBookings;
 
     const toggleBooking = (id) => {
         if (expandedBooking === id) {
@@ -368,9 +332,8 @@ const BookingsPage = () => {
                                 setHistoryType("my");
                                 setViewMode("history");
                                 // Reset data for fresh fetch
-                                setBookings({ upcoming: [], live: [], completed: [], "my-bookings": [], all: [] });
-                                setPages({ upcoming: 0, live: 0, completed: 0, "my-bookings": 0, all: 0 });
-                                setHasMore({ upcoming: true, live: true, completed: true, "my-bookings": true, all: true });
+                                setPages({ upcoming: 1, live: 1, completed: 1, "my-bookings": 1, all: 1 });
+                                // setHasMore not needed as derived from query data
                             }}
                             className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-blue-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10"
                         >
@@ -397,9 +360,9 @@ const BookingsPage = () => {
                                     setHistoryType("all");
                                     setViewMode("history");
                                     setActiveTab("upcoming");
-                                    setBookings({ upcoming: [], live: [], completed: [], "my-bookings": [], all: [] });
-                                    setPages({ upcoming: 0, live: 0, completed: 0, "my-bookings": 0, all: 0 });
-                                    setHasMore({ upcoming: true, live: true, completed: true, "my-bookings": true, all: true });
+                                    setActiveTab("upcoming");
+                                    setPages({ upcoming: 1, live: 1, completed: 1, "my-bookings": 1, all: 1 });
+                                    // setHasMore not needed
                                 }}
                                 className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-green-900/5 border border-green-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/10"
                             >
@@ -576,12 +539,12 @@ const BookingsPage = () => {
 
                                     <div className="flex flex-col items-center">
                                         <span className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Page</span>
-                                        <span className="text-blue-900 font-black text-xl">{pages[activeTab]}</span>
+                                        <span className="text-blue-900 font-black text-xl">{pages[activeTab]} <span className="text-sm font-medium text-gray-500">of {totalPages}</span></span>
                                     </div>
 
                                     <button
                                         onClick={handleNextPage}
-                                        disabled={loading || !hasMore[activeTab]}
+                                        disabled={loading || !hasMoreData || isPlaceholderData}
                                         className="flex items-center gap-2 px-6 py-2.5 bg-[#1E3A8A] text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:bg-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                                     >
                                         <span>Next</span>
@@ -875,4 +838,4 @@ const BookingsPage = () => {
     );
 };
 
-export default BookingsPage;
+export default BookingHistory;

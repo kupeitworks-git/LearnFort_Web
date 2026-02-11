@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import { KeyRound, Lock, RefreshCw, Loader2 } from "lucide-react";
 import LearnFortLogo from "../../images/LearnFort.png";
@@ -8,7 +9,7 @@ import toast, { Toaster } from "react-hot-toast";
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [showResetFields, setShowResetFields] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false); // Managed by mutations
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     resetToken: "",
@@ -19,78 +20,70 @@ const ForgotPassword = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSendLink = async (e) => {
+  // Mutation for sending reset link
+  const sendResetLinkMutation = useMutation({
+    mutationFn: async (email) => {
+      const response = await fetch(`${BaseUrl}user/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to send reset link.");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Reset link sent successfully!");
+      setShowResetFields(true);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something went wrong. Please try again.");
+    }
+  });
+
+  // Mutation for resetting password
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ token, newPassword }) => {
+      const response = await fetch(`${BaseUrl}user/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to reset password.");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Password updated successfully!");
+      setTimeout(() => navigate("/login"), 2000);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something went wrong. Please try again.");
+    }
+  });
+
+  const handleSendLink = (e) => {
     e.preventDefault();
     if (!formData.emailOrPhone) {
       toast.error("Please enter your registered email.");
       return;
     }
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${BaseUrl}user/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.emailOrPhone,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message || "Reset link sent successfully!");
-        setShowResetFields(true);
-      } else {
-        toast.error(data.message || "Failed to send reset link.");
-      }
-    } catch (error) {
-      // console.error("Error sending reset link:", error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    sendResetLinkMutation.mutate(formData.emailOrPhone);
   };
 
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = (e) => {
     e.preventDefault();
     if (!formData.resetToken || !formData.newPassword) {
       toast.error("Please enter the reset token and new password.");
       return;
     }
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${BaseUrl}user/reset-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          newPassword: formData.newPassword,
-          token: formData.resetToken,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message || "Password updated successfully!");
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-      } else {
-        toast.error(data.message || "Failed to reset password.");
-      }
-    } catch (error) {
-      // console.error("Error resetting password:", error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    resetPasswordMutation.mutate({
+      token: formData.resetToken,
+      newPassword: formData.newPassword
+    });
   };
+
+  const loading = sendResetLinkMutation.isPending || resetPasswordMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

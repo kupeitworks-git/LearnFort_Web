@@ -1,5 +1,6 @@
 // src/components/Admin/Settings/ChangePassword.jsx
 import React, { useState } from "react";
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import {
   FiLock,
@@ -25,7 +26,7 @@ const ChangePassword = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // Managed by mutation
   const [toast, setToast] = useState({ message: "", type: "" });
 
   const showToast = (message, type) => {
@@ -41,7 +42,39 @@ const ChangePassword = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const changePasswordMutation = useMutation({
+    mutationFn: async (credentials) => {
+      const token = sessionStorage.getItem("token");
+      if (!token) throw new Error("No authentication token found. Please login again.");
+
+      const res = await fetch(`${BaseUrl}user/update-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update password");
+      return data;
+    },
+    onSuccess: () => {
+      showToast("Password updated successfully!", "success");
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setTimeout(() => navigate(-1), 2000);
+    },
+    onError: (error) => {
+      showToast(error.message, "error");
+    }
+  });
+
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // Validation
@@ -60,51 +93,13 @@ const ChangePassword = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
-        showToast("No authentication token found. Please login again.", "error");
-        setIsLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${BaseUrl}user/update-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          oldPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showToast("Password updated successfully!", "success");
-        // Clear form
-        setFormData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        // Navigate back after a short delay
-        setTimeout(() => navigate(-1), 2000);
-      } else {
-        showToast(data.message || "Failed to update password", "error");
-      }
-    } catch (err) {
-      // console.error(err);
-      showToast("Error updating password", "error");
-    } finally {
-      setIsLoading(false);
-    }
+    changePasswordMutation.mutate({
+      oldPassword: formData.currentPassword,
+      newPassword: formData.newPassword,
+    });
   };
+
+  const isLoading = changePasswordMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-6">

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import LearnFortLogo from "../../images/LearnFort.png";
 import { Eye, EyeOff } from "lucide-react";
-import {BaseUrl} from '../../components/api/api'
+import { BaseUrl } from '../../components/api/api'
 
 
 const Login = () => {
@@ -12,9 +13,62 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [toast, setToast] = useState({ message: "", type: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  // React Query Mutation for Login
+  const loginMutation = useMutation({
+    mutationFn: async (credentials) => {
+      const res = await fetch(`${BaseUrl}user/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!res.ok) {
+        let message = "Invalid Credentials";
+        try {
+          const errorData = await res.json();
+          message = errorData.message || message;
+        } catch (e) {
+          const errorText = await res.text();
+          message = errorText || message;
+        }
+        throw new Error(message);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      try {
+        localStorage.setItem("lf_user", JSON.stringify(data));
+        if (data.token) {
+          sessionStorage.setItem("token", data.token);
+        }
+      } catch (storageError) {
+        // ignore
+      }
+
+      setToast({ message: "Logged in Successfully!", type: "success" });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 1000);
+    },
+    onError: (error) => {
+      const raw = (error.message || "Invalid Credentials").toLowerCase();
+      let message = "Invalid Credentials";
+      if (raw.includes("password")) {
+        message = "Invalid Password";
+      } else if (raw.includes("mobile") || raw.includes("phone")) {
+        message = "Invalid mobile number";
+      } else {
+        message = error.message;
+      }
+      setToast({ message: message, type: "error" });
+    }
+  });
+
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     const trimmedMobile = mobile.trim();
@@ -35,64 +89,11 @@ const Login = () => {
       return;
     }
 
-    setIsLoading(true);
     setToast({ message: "", type: "" });
-
-    try {
-      const res = await fetch(`${BaseUrl}user/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobile: trimmedMobile,
-          password: trimmedPassword,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        let message = "Invalid Credentials";
-        if (errorText) {
-          try {
-            const parsed = JSON.parse(errorText);
-            message = parsed.message || parsed.error || message;
-          } catch {
-            message = errorText;
-          }
-        }
-        throw new Error(message);
-      }
-
-      const data = await res.json();
-
-      try {
-        localStorage.setItem("lf_user", JSON.stringify(data));
-        if (data.token) {
-          sessionStorage.setItem("token", data.token);
-        }
-      } catch (storageError) {
-        // ignore storage errors but still allow login
-      }
-
-      setToast({ message: "Logged in Successfully!", type: "success" });
-
-      setTimeout(() => {
-        navigate("/");
-      }, 1000);
-    } catch (err) {
-      const raw = (err.message || "Invalid Credentials").toLowerCase();
-      let message = "Invalid Credentials";
-      if (raw.includes("password")) {
-        message = "Invalid Password";
-      } else if (raw.includes("mobile") || raw.includes("phone")) {
-        message = "Invalid mobile number";
-      }
-      setToast({ message, type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate({ mobile: trimmedMobile, password: trimmedPassword });
   };
+
+  const isLoading = loginMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -106,6 +107,17 @@ const Login = () => {
       )}
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-md p-6">
+          {/* Back Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="text-sm font-medium">Back to Home</span>
+          </button>
           <div className="flex justify-center mb-4">
             <img src={LearnFortLogo} className="w-16 h-16" alt="LearnFort" />
           </div>

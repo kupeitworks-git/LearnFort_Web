@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FiArrowLeft,
@@ -27,182 +28,191 @@ import { toast } from 'react-toastify';
 const ManageUsers = () => {
     const navigate = useNavigate();
 
-    const [admins, setAdmins] = useState([]);
-    const [users, setUsers] = useState([]);
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("Users");
     const [selectedUser, setSelectedUser] = useState(null);
     const [showActions, setShowActions] = useState(false);
     const [actionPosition, setActionPosition] = useState({ x: 0, y: 0 });
-    const [loading, setLoading] = useState(false);
+    // const [loading, setLoading] = useState(false); // managed by useQuery
     const [error, setError] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [currentAction, setCurrentAction] = useState(null);
     const [editedUser, setEditedUser] = useState(null);
-    const [isSaving, setIsSaving] = useState(false);
+    // const [isSaving, setIsSaving] = useState(false); // managed by useMutation
     const [aadharError, setAadharError] = useState('');
+    const [formErrors, setFormErrors] = useState({});
 
     // Pagination state
-    const [userPagination, setUserPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalDocs: 0,
-        hasNext: false,
-        hasPrev: false
-    });
-
-    const [adminPagination, setAdminPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalDocs: 0,
-        hasNext: false,
-        hasPrev: false
+    const [paginationState, setPaginationState] = useState({
+        users: { page: 1, limit: 10 },
+        admins: { page: 1, limit: 10 }
     });
 
     const itemsPerPage = 10; // Increased from 5 to 10
 
-    // Fetch Users with pagination
-    const fetchUsers = async (page = 1) => {
-        setLoading(true);
-        setError(null);
-        try {
+    // Fetch Users Query
+    const { data: usersData = { users: [], pagination: {} }, isLoading: loadingUsers } = useQuery({
+        queryKey: ['users', paginationState.users.page],
+        queryFn: async () => {
             const token = sessionStorage.getItem("token");
-            if (!token) {
-                setError("No authentication token found. Please login again.");
-                setLoading(false);
-                return;
-            }
+            if (!token) throw new Error("No authentication token found");
 
-            const res = await fetch(`${BaseUrl}user/users-list?role=USER&page=${page}&limit=10`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const res = await fetch(`${BaseUrl}user/users-list?role=USER&page=${paginationState.users.page}&limit=${paginationState.users.limit}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-
             const response = await res.json();
-
-            if (res.ok) {
-                // Check if the response has a 'users' array or use the data directly
-                const usersData = response.users || response.data || [];
-                setUsers(usersData);
-
-                // Handle pagination data from the response
-                const pagination = response.pagination || {
-                    currentPage: 1,
-                    totalPages: 1,
-                    totalDocs: usersData.length,
-                    hasNext: false,
-                    hasPrev: false
-                };
-
-                setUserPagination({
-                    currentPage: pagination.currentPage || 1,
-                    totalPages: pagination.totalPages || 1,
-                    totalDocs: pagination.totalDocs || usersData.length,
-                    hasNext: pagination.hasNext || false,
-                    hasPrev: pagination.hasPrev || false
-                });
-            } else {
+            if (!res.ok) {
                 if (response.message === "jwt expired") {
                     sessionStorage.clear();
                     navigate("/login");
-                } else {
-                    setError(response.message || "Failed to fetch users");
+                    throw new Error("Session expired");
                 }
+                throw new Error(response.message || "Failed to fetch users");
             }
-        } catch (err) {
-            // console.error(err);
-            toast.error("Error fetching users");
-            setError("Error fetching users");
-        } finally {
-            setLoading(false);
-        }
-    };
+            const usersData = response.users || response.data || [];
+            const pagination = response.pagination || {
+                currentPage: 1,
+                totalPages: 1,
+                totalDocs: usersData.length,
+                hasNext: false,
+                hasPrev: false
+            };
+            return { users: usersData, pagination };
+        },
+        placeholderData: keepPreviousData,
+        enabled: activeTab === "Users"
+    });
 
-    // Fetch Admins with pagination
-    const fetchAdmins = async (page = 1) => {
-        setLoading(true);
-        setError(null);
-        try {
+    // Fetch Admins Query
+    const { data: adminsData = { admins: [], pagination: {} }, isLoading: loadingAdmins } = useQuery({
+        queryKey: ['admins', paginationState.admins.page],
+        queryFn: async () => {
             const token = sessionStorage.getItem("token");
-            if (!token) {
-                setError("No authentication token found. Please login again.");
-                setLoading(false);
-                return;
-            }
+            if (!token) throw new Error("No authentication token found");
 
-            const res = await fetch(`${BaseUrl}admin/admin-list?role=ADMIN&page=${page}&limit=10`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const res = await fetch(`${BaseUrl}admin/admin-list?role=ADMIN&page=${paginationState.admins.page}&limit=${paginationState.admins.limit}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-
             const response = await res.json();
-
-            if (res.ok) {
-                // Check if the response has an 'admins' array or use the data directly
-                const adminsData = response.admins || response.data || [];
-                setAdmins(adminsData);
-
-                // Handle pagination data from the response
-                const pagination = response.pagination || {
-                    currentPage: 1,
-                    totalPages: 1,
-                    totalDocs: adminsData.length,
-                    hasNext: false,
-                    hasPrev: false
-                };
-
-                setAdminPagination({
-                    currentPage: pagination.currentPage || 1,
-                    totalPages: pagination.totalPages || 1,
-                    totalDocs: pagination.totalDocs || adminsData.length,
-                    hasNext: pagination.hasNext || false,
-                    hasPrev: pagination.hasPrev || false
-                });
-            } else {
+            if (!res.ok) {
                 if (response.message === "jwt expired") {
                     sessionStorage.clear();
                     navigate("/login");
-                } else {
-                    setError(response.message || "Failed to fetch admins");
+                    throw new Error("Session expired");
                 }
+                throw new Error(response.message || "Failed to fetch admins");
             }
-        } catch (err) {
-            // console.error(err);
-            toast.error("Error fetching admins");
-            setError("Error fetching admins");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    // Fetch data when tab or page changes
-    useEffect(() => {
-        if (activeTab === "Users") {
-            fetchUsers(userPagination.currentPage);
-        } else {
-            fetchAdmins(adminPagination.currentPage);
+            const adminsData = response.admins || response.data || [];
+            const pagination = response.pagination || {
+                currentPage: 1,
+                totalPages: 1,
+                totalDocs: adminsData.length,
+                hasNext: false,
+                hasPrev: false
+            };
+            return { admins: adminsData, pagination };
+        },
+        placeholderData: keepPreviousData,
+        enabled: activeTab === "Admins"
+    });
+
+    // Mutations
+    const updateStatusMutation = useMutation({
+        mutationFn: async ({ userId, status }) => {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(`${BaseUrl}user/update/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to update status');
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['users']);
+            queryClient.invalidateQueries(['admins']);
+            setShowConfirmModal(false);
+            // toast.success("Status updated successfully");
+        },
+        onError: (err) => {
+            toast.error(err.message);
+            setError(err.message);
+            setShowConfirmModal(false);
         }
-    }, [activeTab, userPagination.currentPage, adminPagination.currentPage]);
+    });
+
+    const updateUserMutation = useMutation({
+        mutationFn: async ({ userId, payload }) => {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(`${BaseUrl}user/update/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to update user');
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['users']);
+            queryClient.invalidateQueries(['admins']);
+            setShowEditModal(false);
+            toast.success("User updated successfully!");
+        },
+        onError: (err) => {
+            toast.error(err.message);
+            setError(err.message);
+        }
+    });
+
+    const deleteUserMutation = useMutation({
+        mutationFn: async (userId) => {
+            const token = sessionStorage.getItem("token");
+            const res = await fetch(`${BaseUrl}user/delete/${userId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to delete user');
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['users']);
+            queryClient.invalidateQueries(['admins']);
+            setShowConfirmModal(false);
+            toast.success("User deleted successfully!");
+        },
+        onError: (err) => {
+            toast.error(err.message);
+            setError(err.message);
+            setShowConfirmModal(false);
+        }
+    });
+
+    const users = usersData.users;
+    const userPagination = usersData.pagination;
+    const admins = adminsData.admins;
+    const adminPagination = adminsData.pagination;
+    const loading = activeTab === "Users" ? loadingUsers : loadingAdmins;
+    const isSaving = updateStatusMutation.isPending || updateUserMutation.isPending || deleteUserMutation.isPending;
 
     // Handle page change for users
     const handleUserPageChange = (page) => {
-        setUserPagination(prev => ({
-            ...prev,
-            currentPage: page
-        }));
+        setPaginationState(prev => ({ ...prev, users: { ...prev.users, page } }));
     };
 
     // Handle page change for admins
     const handleAdminPageChange = (page) => {
-        setAdminPagination(prev => ({
-            ...prev,
-            currentPage: page
-        }));
-        fetchAdmins(page);
+        setPaginationState(prev => ({ ...prev, admins: { ...prev.admins, page } }));
     };
 
     const handleActionClick = (user, e) => {
@@ -236,57 +246,13 @@ const ManageUsers = () => {
         }
     };
 
-    const handleStatusUpdate = async (newStatus) => {
-        try {
-            setIsSaving(true);
-            const token = sessionStorage.getItem("token");
-
-            // Handle null/undefined status and ensure proper case
-            let statusValue = 'INACTIVE'; // Default to INACTIVE if no status provided
-            if (newStatus) {
-                statusValue = newStatus === 'deactivate' ? 'INACTIVE' : newStatus.toUpperCase();
-            }
-
-            const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status: statusValue }),
-            });
-
-            // Rest of the function remains the same...
-            const data = await res.json();
-
-            if (res.ok) {
-                // Update the user in the appropriate list
-                if (activeTab === "Users") {
-                    setUsers(users.map(u =>
-                        u._id === selectedUser._id ? { ...u, status: statusValue } : u
-                    ));
-                } else {
-                    setAdmins(admins.map(a =>
-                        a._id === selectedUser._id ? { ...a, status: statusValue } : a
-                    ));
-                }
-                setError(null);
-            } else {
-                if (data.message === "jwt expired") {
-                    sessionStorage.clear();
-                    navigate("/login");
-                    return;
-                }
-                throw new Error(data.message || 'Failed to update status');
-            }
-        } catch (err) {
-            // console.error('Error updating status:', err);
-            toast.error(err.message || 'Failed to update status');
-            setError(err.message || 'Failed to update status');
-        } finally {
-            setIsSaving(false);
-            setShowConfirmModal(false);
+    const handleStatusUpdate = (newStatus) => {
+        // Handle null/undefined status and ensure proper case
+        let statusValue = 'INACTIVE'; // Default to INACTIVE if no status provided
+        if (newStatus) {
+            statusValue = newStatus === 'deactivate' ? 'INACTIVE' : newStatus.toUpperCase();
         }
+        updateStatusMutation.mutate({ userId: selectedUser._id, status: statusValue });
     };
     const validateAadhar = (aadhar) => {
         if (!aadhar) return true; // Allow empty Aadhar
@@ -305,120 +271,81 @@ const ManageUsers = () => {
     };
 
 
-    const handleEditSave = async () => {
-        // Validate Aadhar number before saving
+    const handleEditSave = () => {
+        // Clear previous errors
+        const errors = {};
+
+        // Validate Name (required)
+        if (!editedUser.name || !editedUser.name.trim()) {
+            errors.name = 'Name is required';
+        } else if (!/^[a-zA-Z\s]+$/.test(editedUser.name.trim())) {
+            errors.name = 'Name should contain only letters and spaces';
+        }
+
+        // Validate Mobile (required, 10 digits)
+        if (!editedUser.mobile || !editedUser.mobile.trim()) {
+            errors.mobile = 'Mobile number is required';
+        } else if (!/^\d{10}$/.test(editedUser.mobile.trim())) {
+            errors.mobile = 'Mobile number must be 10 digits';
+        }
+
+        // Validate Email (required, valid format)
+        if (!editedUser.email || !editedUser.email.trim()) {
+            errors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedUser.email.trim())) {
+            errors.email = 'Please enter a valid email address';
+        }
+
+        // Validate Aadhar number (optional but if provided, must be 12 digits)
         if (editedUser.aadharNumber && !validateAadhar(editedUser.aadharNumber)) {
             setAadharError('Please enter a valid 12-digit Aadhar number');
+            errors.aadhar = true;
+        }
+
+        // If there are errors, set them and return
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
             return;
         }
 
-        try {
-            setIsSaving(true);
-            const token = sessionStorage.getItem("token");
+        // Clear errors if validation passed
+        setFormErrors({});
 
-            // Prepare the payload with only changed fields
-            const payload = {};
-            const fieldsToCheck = [
-                { component: 'name', api: 'name' },
-                { component: 'fathersName', api: 'father_name' },
-                { component: 'mobile', api: 'mobile' },
-                { component: 'email', api: 'email' },
-                { component: 'nativePlace', api: 'native_place' },
-                { component: 'aadharNumber', api: 'aadhar_number' },
-                { component: 'address', api: 'address' }
-            ];
+        // Prepare the payload with only changed fields
+        const payload = {};
+        const fieldsToCheck = [
+            { component: 'name', api: 'name' },
+            { component: 'fathersName', api: 'father_name' },
+            { component: 'mobile', api: 'mobile' },
+            { component: 'email', api: 'email' },
+            { component: 'nativePlace', api: 'native_place' },
+            { component: 'aadharNumber', api: 'aadhar_number' },
+            { component: 'address', api: 'address' }
+        ];
 
-            fieldsToCheck.forEach(({ component, api }) => {
-                // Check if the field has changed compared to the original data
-                const originalValue = selectedUser[api] || selectedUser[component];
-                if (editedUser[component] !== originalValue) {
-                    payload[api] = editedUser[component];
-                }
-            });
-
-            if (Object.keys(payload).length === 0) {
-                setShowEditModal(false);
-                return;
+        fieldsToCheck.forEach(({ component, api }) => {
+            // Check if the field has changed compared to the original data
+            const originalValue = selectedUser[api] || selectedUser[component];
+            if (editedUser[component] !== originalValue) {
+                payload[api] = editedUser[component];
             }
+        });
 
-            const res = await fetch(`${BaseUrl}user/update/${selectedUser._id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                // Update the user in the appropriate list
-                if (activeTab === "Users") {
-                    setUsers(users.map(u =>
-                        u._id === selectedUser._id ? { ...u, ...payload } : u
-                    ));
-                } else {
-                    setAdmins(admins.map(a =>
-                        a._id === selectedUser._id ? { ...a, ...payload } : a
-                    ));
-                }
-                setShowEditModal(false);
-                toast.success("User updated successfully!");
-            } else {
-                if (data.message === "jwt expired") {
-                    sessionStorage.clear();
-                    navigate("/login");
-                    return;
-                }
-                throw new Error(data.message || 'Failed to update user');
-            }
-        } catch (err) {
-            // console.error('Error updating user:', err);
-            toast.error(err.message || 'Failed to update user');
-            setError(err.message || 'Failed to update user');
-        } finally {
-            setIsSaving(false);
+        // Always include mobile field as it's required by the API
+        if (!payload.mobile) {
+            payload.mobile = editedUser.mobile || selectedUser.mobile;
         }
+
+        if (Object.keys(payload).length === 0) {
+            setShowEditModal(false);
+            return;
+        }
+
+        updateUserMutation.mutate({ userId: selectedUser._id, payload });
     };
 
-    const handleDelete = async () => {
-        try {
-            setIsSaving(true);
-            const token = sessionStorage.getItem("token");
-            const res = await fetch(`${BaseUrl}user/delete/${selectedUser._id}`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                // Remove the user from the appropriate list
-                if (activeTab === "Users") {
-                    setUsers(users.filter(u => u._id !== selectedUser._id));
-                } else {
-                    setAdmins(admins.filter(a => a._id !== selectedUser._id));
-                }
-                toast.success("User deleted successfully!");
-            } else {
-                if (data.message === "jwt expired") {
-                    sessionStorage.clear();
-                    navigate("/login");
-                    return;
-                }
-                throw new Error(data.message || 'Failed to delete user');
-            }
-        } catch (err) {
-            // console.error('Error deleting user:', err);
-            toast.error(err.message || 'Failed to delete user');
-            setError(err.message || 'Failed to delete user');
-        } finally {
-            setIsSaving(false);
-            setShowConfirmModal(false);
-        }
+    const handleDelete = () => {
+        deleteUserMutation.mutate(selectedUser._id);
     };
 
     const getStatusActions = (status) => {
@@ -770,14 +697,20 @@ const ManageUsers = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiUser className="inline mr-1 w-4 h-4" />
-                                        Full Name
+                                        Full Name <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         value={editedUser.name || ''}
-                                        onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onChange={(e) => {
+                                            setEditedUser({ ...editedUser, name: e.target.value });
+                                            if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
+                                        }}
+                                        className={`w-full px-3 py-2 border ${formErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                     />
+                                    {formErrors.name && (
+                                        <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -796,27 +729,41 @@ const ManageUsers = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiPhone className="inline mr-1 w-4 h-4" />
-                                        Mobile Number
+                                        Mobile Number <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="tel"
                                         value={editedUser.mobile || ''}
-                                        onChange={(e) => setEditedUser({ ...editedUser, mobile: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        maxLength={10}
+                                        onChange={(e) => {
+                                            const onlyDigits = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                                            setEditedUser({ ...editedUser, mobile: onlyDigits });
+                                            if (formErrors.mobile) setFormErrors({ ...formErrors, mobile: '' });
+                                        }}
+                                        className={`w-full px-3 py-2 border ${formErrors.mobile ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                     />
+                                    {formErrors.mobile && (
+                                        <p className="mt-1 text-sm text-red-600">{formErrors.mobile}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                                         <FiMail className="inline mr-1 w-4 h-4" />
-                                        Email
+                                        Email <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         value={editedUser.email || ''}
-                                        onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onChange={(e) => {
+                                            setEditedUser({ ...editedUser, email: e.target.value });
+                                            if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+                                        }}
+                                        className={`w-full px-3 py-2 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                     />
+                                    {formErrors.email && (
+                                        <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+                                    )}
                                 </div>
 
                                 <div>

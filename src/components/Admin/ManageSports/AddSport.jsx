@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import {
     FiArrowLeft, FiUploadCloud, FiUser, FiUsers, FiMapPin, FiFolderPlus,
@@ -113,98 +114,102 @@ const AddSport = () => {
         }
     };
     const [toast, setToast] = useState({ message: "", type: "" });
-    const [isLoading, setIsLoading] = useState(false);
+    // const [isLoading, setIsLoading] = useState(false); // Managed by mutation
 
     const showToast = (message, type) => {
         setToast({ message, type });
         setTimeout(() => setToast({ message: "", type: "" }), 3000);
     };
 
-    // ⭐ SUBMIT FUNCTION WITH API
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
+    const queryClient = useQueryClient();
 
-        try {
-            if (!sportImageFile) {
-                showToast("Sport Image is required!", "error");
-                setIsLoading(false);
-                return;
-            }
-            if (!bannerImageFile) {
-                showToast("Banner Image is required!", "error");
-                setIsLoading(false);
-                return;
-            }
-            if (!webBannerImageFile) {
-                showToast("Web Banner Image is required!", "error");
-                setIsLoading(false);
-                return;
-            }
+    const addSportMutation = useMutation({
+        mutationFn: async (formData) => {
             const token = sessionStorage.getItem("token");
+            if (!token) throw new Error("No token found. Please login first.");
 
-            if (!token) {
-                showToast("No token found. Please login first.", "error");
-                setIsLoading(false);
-                return;
-            }
-
-            // Create FormData
-            const formData = new FormData();
-            formData.append("name", form.name);
-            formData.append("about", form.about);
-            formData.append("actual_price_per_day", form.actual_price_per_day);
-            formData.append("final_price_per_day", form.final_price_per_day);
-            formData.append("ground_name", form.ground_name);
-            formData.append("actual_price_per_day_light", form.actual_price_per_day_light);
-            formData.append("final_price_per_day_light", form.final_price_per_day_light);
-            formData.append("actual_price_per_month", form.actual_price_per_month);
-            formData.append("final_price_per_month", form.final_price_per_month);
-            formData.append("actual_price_per_month_light", form.final_price_per_month_light);
-            formData.append("final_price_per_month_light", form.final_price_per_month_light);
-            formData.append("actual_price_per_year", form.actual_price_per_year);
-            formData.append("final_price_per_year", form.final_price_per_year);
-            formData.append("actual_price_per_year_light", form.actual_price_per_year_light);
-            formData.append("final_price_per_year_light", form.final_price_per_year_light);
-            formData.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
-            formData.append("sport_price_type", sportPriceType);
-            formData.append("list", "test"); // static because Postman has it
-
-            if (sportImageFile) formData.append("image", sportImageFile);
-            if (bannerImageFile) formData.append("banner", bannerImageFile);
-            if (webBannerImageFile) formData.append("web_banner", webBannerImageFile);
-
-            // API Call
             const res = await fetch(`${BaseUrl}sports/add`, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${token}`, // FIXED HERE
+                    Authorization: `Bearer ${token}`,
                 },
                 body: formData
             });
 
             const data = await res.json();
-
-            if (res.ok) {
-                showToast("Sport Added Successfully!", "success");
-                ("Response:", data);
-                setTimeout(() => navigate("/sports", { replace: true }), 1500);
-            } else {
+            if (!res.ok) {
                 if (data.message === "jwt expired") {
                     sessionStorage.clear();
                     navigate("/login");
-                } else {
-                    showToast(data.message || "Something went wrong!", "error");
+                    throw new Error("Session expired");
                 }
+                throw new Error(data.message || "Something went wrong!");
             }
-
-        } catch (error) {
-            // console.error(error);
-            showToast("Error adding sport!", "error");
-        } finally {
-            setIsLoading(false);
+            return data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['sports_home'] });
+            queryClient.invalidateQueries({ queryKey: ['sports_booking'] });
+            queryClient.invalidateQueries({ queryKey: ['sports_admin'] });
+            showToast("Sport Added Successfully!", "success");
+            setTimeout(() => navigate("/sports", { replace: true }), 1500);
+        },
+        onError: (error) => {
+            showToast(error.message || "Error adding sport!", "error");
         }
+    });
+
+    // ⭐ SUBMIT FUNCTION WITH API
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        if (!sportImageFile) {
+            showToast("Sport Image is required!", "error");
+            return;
+        }
+        if (!bannerImageFile) {
+            showToast("Banner Image is required!", "error");
+            return;
+        }
+        if (!webBannerImageFile) {
+            showToast("Web Banner Image is required!", "error");
+            return;
+        }
+        const token = sessionStorage.getItem("token");
+        if (!token) {
+            showToast("No token found. Please login first.", "error");
+            return;
+        }
+
+        // Create FormData
+        const formData = new FormData();
+        formData.append("name", form.name);
+        formData.append("about", form.about);
+        formData.append("actual_price_per_day", form.actual_price_per_day);
+        formData.append("final_price_per_day", form.final_price_per_day);
+        formData.append("ground_name", form.ground_name);
+        formData.append("actual_price_per_day_light", form.actual_price_per_day_light);
+        formData.append("final_price_per_day_light", form.final_price_per_day_light);
+        formData.append("actual_price_per_month", form.actual_price_per_month);
+        formData.append("final_price_per_month", form.final_price_per_month);
+        formData.append("actual_price_per_month_light", form.final_price_per_month_light);
+        formData.append("final_price_per_month_light", form.final_price_per_month_light);
+        formData.append("actual_price_per_year", form.actual_price_per_year);
+        formData.append("final_price_per_year", form.final_price_per_year);
+        formData.append("actual_price_per_year_light", form.actual_price_per_year_light);
+        formData.append("final_price_per_year_light", form.final_price_per_year_light);
+        formData.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
+        formData.append("sport_price_type", sportPriceType);
+        formData.append("list", "test");
+
+        if (sportImageFile) formData.append("image", sportImageFile);
+        if (bannerImageFile) formData.append("banner", bannerImageFile);
+        if (webBannerImageFile) formData.append("web_banner", webBannerImageFile);
+
+        addSportMutation.mutate(formData);
     };
+
+    const isLoading = addSportMutation.isPending;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -257,7 +262,7 @@ const AddSport = () => {
                         {/* Price Type Toggle */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
-                                Price Type
+                                Charge Type
                             </label>
                             <div className="flex items-center">
                                 <div
@@ -283,7 +288,7 @@ const AddSport = () => {
                                 </span>
                             </div>
                             <p className="text-xs text-gray-500 mt-1 max-w-[150px]">
-                                {sportPriceType === "GROUP" ? "Price is for the entire group" : "Price is per individual"}
+                                {sportPriceType === "GROUP" ? "Charge is for the entire group" : "Charge is per individual"}
                             </p>
                         </div>
 
@@ -379,7 +384,7 @@ const AddSport = () => {
 
                         {/* Actual Price per day */}
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 text-left">Actual Price per day
+                            <label className="block text-sm font-medium text-gray-700 text-left">Actual Charge per day
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -398,7 +403,7 @@ const AddSport = () => {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 text-left">Final Price per day
+                            <label className="block text-sm font-medium text-gray-700 text-left">Final Charge per day
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -419,7 +424,7 @@ const AddSport = () => {
                         {/* Actual Lighting Price Per Day */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price Per Day (Lighting)</span>
+                                <span>Actual Charge Per Day (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -440,7 +445,7 @@ const AddSport = () => {
                         {/* Final Lighting Price Per Day */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Final Price Per Day (Lighting)</span>
+                                <span>Final Charge Per Day (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -462,7 +467,7 @@ const AddSport = () => {
 
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price Per Month</span>
+                                <span>Actual Charge Per Month</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -483,7 +488,7 @@ const AddSport = () => {
                         {/* final price per month */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Final Price Per Month</span>
+                                <span>Final Charge Per Month</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -504,7 +509,7 @@ const AddSport = () => {
                         {/*price per month with lighting   */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price Per Month (Lighting)</span>
+                                <span>Actual Charge Per Month (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -525,7 +530,7 @@ const AddSport = () => {
                         {/*price per month with lighting   */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Final Price Per Month (Lighting)</span>
+                                <span>Final Charge Per Month (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -546,7 +551,7 @@ const AddSport = () => {
                         {/* price per year */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price Per Year</span>
+                                <span>Actual Charge Per Year</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -567,7 +572,7 @@ const AddSport = () => {
                         {/* final price per year */}
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Final Price Per Year</span>
+                                <span>Final Charge Per Year</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -589,7 +594,7 @@ const AddSport = () => {
 
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Actual Price Per Year (Lighting)</span>
+                                <span>Actual Charge Per Year (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -611,7 +616,7 @@ const AddSport = () => {
 
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-gray-700 flex items-center">
-                                <span>Final Price Per Year (Lighting)</span>
+                                <span>Final Charge Per Year (Lighting)</span>
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
                             <div className="relative">
@@ -676,9 +681,8 @@ const AddSport = () => {
                                         Upload Sport Image
                                     </p>
 
-                                    <p className="text-gray-500 mb-2">PNG, JPG, JPEG up to 5MB</p>
-                                    <p className="text-blue-500 text-xs font-bold italic">
-                                        Recommended Size: Square Image
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Recommended size: 150×150px, JPG or PNG up to 3MB
                                     </p>
 
                                     {/* Hidden File Input */}
@@ -695,7 +699,8 @@ const AddSport = () => {
                                     <button
                                         type="button"
                                         onClick={() => sportInputRef.current.click()}
-                                        className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow hover:bg-blue-700 transition"
+                                        className="mt-4 px-4 py-2 bg-white border border-gray-300
+                text-gray-700 text-sm font-medium rounded-lg shadow hover:bg-gray-100 transition"
                                     >
                                         Select File
                                     </button>
@@ -734,7 +739,7 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Recommended size: 1200×400px, JPG or PNG up to 5MB
+                                        Recommended size: 1200×400px, JPG or PNG up to 3MB
                                     </p>
 
                                     <input
@@ -791,7 +796,7 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Recommended size: 1200×400px, JPG or PNG up to 5MB
+                                        Recommended size: 1200×400px, JPG or PNG up to 3MB
                                     </p>
 
                                     <input

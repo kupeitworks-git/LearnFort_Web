@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiUploadCloud, FiInfo, FiDollarSign, FiHash, FiCheck, FiX, FiMapPin, FiFolderPlus, FiUser, FiUsers } from "react-icons/fi";
 import { BaseUrl } from '../../api/api'
@@ -40,7 +41,7 @@ const EditSport = () => {
   });
 
   const [toast, setToast] = useState({ message: "", type: "" });
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // Managed by mutation
 
   const showToast = (message, type) => {
     setToast({ message, type });
@@ -147,55 +148,12 @@ const EditSport = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const queryClient = useQueryClient();
 
-    try {
-      if (!sportImage) {
-        showToast("Sport Image is required!", "error");
-        setIsLoading(false);
-        return;
-      }
-      if (!bannerImage) {
-        showToast("Banner Image is required!", "error");
-        setIsLoading(false);
-        return;
-      }
-      if (!webBannerImage) {
-        showToast("Web Banner Image is required!", "error");
-        setIsLoading(false);
-        return;
-      }
+  const updateSportMutation = useMutation({
+    mutationFn: async (data) => {
       const token = sessionStorage.getItem("token");
-      if (!token) {
-        showToast("No token found. Please login first.", "error");
-        setIsLoading(false);
-        return;
-      }
-
-      const data = new FormData();
-      data.append("name", formData.name);
-      data.append("ground_name", formData.ground_name);
-      data.append("actual_price_per_day", formData.actual_price_per_day);
-      data.append("final_price_per_day", formData.final_price_per_day);
-      data.append("actual_price_per_day_light", formData.actual_price_per_day_light);
-      data.append("final_price_per_day_light", formData.final_price_per_day_light);
-      data.append("actual_price_per_month", formData.actual_price_per_month);
-      data.append("final_price_per_month", formData.final_price_per_month);
-      data.append("actual_price_per_month_light", formData.actual_price_per_month_light);
-      data.append("final_price_per_month_light", formData.final_price_per_month_light);
-      data.append("actual_price_per_year", formData.actual_price_per_year);
-      data.append("final_price_per_year", formData.final_price_per_year);
-      data.append("actual_price_per_year_light", formData.actual_price_per_year_light);
-      data.append("final_price_per_year_light", formData.final_price_per_year_light);
-      data.append("about", formData.about);
-      data.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
-      data.append("sport_price_type", sportPriceType);
-
-      if (sportImageFile) data.append("image", sportImageFile);
-      if (bannerImageFile) data.append("banner", bannerImageFile);
-      if (webBannerImageFile) data.append("web_banner", webBannerImageFile);
+      if (!token) throw new Error("No token found. Please login first.");
 
       const res = await fetch(`${BaseUrl}sports/update/${sportData._id}`, {
         method: "PUT",
@@ -204,25 +162,78 @@ const EditSport = () => {
       });
 
       const result = await res.json();
-
-      if (res.ok) {
-        showToast("Sport Updated Successfully!", "success");
-        setTimeout(() => navigate("/sports", { replace: true }), 1500);
-      } else {
+      if (!res.ok) {
         if (result.message === "jwt expired") {
           sessionStorage.clear();
           navigate("/login");
-        } else {
-          showToast(result.message || "Failed to update sport", "error");
+          throw new Error("Session expired");
         }
+        throw new Error(result.message || "Failed to update sport");
       }
-    } catch (error) {
-      // console.error(error);
-      showToast("Error updating sport", "error");
-    } finally {
-      setIsLoading(false);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sports_home'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_booking'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_admin'] });
+      showToast("Sport Updated Successfully!", "success");
+      setTimeout(() => navigate("/sports", { replace: true }), 1500);
+    },
+    onError: (error) => {
+      showToast(error.message || "Error updating sport", "error");
     }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!sportImage) {
+      showToast("Sport Image is required!", "error");
+      return;
+    }
+    if (!bannerImage) {
+      showToast("Banner Image is required!", "error");
+      return;
+    }
+    if (!webBannerImage) {
+      showToast("Web Banner Image is required!", "error");
+      return;
+    }
+
+    // Validate token existence early if possible, though mutation also checks
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      showToast("No token found. Please login first.", "error");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("name", formData.name);
+    data.append("ground_name", formData.ground_name);
+    data.append("actual_price_per_day", formData.actual_price_per_day);
+    data.append("final_price_per_day", formData.final_price_per_day);
+    data.append("actual_price_per_day_light", formData.actual_price_per_day_light);
+    data.append("final_price_per_day_light", formData.final_price_per_day_light);
+    data.append("actual_price_per_month", formData.actual_price_per_month);
+    data.append("final_price_per_month", formData.final_price_per_month);
+    data.append("actual_price_per_month_light", formData.actual_price_per_month_light);
+    data.append("final_price_per_month_light", formData.final_price_per_month_light);
+    data.append("actual_price_per_year", formData.actual_price_per_year);
+    data.append("final_price_per_year", formData.final_price_per_year);
+    data.append("actual_price_per_year_light", formData.actual_price_per_year_light);
+    data.append("final_price_per_year_light", formData.final_price_per_year_light);
+    data.append("about", formData.about);
+    data.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
+    data.append("sport_price_type", sportPriceType);
+
+    if (sportImageFile) data.append("image", sportImageFile);
+    if (bannerImageFile) data.append("banner", bannerImageFile);
+    if (webBannerImageFile) data.append("web_banner", webBannerImageFile);
+
+    updateSportMutation.mutate(data);
   };
+
+  const isLoading = updateSportMutation.isPending;
 
   if (!sportData) {
     return <div className="p-10 text-center">No sport data found. Please go back and select a sport to edit.</div>;
@@ -281,7 +292,7 @@ const EditSport = () => {
             {/* Price Type Toggle */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 mb-1 text-center">
-                Price Type
+                Charge Type
               </label>
               <div className="flex items-center">
                 <div
@@ -307,7 +318,7 @@ const EditSport = () => {
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1 max-w-[150px]">
-                {sportPriceType === "GROUP" ? "Price is for the entire group" : "Price is per individual"}
+                {sportPriceType === "GROUP" ? "Charge is for the entire group" : "Charge is per individual"}
               </p>
             </div>
 
@@ -399,7 +410,7 @@ const EditSport = () => {
             {/* Actual Price per day */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price per day</span>
+                <span>Actual Charge per day</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -421,7 +432,7 @@ const EditSport = () => {
             {/* Final Price per day */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price per day</span>
+                <span>Final Charge per day</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -441,7 +452,7 @@ const EditSport = () => {
             {/* Half Ground */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price Per Day (Lighting)</span>
+                <span>Actual Charge Per Day (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -463,7 +474,7 @@ const EditSport = () => {
             {/*Final Lighting Price Per Day*/}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price Per Day (Lighting)</span>
+                <span>Final Charge Per Day (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -486,7 +497,7 @@ const EditSport = () => {
 
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price Per Month</span>
+                <span>Actual Charge Per Month</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -506,7 +517,7 @@ const EditSport = () => {
             {/* Final Price Per Month */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price Per Month</span>
+                <span>Final Charge Per Month</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -526,7 +537,7 @@ const EditSport = () => {
             {/* Actual Price Per Month (Lighting) */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price Per Month (Lighting)</span>
+                <span>Actual Charge Per Month (Lighting)</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -546,7 +557,7 @@ const EditSport = () => {
             {/* Final Price Per Month (Lighting) */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price Per Month (Lighting)</span>
+                <span>Final Charge Per Month (Lighting)</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -566,7 +577,7 @@ const EditSport = () => {
             {/* Actual Price Per Year */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price Per Year</span>
+                <span>Actual Charge Per Year</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -587,7 +598,7 @@ const EditSport = () => {
             {/* Final Price Per Year */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price Per Year</span>
+                <span>Final Charge Per Year</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -609,7 +620,7 @@ const EditSport = () => {
 
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Actual Price Per Year (Lighting)</span>
+                <span>Actual Charge Per Year (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
@@ -631,7 +642,7 @@ const EditSport = () => {
 
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Final Price Per Year (Lighting)</span>
+                <span>Final Charge Per Year (Lighting)</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">

@@ -27,6 +27,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
 
 import './App.css';
+import Footer from './components/Footer';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -68,10 +69,10 @@ function App() {
           </AdminDashboard>
         }>
           <Route index element={<div>Select an option from the dashboard</div>} />
-          
+
           {/* Add other admin routes here as needed */}
         </Route>
-        
+
         <Route path="/about" element={<AboutUs />} />
         <Route path="/games" element={<GamesListPage />} />
         <Route path="/game/:id" element={<GameDetailsPage />} />
@@ -94,6 +95,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/explore-sports" element={<SportsList onBack={() => window.history.back()} />} />
       </Routes>
+      <Footer />
     </>
   );
 }

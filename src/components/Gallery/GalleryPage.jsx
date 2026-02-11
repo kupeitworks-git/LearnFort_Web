@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { BaseUrl } from '../api/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const initialSportsData = {};
 
@@ -18,6 +19,7 @@ const GalleryPage = () => {
   };
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -27,9 +29,9 @@ const GalleryPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [sportsData, setSportsData] = useState(initialSportsData);
-  const [sportsList, setSportsList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // const [sportsList, setSportsList] = useState([]); // Replaced by useQuery
+  // const [loading, setLoading] = useState(true); // Replaced by useQuery
+  // const [error, setError] = useState(null); // Replaced by useQuery
   const [selectedSport, setSelectedSport] = useState(null);
   const [activeTab, setActiveTab] = useState("image"); // Default to 'image' to match tab values
   const [showForm, setShowForm] = useState(false);
@@ -44,11 +46,11 @@ const GalleryPage = () => {
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImages, setPreviewImages] = useState([]);
-  const [sportGalleries, setSportGalleries] = useState([]);
-  const [loadingGallery, setLoadingGallery] = useState(false);
+  // const [sportGalleries, setSportGalleries] = useState([]); // Replaced by useQuery
+  // const [loadingGallery, setLoadingGallery] = useState(false); // Replaced by useQuery
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [selectedEvent, setSelectedEvent] = useState(null); // Track selected event for viewing all images
-  const [groupedGalleries, setGroupedGalleries] = useState([]); // Store grouped events
+  // const [groupedGalleries, setGroupedGalleries] = useState([]); // Replaced by derived state from useQuery
   const [viewingImage, setViewingImage] = useState(null); // Track image being viewed in modal
   const [viewingIndex, setViewingIndex] = useState(0);
   const [viewingItems, setViewingItems] = useState([]);
@@ -109,51 +111,47 @@ const GalleryPage = () => {
   // Check if user is admin or super admin
   const isAdminUser = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN');
 
-  useEffect(() => {
-    const fetchSportsList = async () => {
-      try {
-        setLoading(true);
-        // ('Fetching sports list...');
-        const response = await axios.get(`${BaseUrl}sports/list?limit=100`, {
-          headers: {
-            // 'Authorization': `Bearer ${token}`
-          }
-        });
-
-        // ('API Response:', response.data);
-
-        if (response.data && response.data.sports) {
-          const sports = response.data.sports;
-          // ('Sports data:', sports);
-
-          // Transform the API response to include gallery images and videos
-          const formattedData = {};
-          sports.forEach(sport => {
-            if (sport && sport.name) {
-              formattedData[sport.name] = {
-                images: sport.gallery_images || [sport.image].filter(Boolean),
-                videos: sport.gallery_videos || [],
-                ...sport
-              };
-            }
-          });
-
-          // ('Formatted data:', formattedData);
-          setSportsData(formattedData);
-          setSportsList(sports);
-        } else {
-          // console.error('Unexpected API response format:', response.data);
-          setError('Unexpected data format received from server');
+  // Fetch sports list using TanStack Query
+  const { data: sportsListData = [], isLoading: loading, error: sportsListError } = useQuery({
+    queryKey: ['sports_list'],
+    queryFn: async () => {
+      const response = await axios.get(`${BaseUrl}sports/list?limit=10`, {
+        headers: {
+          // 'Authorization': `Bearer ${token}` 
         }
-      } catch (err) {
-        // console.error('Error fetching sports list:', err);
-        setError('Failed to load sports data. Please try again later.');
-      } finally {
-        setLoading(false);
+      });
+      if (response.data && response.data.sports) {
+        return Array.isArray(response.data.sports) ? response.data.sports : [];
       }
-    };
-    fetchSportsList();
-  }, []);
+      return [];
+    }
+  });
+
+  // Effect to process sports data into expected format for the component
+  useEffect(() => {
+    if (Array.isArray(sportsListData)) {
+      const formattedData = {};
+      sportsListData.forEach(sport => {
+        if (sport && sport.name) {
+          formattedData[sport.name] = {
+            images: sport.gallery_images || [sport.image].filter(Boolean),
+            videos: sport.gallery_videos || [],
+            ...sport
+          };
+        }
+      });
+      setSportsData(formattedData);
+    }
+  }, [sportsListData]);
+
+  // Handle errors from query
+  useEffect(() => {
+    if (sportsListError) {
+      showToast('Failed to load sports data. Please try again later.', 'error');
+    }
+  }, [sportsListError]);
+
+  const sportsList = Array.isArray(sportsListData) ? sportsListData : []; // usage of alias to keep variable name consistent
 
   const handleBack = () => {
     if (selectedSport) setSelectedSport(null);
@@ -247,9 +245,11 @@ const GalleryPage = () => {
         showToast("Item deleted successfully!", "success");
         setShowDeleteModal(false);
         // Refresh gallery data
+        // Refresh gallery data
         if (deleteSportId) {
-          await fetchSportGallery(deleteSportId);
-          await refreshSportsData();
+          queryClient.invalidateQueries(['gallery', deleteSportId]);
+          // await fetchSportGallery(deleteSportId); // replaced by invalidation
+          queryClient.invalidateQueries(['sports_list']);
         }
 
         setItemToDelete(null);
@@ -288,9 +288,11 @@ const GalleryPage = () => {
         setShowDeleteModal(false);
 
         // Refresh UI
+        // Refresh UI
         if (selectedSportId) {
-          await fetchSportGallery(selectedSportId);
-          await refreshSportsData();
+          queryClient.invalidateQueries(['gallery', selectedSportId]);
+          // await fetchSportGallery(selectedSportId);
+          queryClient.invalidateQueries(['sports_list']);
         }
 
         setItemToDelete(null);
@@ -340,8 +342,10 @@ const GalleryPage = () => {
         // ✅ Close modal after success
         setShowDeleteModal(false);
         // Refresh UI
-        await fetchSportGallery(deleteSportId);
-        await refreshSportsData();
+        queryClient.invalidateQueries(['gallery', deleteSportId]);
+        queryClient.invalidateQueries(['sports_list']);
+        // await fetchSportGallery(deleteSportId);
+        // await refreshSportsData();
 
 
         setItemToDelete(null);
@@ -358,93 +362,72 @@ const GalleryPage = () => {
   };
 
 
-  const refreshSportsData = async () => {
-    if (!token) return;
+  // refreshSportsData removed as queries are invalidated
 
-    try {
-      const response = await axios.get(`${BaseUrl}sports/list?limit=100`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
 
-      if (response.data?.sports) {
-        const formattedData = {};
-        response.data.sports.forEach(sport => {
-          if (sport?.name) {
-            formattedData[sport.name] = {
-              images: sport.gallery_images || [],
-              videos: sport.gallery_videos || [],
-              ...sport
-            };
-          }
+  // Fetch Sport Gallery using useQuery
+  // Note: We use useQuery properly by passing selectedSportId via queryKey.
+  // The query stays 'enabled' only when selectedSportId is present.
+  const {
+    data: galleryData = { allItems: [], grouped: [] },
+    isLoading: loadingGallery
+  } = useQuery({
+    queryKey: ['gallery', selectedSportId],
+    queryFn: async () => {
+      if (!selectedSportId) return { allItems: [], grouped: [] };
+
+      try {
+        const response = await axios.get(`${BaseUrl}gallery/list/${selectedSportId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        setSportsData(formattedData);
-        setSportsList(response.data.sports);
-      }
-    } catch (error) {
-      // console.error('Error refreshing sports data:', error);
-    }
-  };
 
-  const fetchSportGallery = async (sportId) => {
-    if (!sportId) return;
+        if (response.data && response.data.gallery) {
+          let allItems = [];
+          let grouped = [];
 
-    try {
-      if (sportGalleries.length === 0) {
-        setLoadingGallery(true);
-      }
-      const response = await axios.get(`${BaseUrl}gallery/list/${sportId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+          // Iterate through the grouped gallery response
+          if (Array.isArray(response.data.gallery)) {
+            response.data.gallery.forEach(group => {
+              if (group.items && Array.isArray(group.items)) {
+                const groupItems = group.items.map(item => ({
+                  ...item,
+                  event_name: group.event_name,
+                  conducted_time: group.conducted_time,
+                  parent_gallery_title: group.gallery_title,
+                  thumbnail: item.type === 'IMAGE' ? item.url : getYoutubeThumbnail(item.url)
+                }));
+                allItems = [...allItems, ...groupItems];
 
-      if (response.data && response.data.gallery) {
-        let allItems = [];
-        let grouped = [];
-
-        // Iterate through the grouped gallery response
-        response.data.gallery.forEach(group => {
-          if (group.items && Array.isArray(group.items)) {
-            const groupItems = group.items.map(item => ({
-              ...item,
-              event_name: group.event_name,
-              conducted_time: group.conducted_time,
-              parent_gallery_title: group.gallery_title,
-              thumbnail: item.type === 'IMAGE' ? item.url : getYoutubeThumbnail(item.url)
-            }));
-            allItems = [...allItems, ...groupItems];
-
-            // Store grouped structure
-            grouped.push({
-              event_name: group.event_name,
-              gallery_title: group.gallery_title,
-              conducted_time: group.conducted_time,
-              items: groupItems
+                // Store grouped structure
+                grouped.push({
+                  event_name: group.event_name,
+                  gallery_title: group.gallery_title,
+                  conducted_time: group.conducted_time,
+                  items: groupItems
+                });
+              }
             });
           }
-        });
-
-        // ("Flattened gallery items:", allItems);
-        // ("Grouped gallery events:", grouped);
-        setSportGalleries(allItems);
-        setGroupedGalleries(grouped);
-
-      } else {
-        setSportGalleries([]);
-        setGroupedGalleries([]);
+          return { allItems, grouped };
+        }
+        return { allItems: [], grouped: [] };
+      } catch (err) {
+        // throw err; // Let react-query handle error state if needed
+        return { allItems: [], grouped: [] };
       }
-    } catch (error) {
-      // console.error('Error fetching sport gallery:', error);
-      showToast('Failed to load gallery. Please try again.', 'error');
-    } finally {
-      setLoadingGallery(false);
-    }
-  };
+    },
+    enabled: !!selectedSportId
+  });
+
+  const sportGalleries = galleryData.allItems;
+  const groupedGalleries = galleryData.grouped;
 
   const handleSportClick = (sportName, sportId) => {
     setSelectedSport(sportName);
     setSelectedSportId(sportId);
     setActiveTab('image'); // Reset to Images tab when a new sport is selected
     setSelectedEvent(null); // Reset selected event
-    fetchSportGallery(sportId);
+    // fetchSportGallery(sportId); // Handled by useQuery dependency
     // Scroll to top when changing sports
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -524,8 +507,10 @@ const GalleryPage = () => {
       showToast("Gallery added successfully!", 'success');
 
       handleFormReset();
-      await fetchSportGallery(selectedSportId);
-      await refreshSportsData();
+      queryClient.invalidateQueries(['gallery', selectedSportId]);
+      queryClient.invalidateQueries(['sports_list']);
+      // await fetchSportGallery(selectedSportId);
+      // await refreshSportsData();
     } catch (error) {
       // console.error('Error uploading gallery items:', error);
       const errorMessage = "Failed to upload gallery items. Please try again.";
@@ -536,16 +521,6 @@ const GalleryPage = () => {
       setIsSubmitting(false);
     }
   };
-
-
-
-  if (error) {
-    return (
-      <div className="p-6 text-red-500">
-        {error}
-      </div>
-    );
-  }
 
   // Helper function to get YouTube thumbnail from URL
   const getYoutubeThumbnail = (url) => {
@@ -961,7 +936,6 @@ const GalleryPage = () => {
                     setSelectedEvent(null);
                   } else {
                     setSelectedSport(null);
-                    setSportGalleries([]);
                   }
                 }}
                 className="absolute left-0 flex items-center justify-center w-10 h-10 text-blue-700 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 hover:border-blue-400 hover:shadow transition-all duration-200"
@@ -1225,8 +1199,8 @@ const GalleryPage = () => {
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full py-3 rounded-lg font-medium flex items-center justify-center ${isSubmitting
-                  ? 'bg-green-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
+                  ? 'bg-blue-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
                   } text-white transition-colors`}
               >
                 {isSubmitting ? (
@@ -1236,7 +1210,9 @@ const GalleryPage = () => {
                   </>
                 ) : (
                   <>
-                    <FaCheckCircle className="mr-2" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
                     Save Gallery
                   </>
                 )}

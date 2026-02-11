@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { FiArrowLeft, FiAlertTriangle, FiCheck, FiInfo, FiHome } from "react-icons/fi";
+import { FiArrowLeft, FiAlertTriangle, FiCheck, FiInfo, FiHome, FiMoreVertical, FiEdit2, FiTrash2, FiUserX, FiCheckCircle, FiDollarSign } from "react-icons/fi";
 import { BaseUrl } from '../../api/api'
 import Pagination from "../../common/Pagination";
 
@@ -45,10 +47,11 @@ const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
 const ManageSports = () => {
   const navigate = useNavigate();
 
-  const [sportsData, setSportsData] = useState([]);
+  const queryClient = useQueryClient();
+  // const [sportsData, setSportsData] = useState([]); // Replaced by useQuery data
   const [selectedSport, setSelectedSport] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [loading, setLoading] = useState(true); // 🔥 LOADING STATE
+  // const [loading, setLoading] = useState(true); // Replaced by useQuery isLoading
   const [toast, setToast] = useState({ message: "", type: "" });
 
   const showToast = (message, type) => {
@@ -56,64 +59,126 @@ const ManageSports = () => {
     setTimeout(() => setToast({ message: "", type: "" }), 3000);
   };
 
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalDocs: 0
-  });
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔥 Fetch sports list from API
-  const fetchSports = async (page = 1) => {
-    try {
-      setLoading(true);
+  // Action Menu State
+  const [showActions, setShowActions] = useState(false);
+  const [actionPosition, setActionPosition] = useState({ x: 0, y: 0 });
+  const [currentAction, setCurrentAction] = useState(null);
+
+  // Fetch Sports Query
+  const { data: queryData = { sports: [], pagination: {} }, isLoading: loading } = useQuery({
+    queryKey: ['sports_admin', currentPage],
+    queryFn: async () => {
       const token = sessionStorage.getItem("token");
       if (!token) {
-        // alert("Login session expired. Please login again.");
-        sessionStorage.clear();
         navigate("/login");
-        return;
+        throw new Error("No token found");
       }
 
-      const limit = 100;
-      const res = await fetch(`${BaseUrl}sports/list?page=${page}&limit=${limit}`, {
+      const limit = 100; // Keeping limit 100 as per original code
+      const res = await fetch(`${BaseUrl}sports/list?page=${currentPage}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
 
-      if (res.ok) {
-        // Sort sports by ID descending to show most recent first
-        const sortedSports = [...data.sports].sort((a, b) => (b._id || '').localeCompare(a._id || ''));
-        setSportsData(sortedSports);
-        if (data.pagination) {
-          setPagination({
-            currentPage: data.pagination.currentPage,
-            totalPages: data.pagination.totalPages,
-            totalDocs: data.pagination.totalDocs
-          });
-        }
-      } else {
+      if (!res.ok) {
         if (data.message === "jwt expired") {
           sessionStorage.clear();
           navigate("/login");
-        } else {
-          alert("Failed to fetch sports list");
+          throw new Error("Session expired");
         }
+        throw new Error(data.message || "Failed to fetch sports list");
       }
-    } catch (err) {
-      (err);
-      alert("Error fetching sports");
-    } finally {
-      setLoading(false); // 🟢 Stop loading
-    }
-  };
 
-  useEffect(() => {
-    fetchSports(pagination.currentPage);
-  }, [pagination.currentPage]);
+      const sortedSports = [...(data.sports || [])].sort((a, b) => (b._id || '').localeCompare(a._id || ''));
+
+      return {
+        sports: sortedSports,
+        pagination: data.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalDocs: sortedSports.length
+        }
+      };
+    },
+    placeholderData: keepPreviousData
+  });
+
+  const sportsData = queryData.sports;
+  const pagination = queryData.pagination;
+
+  // Delete Sport Mutation
+  const deleteSportMutation = useMutation({
+    mutationFn: async (sportId) => {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(
+        `${BaseUrl}sports/delete/${sportId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.message === "jwt expired") {
+          sessionStorage.clear();
+          navigate("/login");
+          throw new Error("Session expired");
+        }
+        throw new Error(data.message || "Failed to delete sport");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sports_home'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_booking'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_admin'] });
+      setShowDeleteDialog(false);
+      setSelectedSport(null);
+      showToast("Sport deleted successfully!", "success");
+    },
+    onError: (err) => {
+      showToast(err.message || "Error deleting sport", "error");
+    }
+  });
+
+  // Update Sport Mutation (for status and price type changes)
+  const updateSportMutation = useMutation({
+    mutationFn: async ({ sportId, payload }) => {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`${BaseUrl}sports/update/${sportId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.message === "jwt expired") {
+          sessionStorage.clear();
+          navigate("/login");
+          throw new Error("Session expired");
+        }
+        throw new Error(data.message || "Failed to update sport");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sports_home'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_booking'] });
+      queryClient.invalidateQueries({ queryKey: ['sports_admin'] });
+      showToast("Sport updated successfully!", "success");
+    },
+    onError: (err) => {
+      showToast(err.message || "Error updating sport", "error");
+    }
+  });
 
   const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
+    setCurrentPage(newPage);
   };
 
   const handleDeleteClick = (sport) => {
@@ -121,36 +186,70 @@ const ManageSports = () => {
     setShowDeleteDialog(true);
   };
 
-  const handleConfirmDelete = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-
-      const res = await fetch(
-        `${BaseUrl}sports/delete/${selectedSport._id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.ok) {
-        setSportsData((prev) => prev.filter((s) => s._id !== selectedSport._id));
-        setShowDeleteDialog(false);
-        setSelectedSport(null);
-        showToast("Sport deleted successfully!", "success");
-      } else {
-        const data = await res.json();
-        if (data.message === "jwt expired") {
-          sessionStorage.clear();
-          navigate("/login");
-        } else {
-          showToast("Failed to delete sport", "error");
-        }
-      }
-    } catch (err) {
-      showToast("Error deleting sport", "error");
+  const handleConfirmDelete = () => {
+    if (selectedSport && selectedSport._id) {
+      deleteSportMutation.mutate(selectedSport._id);
     }
   };
+
+  // Action Menu Helpers
+  const handleActionClick = (sport, e) => {
+    e.stopPropagation();
+    setSelectedSport(sport);
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Adjust position to stay within viewport
+    const menuWidth = 192; // w-48 = 12rem = 192px
+    let x = rect.right - menuWidth;
+    let y = rect.bottom + 5;
+
+    // Check if it would go off-screen vertically
+    if (y + 150 > window.innerHeight) {
+      y = rect.top - 150;
+    }
+
+    setActionPosition({ x, y });
+    setShowActions(true);
+  };
+
+  const getSportActions = (status) => {
+    const actions = [
+      { label: 'Edit', action: 'edit', icon: FiEdit2 },
+    ];
+
+    if (status === 'AVAILABLE') {
+      actions.push({ label: 'Deactivate', action: 'deactivate', icon: FiUserX, className: 'text-orange-600' });
+    } else {
+      actions.push({ label: 'Activate', action: 'activate', icon: FiCheckCircle, className: 'text-green-600' });
+    }
+
+    actions.push({ label: `Switch to ${selectedSport.sport_price_type === 'GROUP' ? 'Individual' : 'Group'}`, action: 'priceType', icon: FiDollarSign, className: 'text-purple-600' });
+    actions.push({ label: 'Delete', action: 'delete', icon: FiTrash2, className: 'text-red-600' });
+
+    return actions;
+  };
+
+  const handleAction = (action) => {
+    setCurrentAction(action);
+    setShowActions(false);
+
+    if (action === 'edit') {
+      navigate("/edit-sport", { state: { sport: selectedSport } });
+    } else if (action === 'delete') {
+      setShowDeleteDialog(true);
+    } else if (action === 'activate' || action === 'deactivate') {
+      const newStatus = action === 'activate' ? 'AVAILABLE' : 'NOT_AVAILABLE';
+      updateSportMutation.mutate({ sportId: selectedSport._id, payload: { status: newStatus } });
+    } else if (action === 'priceType') {
+      const newPriceType = selectedSport.sport_price_type === 'GROUP' ? 'INDIVIDUAL' : 'GROUP';
+      updateSportMutation.mutate({ sportId: selectedSport._id, payload: { sport_price_type: newPriceType } });
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setShowActions(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-emerald-50 to-white flex flex-col">
@@ -228,10 +327,10 @@ const ManageSports = () => {
                     Ground Name
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Actual Price (₹)
+                    Actual Charge (₹)
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Final Price (₹)
+                    Final Charge (₹)
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
                     Status
@@ -289,23 +388,16 @@ const ManageSports = () => {
                             : "bg-red-100 text-red-800"
                           }`}
                       >
-                        {sport.status}
+                        {sport.status === "NOT_AVAILABLE" ? "INACTIVE" : sport.status}
                       </span>
                     </td>
 
                     <td className="py-4 px-4 text-right text-sm">
                       <button
-                        onClick={() => navigate("/edit-sport", { state: { sport } })}
-                        className="text-blue-600 hover:text-blue-900 mr-3 transition-colors"
+                        onClick={(e) => handleActionClick(sport, e)}
+                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
                       >
-                        <FaEdit />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteClick(sport)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                      >
-                        <FaTrash />
+                        <FiMoreVertical className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -339,6 +431,34 @@ const ManageSports = () => {
         title="Delete Sport"
         message={`Are you sure you want to delete "${selectedSport?.name}"? This action cannot be undone.`}
       />
+
+      {/* Action Menu Dropdown */}
+      <AnimatePresence>
+        {showActions && selectedSport && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            className="fixed bg-white rounded-xl shadow-xl py-2 z-50 w-48 border border-gray-100"
+            style={{
+              top: `${actionPosition.y}px`,
+              left: `${actionPosition.x}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {getSportActions(selectedSport.status).map((item) => (
+              <button
+                key={item.action}
+                onClick={() => handleAction(item.action)}
+                className={`flex items-center w-full px-4 py-2.5 text-sm ${item.className || 'text-gray-700'} hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl`}
+              >
+                <item.icon className="mr-3 w-4 h-4" />
+                {item.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

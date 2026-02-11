@@ -56,8 +56,9 @@ const TermsAndConditions = () => {
             <ul className="list-disc pl-5 space-y-1 text-gray-700">
               <li>All bookings have to be made in advance through the authorized online platform, app, or at the venue.</li>
               <li>Full payment has to be completed to confirm a slot.</li>
-              <li>Prices may vary based on time, day, sport, or facility type.</li>
-              <li>The platform reserves the right to modify prices without prior notice.</li>
+              <li>Chargess may vary based on time, day, sport, or facility type.</li>
+              <li>The platform reserves the right to modify charges without prior notice.</li>
+              <li>In case of any technical issue, system error, or double booking of the same slot, the facility management reserves the right to take the final decision, including rescheduling or issuing a refund, as deemed appropriate.</li>
             </ul>
           </section>
 

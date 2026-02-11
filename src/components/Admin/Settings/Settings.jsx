@@ -3,13 +3,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiLock, FiArrowRight, FiArrowLeft, FiHome } from 'react-icons/fi';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 const Settings = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleLogout = () => {
     try {
       localStorage.removeItem('lf_user');
       sessionStorage.removeItem('token');
+      queryClient.clear(); // Clear all react-query cache
     } catch (err) {
       // ignore storage errors
     }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from "framer-motion";
 import { FiArrowLeft, FiClock, FiX, FiLoader, FiAlertCircle, FiHome, FiPhone, FiMail } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -11,12 +12,12 @@ const ContactUsPage = () => {
   const [reply, setReply] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [showMarkReadConfirm, setShowMarkReadConfirm] = useState(false);
-  const [issues, setIssues] = useState({ pending: [], completed: [], unread: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  // const [issues, setIssues] = useState({ pending: [], completed: [], unread: [] });
+  // const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [issueToMark, setIssueToMark] = useState(null);
-  const [isSendingReply, setIsSendingReply] = useState(false);
+  // const [isSendingReply, setIsSendingReply] = useState(false);
 
   // Get user data from localStorage
   useEffect(() => {
@@ -31,14 +32,12 @@ const ContactUsPage = () => {
     }
   }, []);
 
-  // Fetch enquiries based on user role
-  const fetchEnquiries = async () => {
-    if (!user) return;
+  const queryClient = useQueryClient();
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  // Fetch Enquiries Query
+  const { data: allEnquiries = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['enquiries', user?._id],
+    queryFn: async () => {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
 
@@ -61,80 +60,50 @@ const ContactUsPage = () => {
       }
 
       const data = await response.json();
-      const allEnquiries = data.enquiries || [];
+      return data.enquiries || [];
+    },
+    enabled: !!user, // Only fetch when user is loaded
+  });
 
-      const formattedData = {
-        pending: allEnquiries.filter(item => item.reply_status === 'PENDING'),
-        completed: allEnquiries.filter(item => item.reply_status === 'REPLIED'),
-        unread: allEnquiries.filter(item => item.admin_read_status === 'UNREAD')
-      };
-
-      setIssues(formattedData);
-    } catch (err) {
-      // console.error('Error fetching enquiries:', err);
-      setError(err.message || 'Failed to load enquiries');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEnquiries();
-  }, [user, activeTab]);
-
-  const getIssues = () => issues[activeTab] || [];
-  const getInitial = (name) => (name ? name.charAt(0).toUpperCase() : "?");
-
-  const handleSendReply = async () => {
-    if (reply.trim() === "" || isSendingReply) return;
-
-
-    try {
-      setIsSendingReply(true);
+  // Reply Mutation
+  const replyMutation = useMutation({
+    mutationFn: async ({ issueId, replyText }) => {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(`${BaseUrl}contact/reply/${selectedIssue._id}`, {
+      const response = await fetch(`${BaseUrl}contact/reply/${issueId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ reply })
+        body: JSON.stringify({ reply: replyText })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send reply');
-      }
-
-      // Show success message
+      if (!response.ok) throw new Error('Failed to send reply');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['enquiries']);
       setShowSuccess(true);
-
-      // Refresh the issues list
-      await fetchEnquiries();
-
-      // Close the popup after 2 seconds
       setTimeout(() => {
         setShowSuccess(false);
-        setSelectedIssue(null); // This will close the popup
+        setSelectedIssue(null);
         setReply("");
       }, 500);
-
-    } catch (err) {
-      // console.error('Error sending reply:', err);
-      setError(err.message || 'Failed to send reply');
-    } finally {
-      setIsSendingReply(false); // Make sure to re-enable the button in case of error
+    },
+    onError: (err) => {
+      setError(err.message);
     }
-  };
-  const handleMarkAsRead = async () => {
-    if (!issueToMark) return;
+  });
 
-    try {
+  // Mark as Read Mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (issueId) => {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(`${BaseUrl}contact/mark-admin-read/${issueToMark._id}`, {
+      const response = await fetch(`${BaseUrl}contact/mark-admin-read/${issueId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,18 +111,41 @@ const ContactUsPage = () => {
         }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to mark as read');
-      }
-
-      // Refresh the issues list
-      fetchEnquiries();
+      if (!response.ok) throw new Error('Failed to mark as read');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['enquiries']);
       setShowMarkReadConfirm(false);
       setIssueToMark(null);
-    } catch (err) {
-      // console.error('Error marking as read:', err);
-      setError(err.message || 'Failed to mark as read');
+    },
+    onError: (err) => {
+      setError(err.message);
     }
+  });
+
+  // Derived state for issues
+  const issues = useMemo(() => {
+    return {
+      pending: allEnquiries.filter(item => item.reply_status === 'PENDING'),
+      completed: allEnquiries.filter(item => item.reply_status === 'REPLIED'),
+      unread: allEnquiries.filter(item => item.admin_read_status === 'UNREAD')
+    };
+  }, [allEnquiries]);
+
+  const getIssues = () => issues[activeTab] || [];
+  const getInitial = (name) => (name ? name.charAt(0).toUpperCase() : "?");
+
+  const handleSendReply = () => {
+    if (reply.trim() === "") return;
+    replyMutation.mutate({ issueId: selectedIssue._id, replyText: reply });
+  };
+
+  const isSendingReply = replyMutation.isPending;
+
+  const handleMarkAsRead = () => {
+    if (!issueToMark) return;
+    markAsReadMutation.mutate(issueToMark._id);
   };
 
 

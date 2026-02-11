@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiMapPin, FiChevronDown, FiSun, FiMoon, FiHome } from "react-icons/fi";
 import { FaWifi, FaParking, FaTshirt, FaUtensils, FaDumbbell, FaChild } from "react-icons/fa";
@@ -20,41 +21,29 @@ const VenueDetails = () => {
     const navigate = useNavigate();
 
     // State declarations at the top level
-    const [sportData, setSportData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    // State declarations
     const [showPriceDropdown, setShowPriceDropdown] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState('hour');
 
-    // Remove the duplicate priceType state since we're using selectedPeriod
-
-    // Fetch sport details from API
-    useEffect(() => {
-        const fetchSportDetails = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch(`${BaseUrl}sports/list?limit=100`);
-                const data = await response.json();
-                const sportsList = Array.isArray(data) ? data : (data.sports || data.data || []);
-
-                // Find the sport matching the URL param
-                const match = sportsList.find(s => s.name.toLowerCase() === sportType.toLowerCase());
-
-                if (match) {
-                    setSportData(match);
-                } else {
-                    setError("Sport not found");
-                }
-            } catch (error) {
-                // console.error("Error fetching sport details:", error);
-                setError("Failed to load sport details");
-            } finally {
-                setLoading(false);
+    // Fetch sports list using TanStack Query
+    const { data: sportsList = [], isLoading: loading, isError } = useQuery({
+        queryKey: ['sports_list'],
+        queryFn: async () => {
+            const response = await fetch(`${BaseUrl}sports/list?limit=100`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch sports list');
             }
-        };
+            const data = await response.json();
+            const sports = Array.isArray(data) ? data : (data.sports || data.data || []);
+            return Array.isArray(sports) ? sports : [];
+        }
+    });
 
-        fetchSportDetails();
-    }, [sportType]);
+    // Derive sportData from the fetched list
+    const sportData = Array.isArray(sportsList) ? sportsList.find(s => s.name.toLowerCase() === sportType?.toLowerCase()) : null;
+
+    // Determine if we have an error (either fetch error or sport not found after loading)
+    const error = isError ? "Failed to load sport details" : (!loading && !sportData ? "Sport not found" : null);
 
     // Get facilities for this sport (hardcoded)
     const facilities = facilitiesData[sportType] || facilitiesData.default;
@@ -260,7 +249,7 @@ const VenueDetails = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 mb-6">
-                                    <span className="text-slate-700 font-bold text-base whitespace-nowrap">Price per :</span>
+                                    <span className="text-slate-700 font-bold text-base whitespace-nowrap">Charge per :</span>
                                     <div className="relative flex-1">
                                         {/* Border Label */}
                                         <div className="absolute -top-2 left-4 px-2 bg-white text-[10px] text-gray-400 font-bold uppercase tracking-wider z-10 transition-colors group-hover:text-blue-500">
@@ -308,11 +297,11 @@ const VenueDetails = () => {
                                 <div className="space-y-4 mt-6">
                                     {/* Day Time Price */}
                                     <div className="p-4 bg-white rounded-lg border border-gray-200">
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for day time: (6AM - 6PM)</h4>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Charge for day time: (6AM - 6PM)</h4>
                                         <div className="space-y-3">
 
                                             <div className="flex justify-between items-center">
-                                                <p>Price:  <span className="text-lg font-bold text-green-600">
+                                                <p>Charge:  <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(dayPrice)}
                                                 </span></p>
 
@@ -322,11 +311,11 @@ const VenueDetails = () => {
 
                                     {/* Night Time Price */}
                                     <div className="p-4 bg-white rounded-lg border border-gray-200">
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Price for night time: (6PM - 6AM)</h4>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3 text-left">Charge for night time: (6PM - 6AM)</h4>
                                         <div className="space-y-3">
 
                                             <div className="flex justify-between items-center">
-                                                <p>Price:   <span className="text-lg font-bold text-green-600">
+                                                <p>Charge:   <span className="text-lg font-bold text-green-600">
                                                     ₹{formatPrice(nightPrice)}
                                                 </span></p>
 

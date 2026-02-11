@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FiCalendar, FiClock, FiUsers, FiChevronLeft, FiLoader, FiFileText, FiX } from 'react-icons/fi';
 import DatePicker from 'react-datepicker';
@@ -30,85 +31,110 @@ const BookingSlot = () => {
     description: '',
   });
   const [sportData, setSportData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  // Replaced manual loading state with query loading state
+  // const [loading, setLoading] = useState(true);
+  // Replaced manual availableSlots state with query data
+  // const [availableSlots, setAvailableSlots] = useState([]);
+  // const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingSummary, setBookingSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const location = useLocation();
 
-  const fetchAvailableSlots = async (date) => {
-    if (!sportData?.id) {
-      return;
+  // Fetch Sports List to find current sport
+  const { isLoading: loadingSport, data: sportsList } = useQuery({
+    queryKey: ['sports_list'],
+    queryFn: async () => {
+      const response = await fetch(`${BaseUrl}sports/list?limit=100`);
+      if (!response.ok) throw new Error('Failed to fetch sports list');
+      const data = await response.json();
+      return data.sports || [];
     }
+  });
 
-    try {
-      setLoadingSlots(true);
+  // Calculate sport details when sportsList or sportType changes
+  useEffect(() => {
+    if (!sportsList) return;
 
-      // Prepare params according to the backend API format
+    const formattedSportType = sportType.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const selectedSport = sportsList.find(sport => {
+      const sportNameUrl = sport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      return sportNameUrl === formattedSportType ||
+        sport._id === sportType ||
+        sport.name.toLowerCase() === sportType.toLowerCase();
+    });
+
+    if (selectedSport) {
+      setSportData({
+        id: selectedSport._id,
+        name: selectedSport.name,
+        price: selectedSport.final_price_per_day || 200,
+        description: selectedSport.about || `Book your ${selectedSport.name} slot now!`,
+        image: selectedSport.imageUrl || (selectedSport.image ? `https://app.learnfortsports.com/${selectedSport.image}` : '')
+      });
+      // Update URL to use the sport name if it's not already
+      const sportNameUrl = selectedSport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (sportNameUrl !== sportType) {
+        window.history.replaceState(null, '', `#/book/${sportNameUrl}`);
+      }
+    } else {
+      // Fallback
+      const sportName = sportType
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      setSportData({
+        id: sportType,
+        name: sportName,
+        price: 200,
+        description: `Book your ${sportName} slot now!`
+      });
+    }
+  }, [sportsList, sportType]);
+
+
+  // Fetch Available Slots Query
+  const {
+    data: availableSlots = [],
+    isLoading: loadingSlots
+  } = useQuery({
+    queryKey: ['availableSlots', sportData?.id, bookingType, selectedDate],
+    queryFn: async () => {
       const params = {
         sports_id: sportData.id.toString(),
       };
 
-      if (bookingType === 'month' && date) {
-        // For month view - ensure we have a valid date
-        const dateObj = new Date(date);
-        if (isNaN(dateObj.getTime())) {
-          throw new Error('Invalid date format');
-        }
+      if (bookingType === 'month' && selectedDate) {
+        const dateObj = new Date(selectedDate);
+        if (isNaN(dateObj.getTime())) throw new Error('Invalid date format');
 
-        // Get month as 3-letter abbreviation (JAN, FEB, etc.)
         const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-        const month = monthNames[dateObj.getMonth()];
-        const year = dateObj.getFullYear();
-
         params.slot_type = 'MONTH';
-        params.type_month = month;
-        params.type_year = year;
-
-      } else if (date) {
-        // For day view
-        params.date = date;
+        params.type_month = monthNames[dateObj.getMonth()];
+        params.type_year = dateObj.getFullYear();
+      } else if (selectedDate) {
+        params.date = selectedDate;
       } else {
-        setAvailableSlots([]);
-        return;
+        return [];
       }
 
-      // Convert params to URLSearchParams
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value);
-        }
+        if (value !== undefined && value !== null) queryParams.append(key, value);
       });
 
-      const response = await fetch(`${BaseUrl}booking/available-slots?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
+      const response = await fetch(`${BaseUrl}booking/available-slots?${queryParams}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to fetch available slots');
       }
 
       const responseData = await response.json();
-      // Process the slots from the API response
       const slots = responseData?.slots || [];
 
-      if (slots.length === 0) {
-        setAvailableSlots([]);
-        return;
-      }
-
-      // Process the slots to match our expected format
-      const processedSlots = slots.map(slot => {
+      return slots.map(slot => {
         let slotDate = slot.date;
         if (bookingType === 'month' && selectedDate) {
-          // For month view, ensure we're using the correct date format
           const dateObj = new Date(selectedDate);
           const [hours, minutes] = slot.start_time.split(':');
           dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -128,94 +154,10 @@ const BookingSlot = () => {
           status: slot.status || 'AVAILABLE'
         };
       });
-
-      setAvailableSlots(processedSlots);
-
-    } catch (error) {
-      // console.error('Error fetching available slots:', error);
-      toast.error(`Error: ${error.message || 'Failed to load available slots. Please try again.'}`);
-      setAvailableSlots([]);
-    } finally {
-      setLoadingSlots(false);
-    }
-  };
-
-  // Fetch sport details on component mount
-  useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    if (!token) {
-      window.location.href = "/";
-      return;
-    }
-
-    const fetchSportDetails = async () => {
-      try {
-        setLoading(true);
-
-        // First, try to fetch all sports and find by name
-        const response = await fetch(`${BaseUrl}sports/list?limit=100`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch sports list');
-        }
-
-        const data = await response.json();
-        // Convert sportType to a URL-friendly format for comparison
-        const formattedSportType = sportType.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-        // Try to find by name first (case insensitive and URL-friendly)
-        const selectedSport = data.sports?.find(sport => {
-          // Create URL-friendly name for comparison
-          const sportNameUrl = sport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          return sportNameUrl === formattedSportType ||
-            sport._id === sportType ||
-            sport.name.toLowerCase() === sportType.toLowerCase();
-        });
-
-        if (selectedSport) {
-          setSportData({
-            id: selectedSport._id,
-            name: selectedSport.name,
-            price: selectedSport.final_price_per_day || 200,
-            description: selectedSport.about || `Book your ${selectedSport.name} slot now!`,
-            image: selectedSport.imageUrl || (selectedSport.image ? `https://app.learnfortsports.com/${selectedSport.image}` : '')
-          });
-
-          // Update URL to use the sport name if it's not already
-          const sportNameUrl = selectedSport.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          if (sportNameUrl !== sportType) {
-            window.history.replaceState(null, '', `/book/${sportNameUrl}`);
-          }
-        } else {
-          // Fallback if sport not found
-          const sportName = sportType
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-
-          setSportData({
-            id: sportType,
-            name: sportName,
-            price: 200,
-            description: `Book your ${sportName} slot now!`
-          });
-        }
-      } catch (error) {
-        // console.error('Error fetching sport details:', error);
-        toast.error('Failed to load sport details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSportDetails();
-  }, [sportType]);
-
-  // Fetch available slots when date or booking type changes
-  useEffect(() => {
-    if (selectedDate) {
-      fetchAvailableSlots(selectedDate);
-    }
-  }, [selectedDate, bookingType]);
+    },
+    enabled: !!sportData?.id && !!selectedDate,
+    initialData: []
+  });
 
   const sportName = sportData?.name || sportType
     .split("-")
@@ -309,11 +251,7 @@ const BookingSlot = () => {
     const date = e.target.value;
     setSelectedDate(date);
     setSelectedSlots([]); // Reset selected slots when date changes
-
-    // If in month view, fetch slots for the selected month
-    if (bookingType === 'month' && date) {
-      fetchAvailableSlots(date);
-    }
+    // no need to call fetch, useQuery will react to selectedDate change
   };
 
   const handleBookingTypeChange = (e) => {
@@ -323,7 +261,9 @@ const BookingSlot = () => {
     // Clear all selections when changing booking type
     setSelectedDate('');
     setSelectedSlots([]);
-    setAvailableSlots([]);
+    // Available slots will be cleared by useQuery when key changes or enabled is false (if dependent on date)
+    // but since we clear selectedDate, enabled will likely be false or fetch with empty date (returning [])
+
 
     // Clear any existing date input
     const dateInput = document.querySelector('input[type="date"], input[type="month"]');
@@ -424,6 +364,11 @@ const BookingSlot = () => {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('lf_user');
+          navigate('/login', { state: { from: location.pathname } });
+          return;
+        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to get booking summary');
       }
@@ -504,11 +449,24 @@ const BookingSlot = () => {
         bookings: [bookingPayload],
       };
 
+      // Get token for request
+      let token = '';
+      const stored = localStorage.getItem('lf_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        token = parsed?.token || '';
+      }
+
+      if (!token) {
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
       const response = await fetch(`${BaseUrl}booking/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add any required authentication headers here
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload)
       });
@@ -516,6 +474,11 @@ const BookingSlot = () => {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('lf_user');
+          navigate('/login', { state: { from: location.pathname } });
+          return;
+        }
         throw new Error(result.message || 'Failed to confirm booking');
       }
 
@@ -536,7 +499,7 @@ const BookingSlot = () => {
     }
   };
 
-  if (loading) {
+  if (loadingSport) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-4 md:p-8">
         <div className="max-w-5xl mx-auto animate-pulse">
@@ -623,10 +586,9 @@ const BookingSlot = () => {
                       onChange={(date) => {
                         if (!date) return;
                         // Set to the first day of the selected month
-                        const firstDayOfMonth = new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
                         setSelectedDate(firstDayOfMonth.toISOString().split('T')[0]);
                         // Force a re-render to update the display
-                        fetchAvailableSlots(firstDayOfMonth.toISOString().split('T')[0]);
+                        // fetchAvailableSlots(firstDayOfMonth.toISOString().split('T')[0]); // Handled by useQuery
                       }}
                       minDate={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)} // First day of next month
                       maxDate={new Date(new Date().getFullYear() + 2, 11, 31)} // End of 2 years from now

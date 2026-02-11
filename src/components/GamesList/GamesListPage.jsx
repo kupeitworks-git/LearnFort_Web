@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiSearch, FiHome } from "react-icons/fi";
 import { BaseUrl } from "../api/api";
 import { motion } from "framer-motion";
 import { FaRunning } from "react-icons/fa";
-import Pagination from "../common/Pagination";
 
 const GamesListPage = () => {
   const navigate = useNavigate();
-  const [sports, setSports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showMaintenancePopup, setShowMaintenancePopup] = useState(false);
   const [selectedSport, setSelectedSport] = useState(null);
@@ -30,38 +29,78 @@ const GamesListPage = () => {
     return true;
   };
 
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalDocs: 0
+  // Fetch sports using TanStack Query - Infinite scroll
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending: loading,           // better than isLoading in v5+
+    isError,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ['sports_list', 'infinite'],   // ← FIXED: unique key to prevent cache pollution
+    queryFn: async ({ pageParam = 1 }) => {
+      const limit = 8;
+      const response = await fetch(`${BaseUrl}sports/list?page=${pageParam}&limit=${limit}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch sports');
+      }
+      const json = await response.json();
+
+      // Robust data extraction
+      let sportsData = [];
+      if (json && json.sports) {
+        sportsData = json.sports;
+      } else if (Array.isArray(json)) {
+        sportsData = json;
+      } else if (json && json.data) {
+        sportsData = json.data;
+      }
+
+      // Ensure it's always an array
+      if (!Array.isArray(sportsData)) {
+        sportsData = [];
+      }
+
+      return {
+        sports: sportsData,
+        pagination: json?.pagination || {
+          currentPage: pageParam,
+          totalPages: 1,
+          totalDocs: sportsData.length,
+        },
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const current = lastPage?.pagination?.currentPage;
+      const total = lastPage?.pagination?.totalPages;
+
+      // More defensive check
+      if (
+        typeof current === 'number' &&
+        typeof total === 'number' &&
+        !isNaN(current) &&
+        !isNaN(total) &&
+        current < total
+      ) {
+        return current + 1;
+      }
+      return undefined;
+    },
   });
 
-  const fetchSports = async () => {
-    try {
-      setLoading(true);
-      // Fetch all sports without pagination
-      const limit = 1000;
-      const response = await fetch(`${BaseUrl}sports/list?limit=${limit}`);
-      const data = await response.json();
+  // Flatten all sports from pages (with safe access)
+  const sports = data?.pages?.flatMap((page) => page?.sports || []) ?? [];
 
-      // Handle different API response structures
-      const sportsList = data.sports || (Array.isArray(data) ? data : (data.data || []));
-      setSports(sportsList);
-    } catch (error) {
-      // console.error("Error fetching sports:", error);
-    } finally {
-      setLoading(false);
+  const { ref, inView } = useInView();
+
+  React.useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  };
-
-  useEffect(() => {
-    fetchSports();
-  }, []);
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Filter sports based on search
   const filteredSports = sports.filter((sport) =>
@@ -81,11 +120,11 @@ const GamesListPage = () => {
               <FiArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-              Our Sports List
+              List Of Sports
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            {/* Search Bar (optional, added for "wonderful" UX) */}
+            {/* Desktop Search */}
             <div className="hidden sm:flex items-center bg-white/10 rounded-full px-4 py-2 border border-blue-400/30 focus-within:bg-white/20 transition-all">
               <FiSearch className="text-blue-200 mr-2" />
               <input
@@ -97,7 +136,6 @@ const GamesListPage = () => {
               />
             </div>
 
-            {/* Home Button (Mobile & Desktop) */}
             <button
               onClick={() => navigate('/')}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
@@ -111,8 +149,7 @@ const GamesListPage = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 pb-20">
-
-        {/* Mobile Search (visible only on small screens) */}
+        {/* Mobile Search */}
         <div className="sm:hidden mb-6">
           <div className="flex items-center bg-white rounded-full px-4 py-3 shadow-sm border border-gray-200">
             <FiSearch className="text-gray-400 mr-3" />
@@ -126,7 +163,17 @@ const GamesListPage = () => {
           </div>
         </div>
 
-        {loading ? (
+        {isError ? (
+          <div className="text-center py-20 text-red-600">
+            <p>Error loading sports: {error?.message || 'Unknown error'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-500 font-medium">Loading sports...</p>
@@ -163,15 +210,13 @@ const GamesListPage = () => {
                         </div>
                       )}
 
-                      {/* Overlay Gradient */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
-                      {/* Price Badge */}
                       <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold shadow-lg text-blue-900 flex items-center gap-1 border border-blue-100">
-                        <span className="text-gray-400 font-normal">Starting</span> ₹{sport.final_price_per_day}
+                        <span className="text-gray-400 font-normal">Starting</span> ₹
+                        {sport.final_price_per_day}
                       </div>
 
-                      {/* Title over Image */}
                       <div className="absolute bottom-4 left-4 text-white">
                         <h3 className="text-xl font-bold tracking-wide drop-shadow-md capitalize">
                           {sport.name}
@@ -179,22 +224,36 @@ const GamesListPage = () => {
                       </div>
                     </div>
 
-                    {/* Content Section */}
+                    {/* Content */}
                     <div className="p-5">
                       <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
-                        {sport.description || `Experience premium ${sport.name} facilities with LearnFort Sports Park.`}
+                        {sport.description ||
+                          `Experience premium ${sport.name} facilities with LearnFort Sports Park.`}
                       </p>
 
                       <div className="mt-6 flex items-center justify-between">
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${sport.status === 'NOT_AVAILABLE'
-                          ? 'text-gray-500 bg-gray-100'
-                          : 'text-blue-600 bg-blue-50 border border-blue-100'
-                          }`}>
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${sport.status === 'NOT_AVAILABLE'
+                            ? 'text-gray-500 bg-gray-100'
+                            : 'text-blue-600 bg-blue-50 border border-blue-100'
+                            }`}
+                        >
                           {sport.status === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : 'AVAILABLE NOW'}
                         </span>
                         <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-all duration-300 shadow-sm">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
                           </svg>
                         </div>
                       </div>
@@ -210,17 +269,37 @@ const GamesListPage = () => {
                   <p className="text-gray-500 text-sm mt-1">Try adjusting your search terms.</p>
                 </div>
               )}
+
+              {/* Infinite Scroll Loader */}
+              {!loading && (
+                <div ref={ref} className="mt-10 py-4 flex justify-center w-full col-span-full">
+                  {isFetchingNextPage ? (
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="mt-2 text-sm text-gray-500 font-medium">Loading more...</p>
+                    </div>
+                  ) : hasNextPage ? (
+                    <div className="h-4"></div>
+                  ) : sports.length > 0 ? (
+                    <p className="text-sm text-gray-400 font-medium italic">— End of list —</p>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         )}
-
-        {/* Pagination removed - showing all sports */}
       </div>
 
       {/* Maintenance Popup */}
       {showMaintenancePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePopup}>
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={closePopup}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Note!</h3>
               <button
@@ -228,11 +307,18 @@ const GamesListPage = () => {
                 className="text-gray-400 hover:text-gray-500"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
-            <p className="text-gray-700 mb-4 text-left">This sport is currently under maintenance. Please try again later!</p>
+            <p className="text-gray-700 mb-4 text-left">
+              This sport is currently under maintenance. Please try again later!
+            </p>
             <button
               onClick={closePopup}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"

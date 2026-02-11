@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiChevronRight, FiSearch, FiAlertCircle, FiHome } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -136,61 +137,75 @@ const SportsList = ({ onBack }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [sports, setSports] = useState([]);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchSports();
-  }, []);
-
-  const fetchSports = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Fetch all sports without pagination limits (setting a high limit)
-      const limit = 1000;
-      const response = await fetch(`${BaseUrl}sports/list?limit=${limit}`);
+  // Fetch sports with TanStack Query (Infinite)
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+    refetch: refetchSports
+  } = useInfiniteQuery({
+    queryKey: ['sports_booking'],
+    queryFn: async ({ pageParam = 1 }) => {
+      const limit = 8;
+      const response = await fetch(`${BaseUrl}sports/list?page=${pageParam}&limit=${limit}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-
-      // Handle the response structure
       const sportsData = result.sports || [];
 
-      if (!sportsData || sportsData.length === 0) {
-        setError('No sports available at the moment');
-        setSports([]);
-        return;
-      }
-
       // Transform the data to match our expected format
-      const formattedSports = sportsData.map(sport => ({
+      const transformedSports = Array.isArray(sportsData) ? sportsData.map(sport => ({
         id: sport._id || sport.name.toLowerCase().replace(/\s+/g, '-'),
         name: sport.name || 'Sport',
         gradient: sportGradients[sport.name ? sport.name.toLowerCase().replace(/\d+/g, '').trim() : ''] || sportGradients.default,
         image: sport.image || '',
         banner: sport.banner || '',
         price: sport.final_price_per_slot || 0,
-        status: sport.status || 'AVAILABLE' // Add status with a default of 'AVAILABLE'
-      }));
+        status: sport.status || 'AVAILABLE'
+      })) : [];
 
-      setSports(formattedSports);
-    } catch (err) {
-      // console.error('Error fetching sports:', err);
-      setError('Failed to load sports. Please try again later.');
-    } finally {
-      setIsLoading(false);
+      return {
+        sports: transformedSports,
+        pagination: result.pagination || {
+          currentPage: pageParam,
+          totalPages: 1,
+          totalDocs: transformedSports.length
+        }
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.currentPage < lastPage.pagination.totalPages) {
+        return lastPage.pagination.currentPage + 1;
+      }
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const sports = data?.pages.flatMap(page => page.sports) || [];
+  const { ref: scrollRef, inView } = useInView();
+
+  React.useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  };
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const filteredSports = sports.filter(
-    (sport) => sport.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
-  );
+  // Handle error message for UI
+  const errorMessage = error instanceof Error ? error.message : (error ? 'Failed to load sports' : null);
+
+  const filteredSports = Array.isArray(sports)
+    ? sports.filter(
+      (sport) => sport.name?.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    )
+    : [];
 
   // ('Filtered Sports:', filteredSports); // Debug log
 
@@ -294,9 +309,9 @@ const SportsList = ({ onBack }) => {
                 <div className="col-span-full text-center py-12 bg-white/50 rounded-3xl backdrop-blur-sm border border-white">
                   <FiAlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-800 mb-2">Failed to load sports</h3>
-                  <p className="text-gray-600 mb-4">{error}</p>
+                  <p className="text-gray-600 mb-4">{errorMessage}</p>
                   <button
-                    onClick={fetchSports}
+                    onClick={() => refetchSports()}
                     className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 hover:shadow-blue-300"
                   >
                     Retry
@@ -311,13 +326,29 @@ const SportsList = ({ onBack }) => {
                   <p className="text-gray-600">Try adjusting your search or check back later.</p>
                 </div>
               ) : (
-                filteredSports.map((sport) => (
-                  <SportsCard
-                    key={sport.id}
-                    sport={sport}
-                    onClick={() => handleSportSelect(sport)}
-                  />
-                ))
+                <>
+                  {filteredSports.map((sport) => (
+                    <SportsCard
+                      key={sport.id}
+                      sport={sport}
+                      onClick={() => handleSportSelect(sport)}
+                    />
+                  ))}
+
+                  {/* Infinite Scroll Loader Sentinel */}
+                  <div ref={scrollRef} className="mt-10 py-4 flex justify-center w-full col-span-full">
+                    {isFetchingNextPage ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="mt-2 text-sm text-gray-500 font-medium">Loading more sports...</p>
+                      </div>
+                    ) : hasNextPage ? (
+                      <div className="h-4"></div>
+                    ) : sports.length > 0 ? (
+                      <p className="text-sm text-gray-400 font-medium italic">— No more sports to show —</p>
+                    ) : null}
+                  </div>
+                </>
               )}
             </motion.div>
           </div>

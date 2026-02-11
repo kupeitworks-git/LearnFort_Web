@@ -1054,7 +1054,7 @@ const BookingConfirmation = ({
 
                                     {/* Price Summary */}
                                     <div className="bg-gray-50 p-4 rounded-lg">
-                                        <h4 className="text-sm font-medium text-gray-900 mb-3">Price Summary</h4>
+                                        <h4 className="text-sm font-medium text-gray-900 mb-3">Charge Summary</h4>
 
                                         <div className="space-y-2">
                                             {summaryData.breakdown?.map((item, index) => (
