@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { FiMail, FiPhone, FiMapPin, FiArrowUp } from 'react-icons/fi';
+import { FaFacebookF, FaInstagram, FaYoutube, FaLinkedinIn } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 
 const Footer = () => {
 
@@ -86,14 +88,14 @@ const Footer = () => {
             </div>
 
             {/* Dark footer section */}
-            <div className="bg-slate-950 text-slate-100">
+            <div className="bg-[rgb(20,40,124)] text-slate-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                         {/* Brand & description */}
                         <div className="flex flex-col h-full">
                             <h3 className="text-lg font-semibold text-cyan-300 mb-2">LearnFort Sports Park</h3>
                             <p className="text-sm text-slate-200/80 mb-6 leading-relaxed">
-                                LearnFort Sports Park is your ultimate destination for sports and recreation in Dindigul. We provide world-class facilities for cricket, football, tennis, and more, fostering a community of athletes and fitness enthusiasts. Experience the best in sports infrastructure and training with us.
+                                LearnFort Sports Park is your ultimate destination for sports and recreation in Nilakottai. We provide world-class facilities for cricket, football, tennis, and more, fostering a community of athletes and fitness enthusiasts. Experience the best in sports infrastructure and training with us.
                             </p>
 
                             <div className="flex items-center gap-3 mt-auto">
@@ -101,42 +103,47 @@ const Footer = () => {
                                     href="https://www.facebook.com/learnfortsports/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-100 hover:bg-slate-700 text-sm"
+                                    className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-slate-100 hover:bg-[#1877F2] hover:text-white transition-all duration-300"
+                                    title="Facebook"
                                 >
-                                    f
+                                    <FaFacebookF size={16} />
                                 </a>
 
                                 <a
                                     href="https://x.com/learnfortsports"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-100 hover:bg-slate-700 text-sm"
+                                    className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-slate-100 hover:bg-black hover:text-white transition-all duration-300"
+                                    title="X (Twitter)"
                                 >
-                                    X
+                                    <FaXTwitter size={16} />
                                 </a>
                                 <a
                                     href="https://www.instagram.com/learnfortsports/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-100 hover:bg-slate-700 text-sm"
+                                    className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-slate-100 hover:bg-gradient-to-tr hover:from-[#f9ce34] hover:via-[#ee2a7b] hover:to-[#6228d7] hover:text-white transition-all duration-300"
+                                    title="Instagram"
                                 >
-                                    @
+                                    <FaInstagram size={18} />
                                 </a>
                                 <a
                                     href="https://www.youtube.com/@learnfortsports"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-100 hover:bg-slate-700 text-sm"
+                                    className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-slate-100 hover:bg-[#FF0000] hover:text-white transition-all duration-300"
+                                    title="YouTube"
                                 >
-                                    ▶
+                                    <FaYoutube size={18} />
                                 </a>
                                 <a
                                     href="https://www.linkedin.com/company/learn-fort-sports/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-100 hover:bg-slate-700 text-sm"
+                                    className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-slate-100 hover:bg-[#0077B5] hover:text-white transition-all duration-300"
+                                    title="LinkedIn"
                                 >
-                                    in
+                                    <FaLinkedinIn size={16} />
                                 </a>
                             </div>
                         </div>

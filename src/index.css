@@ -29,9 +29,12 @@ body {
 
 /* Animation for the splash screen */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -42,7 +45,9 @@ body {
 }
 
 @keyframes ping {
-  75%, 100% {
+
+  75%,
+  100% {
     transform: scale(1.2);
     opacity: 0;
   }
@@ -67,6 +72,7 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -77,9 +83,11 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
@@ -92,6 +100,7 @@ button:focus-visible {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -99,4 +108,32 @@ button:focus-visible {
 
 .animate-shimmer {
   animation: shimmer 2s infinite;
+}
+
+/* Styles for venue about content */
+.about-content ul {
+  list-style-type: disc !important;
+  margin-left: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.about-content ol {
+  list-style-type: decimal !important;
+  margin-left: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.about-content li {
+  margin-bottom: 0.25rem !important;
+}
+
+.about-content p {
+  margin-bottom: 0.75rem !important;
+}
+
+.about-content b,
+.about-content strong {
+  font-weight: 700 !important;
 }

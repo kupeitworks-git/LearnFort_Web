@@ -119,10 +119,10 @@ const Login = () => {
             <span className="text-sm font-medium">Back to Home</span>
           </button>
           <div className="flex justify-center mb-4">
-            <img src={LearnFortLogo} className="w-16 h-16" alt="LearnFort" />
+            <img src={LearnFortLogo} className="w-24 h-24" alt="LearnFort" />
           </div>
-          <h1 className="text-2xl font-semibold text-center text-blue-700 mb-1">Welcome Back 👋</h1>
-          <p className="text-center text-gray-500 mb-6">Login to continue to SportsPark</p>
+          <h1 className="text-2xl font-semibold text-center text-blue-700 mb-6">Welcome 🙏</h1>
+
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

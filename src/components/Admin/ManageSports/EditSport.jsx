@@ -388,7 +388,7 @@ const EditSport = () => {
             {/* Ground Name */}
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 flex items-center">
-                <span>Ground Name</span>
+                <span>Ground Location</span>
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">

@@ -228,6 +228,22 @@ const CreateAccount = () => {
               </span>
             </div>
 
+            {/* Terms & Conditions */}
+            <div className="flex items-start space-x-2 text-sm text-gray-700">
+              <input
+                id="terms"
+                type="checkbox"
+                required
+                className="mt-1 h-4 w-4 border-gray-300 rounded"
+              />
+              <label htmlFor="terms" className="leading-5">
+                I agree to the{" "}
+                <span className="text-blue-700 font-medium cursor-pointer hover:underline">
+                  Terms &amp; Conditions
+                </span>
+              </label>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}

@@ -324,7 +324,7 @@ const ManageSports = () => {
                     Sport Name
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Ground Name
+                    Ground Location
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">
                     Actual Charge (₹)

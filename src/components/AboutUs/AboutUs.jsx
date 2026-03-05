@@ -18,7 +18,7 @@ export const amenities = [
   { name: "Lighting for Night Events", icon: FiSunrise },
   { name: "Bowling Machine for Practice", icon: GiCricketBat },
   { name: "Open Gym", icon: GiWeightLiftingUp },
-  { name: "Children Play Area", icon: GiBabyFace },
+  { name: "Childrens Play Area", icon: GiBabyFace },
   { name: "Rest Rooms", icon: FiHome },
   { name: "Food Court", icon: GiForkKnifeSpoon },
   { name: "Walking Pathway", icon: GiPathDistance }
@@ -29,7 +29,7 @@ const AboutUs = () => {
 
   const sports = [
     "Skating", "Basketball", "Football (Turf)", "Volleyball",
-    "Cricket (Turf)", "Net Practice", "Pickleball", "Kabbadi",
+    "Cricket (Turf)", "Net Cricket", "Pickleball", "Kabbadi",
     "Karate", "Athletic Track", "Archery", "Badminton (Outdoor)", "Badminton (Indoor)"
   ];
 

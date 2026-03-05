@@ -228,9 +228,10 @@ const VenueDetails = () => {
                                 About {sportLabel}
                             </h2>
 
-                            <p className="text-slate-600 text-sm leading-relaxed mb-6 text-left">
-                                {venue.about}
-                            </p>
+                            <div
+                                className="text-slate-600 text-sm leading-relaxed mb-6 text-left whitespace-pre-line about-content"
+                                dangerouslySetInnerHTML={{ __html: venue.about }}
+                            />
                         </div>
 
                         {/* RIGHT SECTION — BOOKING CARD */}
@@ -244,7 +245,7 @@ const VenueDetails = () => {
                                             <span className="font-medium text-blue-600">Sport Name:</span> {sportLabel}
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            <span className="font-medium text-blue-600">Ground Name:</span> {venue.groundName}
+                                            <span className="font-medium text-blue-600">Ground Location:</span> {venue.groundName}
                                         </p>
                                     </div>
                                 </div>

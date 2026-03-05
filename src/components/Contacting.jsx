@@ -152,7 +152,7 @@ const Contacting = () => {
   const handleBack = () => navigate(-1);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-['Inter',sans-serif] flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-['Inter',sans-serif] flex flex-col">
       {/* Top header same style as other pages */}
       <header className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
@@ -169,28 +169,31 @@ const Contacting = () => {
       {/* Main content */}
       <div className="flex-1 flex items-center py-8 px-4">
         <motion.div
-          className="max-w-6xl w-full mx-auto bg-slate-900/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
+          className="max-w-6xl w-full mx-auto bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-slate-200"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           {/* Left info column */}
-          <div className="w-full md:w-1/2 px-8 py-10 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 flex flex-col justify-center relative overflow-hidden">
+          <div className="w-full md:w-1/2 px-8 py-10 bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex flex-col justify-center relative overflow-hidden">
+            {/* Decorative elements for a more 'pleasant' look */}
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
 
-            <h1 className="text-3xl md:text-4xl font-bold mb-3 text-left">Contact Us</h1>
-            <p className="text-sm md:text-base text-slate-200/80 mb-8 max-w-md text-left">
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 text-left relative z-10">Contact Us</h1>
+            <p className="text-sm md:text-base text-blue-50 mb-8 max-w-md text-left relative z-10">
               Have questions about bookings, facilities, or programs at LearnFort Sports Park? Share your details and our team will reach out to you shortly.
             </p>
 
-            <div className="space-y-6 text-sm text-left">
+            <div className="space-y-6 text-sm text-left relative z-10">
               <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white">
                   <FiMapPin className="w-4 h-4" />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Address</p>
-                  <div className="text-slate-200/90 text-sm leading-relaxed">
-                    <span className="block font-semibold text-slate-50">LearnFort Sports Park</span>
+                  <p className="text-xs font-semibold tracking-wider text-blue-100 uppercase">Address</p>
+                  <div className="text-white/90 text-sm leading-relaxed">
+                    <span className="block font-semibold text-white">LearnFort Sports Park</span>
                     <span>Batlagundu Road,</span>
                     <span>Bangalapatti,<br /> Nilakottai (Taluk),</span>
                     <span>Dindigul (Dist),<br />Tamil Nadu, India - 624202</span>
@@ -200,22 +203,22 @@ const Contacting = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white">
                   <FiPhone className="w-4 h-4" />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Contact Numbers</p>
-                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-slate-200/90">
-                    <span className="font-medium text-slate-50">Phone</span>
-                    <a href="tel:+914543245622" className="hover:text-cyan-300 hover:underline">+91 45432 45622</a>
-                    <span className="font-medium text-slate-50">Mobile</span>
-                    <a href="tel:+918124745622" className="hover:text-cyan-300 hover:underline">+91 81247 45622</a>
-                    <span className="font-medium text-slate-50">WhatsApp</span>
+                  <p className="text-xs font-semibold tracking-wider text-blue-100 uppercase">Contact Numbers</p>
+                  <div className="grid grid-cols-[110px_auto] gap-y-1 text-white/90">
+                    <span className="font-medium text-white">Phone</span>
+                    <a href="tel:+914543245622" className="hover:text-blue-200 hover:underline">+91 45432 45622</a>
+                    <span className="font-medium text-white">Mobile</span>
+                    <a href="tel:+918124745622" className="hover:text-blue-200 hover:underline">+91 81247 45622</a>
+                    <span className="font-medium text-white">WhatsApp</span>
                     <a
                       href="https://wa.me/919444123722"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-cyan-300 hover:underline"
+                      className="hover:text-blue-200 hover:underline"
                     >
                       +91 94441 23722
                     </a>
@@ -224,17 +227,17 @@ const Contacting = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white">
                   <FiMail className="w-4 h-4" />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Email</p>
-                  <div className="flex flex-col gap-1 text-slate-200/90">
+                  <p className="text-xs font-semibold tracking-wider text-blue-100 uppercase">Email</p>
+                  <div className="flex flex-col gap-1 text-white/90">
                     <a
                       href="https://mail.google.com/mail/?view=cm&fs=1&to=info@learnfortsports.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-cyan-300 hover:underline"
+                      className="hover:text-blue-200 hover:underline"
                     >
                       info@learnfortsports.com
                     </a>
@@ -242,7 +245,7 @@ const Contacting = () => {
                       href="https://mail.google.com/mail/?view=cm&fs=1&to=learnfortsports@gmail.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-cyan-300 hover:underline"
+                      className="hover:text-blue-200 hover:underline"
                     >
                       learnfortsports@gmail.com
                     </a>

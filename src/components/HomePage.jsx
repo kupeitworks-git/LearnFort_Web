@@ -29,10 +29,10 @@ const HomePage = () => {
   // Menu items data
   // Menu items data
   const menuItems = [
-    { id: 'games', label: 'List Of Sports', submenu: [] }, // no submenu
+    { id: 'games', label: 'List of Sports', submenu: [] }, // no submenu
     {
       id: 'book',
-      label: 'Book Your Slot',
+      label: 'Book your slot',
       submenu: [],
       onClick: () => {
         if (currentUser) {

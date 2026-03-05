@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import {
@@ -23,6 +23,119 @@ const AddSport = () => {
     const sportInputRef = useRef(null);
     const bannerInputRef = useRef(null);
     const webBannerInputRef = useRef(null);
+    const groundDropdownRef = useRef(null);
+    const mergeSportsDropdownRef = useRef(null);
+
+    // Ground name autocomplete states
+    const [groundNames, setGroundNames] = useState([]);
+    const [groundSuggestions, setGroundSuggestions] = useState([]);
+    const [showGroundDropdown, setShowGroundDropdown] = useState(false);
+    const [groundNamesLoading, setGroundNamesLoading] = useState(false);
+
+    // Merge sports states
+    const [sportsList, setSportsList] = useState([]);       // [{_id, name}, ...]
+    const [mergeSports, setMergeSports] = useState([]);     // selected [{_id, name}]
+    const [mergeSportsSearch, setMergeSportsSearch] = useState("");
+    const [showMergeSportsDropdown, setShowMergeSportsDropdown] = useState(false);
+    const [mergeSportsLoading, setMergeSportsLoading] = useState(false);
+
+    // Fetch ground names from API on mount
+    useEffect(() => {
+        const fetchGroundNames = async () => {
+            setGroundNamesLoading(true);
+            try {
+                const token = sessionStorage.getItem("token");
+                const res = await fetch(`${BaseUrl}sports/grounds`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                });
+                const data = await res.json();
+                if (res.ok && Array.isArray(data.ground_names)) {
+                    setGroundNames(data.ground_names);
+                }
+            } catch (err) {
+                // Silently fail – manual entry still works
+            } finally {
+                setGroundNamesLoading(false);
+            }
+        };
+        fetchGroundNames();
+    }, []);
+
+    // Fetch sports names for merge sports dropdown
+    useEffect(() => {
+        const fetchSportsNames = async () => {
+            setMergeSportsLoading(true);
+            try {
+                const token = sessionStorage.getItem("token");
+                const res = await fetch(`${BaseUrl}sports/sports-names`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                });
+                const data = await res.json();
+                if (res.ok && Array.isArray(data.sports_names)) {
+                    setSportsList(data.sports_names);
+                }
+            } catch (err) {
+                // Silently fail
+            } finally {
+                setMergeSportsLoading(false);
+            }
+        };
+        fetchSportsNames();
+    }, []);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (groundDropdownRef.current && !groundDropdownRef.current.contains(e.target)) {
+                setShowGroundDropdown(false);
+            }
+            if (mergeSportsDropdownRef.current && !mergeSportsDropdownRef.current.contains(e.target)) {
+                setShowMergeSportsDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleGroundNameChange = (e) => {
+        const value = e.target.value;
+        setForm({ ...form, ground_name: value });
+        if (value.trim() === "") {
+            setGroundSuggestions([]);
+            setShowGroundDropdown(false);
+        } else {
+            const filtered = groundNames.filter((g) =>
+                g.toLowerCase().includes(value.toLowerCase())
+            );
+            setGroundSuggestions(filtered);
+            setShowGroundDropdown(true);
+        }
+    };
+
+    const handleGroundSuggestionClick = (suggestion) => {
+        setForm({ ...form, ground_name: suggestion });
+        setShowGroundDropdown(false);
+        setGroundSuggestions([]);
+    };
+
+    // Merge sports handlers
+    const handleMergeSportSelect = (sport) => {
+        if (!mergeSports.find((s) => s._id === sport._id)) {
+            setMergeSports([...mergeSports, sport]);
+        }
+        setMergeSportsSearch("");
+        setShowMergeSportsDropdown(false);
+    };
+
+    const handleMergeSportRemove = (id) => {
+        setMergeSports(mergeSports.filter((s) => s._id !== id));
+    };
+
+    const filteredSportsList = sportsList.filter(
+        (s) =>
+            s.name.toLowerCase().includes(mergeSportsSearch.toLowerCase()) &&
+            !mergeSports.find((sel) => sel._id === s._id)
+    );
 
 
 
@@ -79,7 +192,7 @@ const AddSport = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                showToast("Sport Image size must be below 5MB!", "error");
+                showToast("Sport Image size must be below 3MB!", "error");
                 e.target.value = null;
                 return;
             }
@@ -92,7 +205,7 @@ const AddSport = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                showToast("Banner Image size must be below 5MB!", "error");
+                showToast("Banner Image size must be below 3MB!", "error");
                 e.target.value = null;
                 return;
             }
@@ -105,7 +218,7 @@ const AddSport = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                showToast("Web Banner Image size must be below 5MB!", "error");
+                showToast("Web Banner Image size must be below 3MB!", "error");
                 e.target.value = null;
                 return;
             }
@@ -201,6 +314,7 @@ const AddSport = () => {
         formData.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
         formData.append("sport_price_type", sportPriceType);
         formData.append("list", "test");
+        mergeSports.forEach((s) => formData.append("mergeSports", s._id));
 
         if (sportImageFile) formData.append("image", sportImageFile);
         if (bannerImageFile) formData.append("banner", bannerImageFile);
@@ -361,25 +475,154 @@ const AddSport = () => {
 
                         </div>
 
-                        {/* GROUND NAME */}
+                        {/* GROUND NAME - Autocomplete */}
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 text-left">Ground Name
+                            <label className="block text-sm font-medium text-gray-700 text-left">
+                                Ground Location
                                 <span className="text-red-500 ml-1">*</span>
                             </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    name="ground_name"
-                                    required
-                                    placeholder="Main Field"
-                                    onChange={handleChange}
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10"
-                                />
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiMapPin className="h-5 w-5 text-gray-400" />
+                            <div className="relative" ref={groundDropdownRef}>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        name="ground_name"
+                                        required
+                                        value={form.ground_name}
+                                        placeholder={groundNamesLoading ? "Loading grounds..." : "Type or select a ground name"}
+                                        onChange={handleGroundNameChange}
+                                        onFocus={() => {
+                                            if (form.ground_name.trim() === "" && groundNames.length > 0) {
+                                                setGroundSuggestions(groundNames);
+                                                setShowGroundDropdown(true);
+                                            }
+                                        }}
+                                        autoComplete="off"
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    />
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiMapPin className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    {form.ground_name && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setForm({ ...form, ground_name: "" });
+                                                setGroundSuggestions([]);
+                                                setShowGroundDropdown(false);
+                                            }}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                        >
+                                            <FiX className="h-4 w-4" />
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
 
+                                {/* Suggestions Dropdown */}
+                                {showGroundDropdown && groundSuggestions.length > 0 && (
+                                    <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                                        {groundSuggestions.map((suggestion, index) => (
+                                            <li
+                                                key={index}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => handleGroundSuggestionClick(suggestion)}
+                                                className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors"
+                                            >
+                                                <FiMapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                <span>{suggestion}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
+                                {showGroundDropdown && groundSuggestions.length === 0 && form.ground_name.trim() !== "" && (
+                                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-2.5 text-sm text-gray-500">
+                                        No matching grounds — your entry will be used as-is.
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1 text-left">Select from existing grounds or type a new name</p>
+                        </div>
+
+                        {/* MERGE SPORTS */}
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 text-left">
+                                Merge Sports
+                                <span className="text-xs text-gray-400 ml-2">(optional — sports sharing the same ground)</span>
+                            </label>
+                            <div className="relative" ref={mergeSportsDropdownRef}>
+                                {/* Selected chips */}
+                                {mergeSports.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {mergeSports.map((s) => (
+                                            <span
+                                                key={s._id}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                                            >
+                                                {s.name}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMergeSportRemove(s._id)}
+                                                    className="text-blue-500 hover:text-blue-800 transition-colors"
+                                                >
+                                                    <FiX size={12} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Search input */}
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={mergeSportsSearch}
+                                        placeholder={mergeSportsLoading ? "Loading sports..." : "Search and select sports to merge..."}
+                                        onChange={(e) => {
+                                            setMergeSportsSearch(e.target.value);
+                                            setShowMergeSportsDropdown(true);
+                                        }}
+                                        onFocus={() => setShowMergeSportsDropdown(true)}
+                                        autoComplete="off"
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    />
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiHash className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    {mergeSportsSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setMergeSportsSearch(""); setShowMergeSportsDropdown(false); }}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                        >
+                                            <FiX className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Dropdown list */}
+                                {showMergeSportsDropdown && (
+                                    <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                                        {filteredSportsList.length > 0 ? (
+                                            filteredSportsList.map((sport) => (
+                                                <li
+                                                    key={sport._id}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => handleMergeSportSelect(sport)}
+                                                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors"
+                                                >
+                                                    <FiHash className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                                    <span>{sport.name}</span>
+                                                </li>
+                                            ))
+                                        ) : (
+                                            <li className="px-4 py-2.5 text-sm text-gray-400">
+                                                {mergeSportsLoading ? "Loading..." : "No sports found"}
+                                            </li>
+                                        )}
+                                    </ul>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1 text-left">Sports that share the same physical ground (used for booking conflict detection)</p>
                         </div>
 
                         {/* Actual Price per day */}
@@ -739,7 +982,7 @@ const AddSport = () => {
                                     </p>
 
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Recommended size: 1200×400px, JPG or PNG up to 3MB
+                                        Recommended size: 400×150px, JPG or PNG up to 3MB
                                     </p>
 
                                     <input
