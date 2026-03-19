@@ -37,8 +37,9 @@ const BookingConfirmation = ({
     summaryData,
     selectedSlots = [],
     sportName = '',
-    bookingType = 'day'
+    bookingType = 'DAY'
 }) => {
+    console.log("bookingDetails", bookingDetails)
     const navigate = useNavigate();
     const { id } = useParams();
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -203,7 +204,7 @@ const BookingConfirmation = ({
 
             // Prepare the booking payload
             const bookingPayload = {
-                slot_type: bookingDetails?.slotType || 'DAY',
+                slot_type: bookingDetails?.slot_type || 'DAY',
                 times: selectedSlots?.length > 0
                     ? selectedSlots.map(slot => ({
                         start_time: slot.start_time || (slot.time ? slot.time.split('-')[0].trim() : ''),
@@ -218,14 +219,21 @@ const BookingConfirmation = ({
             };
 
             // Add date information
-            const bookingDate = bookingDetails?.date || summaryData?.slots?.[0]?.booking_date || new Date().toISOString().split('T')[0];
-            bookingPayload.booking_date = bookingDate;
+            const bookingDateRaw = bookingDetails?.date || summaryData?.slots?.[0]?.booking_date || new Date().toISOString().split('T')[0];
 
-            if (bookingDetails?.slotType === 'MONTH') {
-                bookingPayload.type_month = bookingDetails?.month || new Date().getMonth() + 1;
-                bookingPayload.type_year = bookingDetails?.year || new Date().getFullYear();
-            } else if (bookingDetails?.slotType === 'YEAR') {
-                bookingPayload.type_year = bookingDetails?.year || new Date().getFullYear();
+            if (bookingDetails?.slot_type === 'MONTH') {
+                const dateObj = new Date(bookingDateRaw);
+                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                bookingPayload.type_month = monthNames[dateObj.getUTCMonth()];
+                bookingPayload.type_year = dateObj.getUTCFullYear().toString();
+                // If it's MONTH, user wants booking_date in full format
+                bookingPayload.booking_date = `${bookingDateRaw}T00:00:00.000+00:00`;
+            } else {
+                bookingPayload.booking_date = bookingDateRaw;
+                if (bookingDetails?.slot_type === 'YEAR') {
+                    const dateObj = new Date(bookingDateRaw);
+                    bookingPayload.type_year = dateObj.getUTCFullYear().toString();
+                }
             }
 
             // Final payload
@@ -704,6 +712,13 @@ const BookingConfirmation = ({
                                 <p className="font-semibold text-gray-700">Sport Name</p>
                                 <p className="text-gray-600">
                                     {summaryData?.ground?.sport || bookingDetails?.sport || "-"}
+                                </p>
+                            </div>
+
+                            <div className="flex justify-between border-b pb-2">
+                                <p className="font-semibold text-gray-700">Booking Type</p>
+                                <p className="text-gray-600">
+                                    {bookingDetails?.slot_type || bookingType || "DAY"}
                                 </p>
                             </div>
 

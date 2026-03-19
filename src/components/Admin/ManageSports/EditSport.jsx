@@ -21,6 +21,14 @@ const EditSport = () => {
   const sportInputRef = useRef(null);
   const bannerInputRef = useRef(null);
   const webBannerInputRef = useRef(null);
+  const mergeSportsDropdownRef = useRef(null);
+
+  // Merge sports states
+  const [sportsList, setSportsList] = useState([]);       // [{_id, name}, ...]
+  const [mergeSports, setMergeSports] = useState([]);     // selected [{_id, name}]
+  const [mergeSportsSearch, setMergeSportsSearch] = useState("");
+  const [showMergeSportsDropdown, setShowMergeSportsDropdown] = useState(false);
+  const [mergeSportsLoading, setMergeSportsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,6 +56,39 @@ const EditSport = () => {
     setTimeout(() => setToast({ message: "", type: "" }), 3000);
   };
 
+  // Fetch sports names for merge sports dropdown
+  useEffect(() => {
+    const fetchSportsNames = async () => {
+      setMergeSportsLoading(true);
+      try {
+        const token = sessionStorage.getItem("token");
+        const res = await fetch(`${BaseUrl}sports/sports-names`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.sports_names)) {
+          setSportsList(data.sports_names);
+        }
+      } catch (err) {
+        // Silently fail
+      } finally {
+        setMergeSportsLoading(false);
+      }
+    };
+    fetchSportsNames();
+  }, []);
+
+  // Close merge sports dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mergeSportsDropdownRef.current && !mergeSportsDropdownRef.current.contains(e.target)) {
+        setShowMergeSportsDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Pre-fill form with sport data
   useEffect(() => {
     if (sportData) {
@@ -73,8 +114,31 @@ const EditSport = () => {
       setSportImage(sportData.image || null);
       setBannerImage(sportData.banner || null);
       setWebBannerImage(sportData.web_banner || null);
+      // Pre-fill existing merge sports from API
+      if (Array.isArray(sportData.mergeSports)) {
+        setMergeSports(sportData.mergeSports.map((s) => ({ _id: s._id, name: s.name })));
+      }
     }
   }, [sportData]);
+
+  // Merge sports handlers
+  const handleMergeSportSelect = (sport) => {
+    if (!mergeSports.find((s) => s._id === sport._id)) {
+      setMergeSports([...mergeSports, sport]);
+    }
+    setMergeSportsSearch("");
+    setShowMergeSportsDropdown(false);
+  };
+
+  const handleMergeSportRemove = (id) => {
+    setMergeSports(mergeSports.filter((s) => s._id !== id));
+  };
+
+  const filteredSportsList = sportsList.filter(
+    (s) =>
+      s.name.toLowerCase().includes(mergeSportsSearch.toLowerCase()) &&
+      !mergeSports.find((sel) => sel._id === s._id)
+  );
 
   // 🔹 Image Compression Helper
   const compressImage = (file, width, height) => {
@@ -225,6 +289,7 @@ const EditSport = () => {
     data.append("about", formData.about);
     data.append("status", status ? "AVAILABLE" : "NOT_AVAILABLE");
     data.append("sport_price_type", sportPriceType);
+    data.append("mergeSports", JSON.stringify(mergeSports.map((s) => s._id)));
 
     if (sportImageFile) data.append("image", sportImageFile);
     if (bannerImageFile) data.append("banner", bannerImageFile);
@@ -405,6 +470,88 @@ const EditSport = () => {
                   <FiMapPin className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
+            </div>
+
+            {/* Merge Sports */}
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <span>Merge Sports</span>
+                <span className="text-xs text-gray-400 ml-2">(optional — sports sharing the same ground)</span>
+              </label>
+              <div className="relative" ref={mergeSportsDropdownRef}>
+                {/* Selected chips */}
+                {mergeSports.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {mergeSports.map((s) => (
+                      <span
+                        key={s._id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                      >
+                        {s.name}
+                        <button
+                          type="button"
+                          onClick={() => handleMergeSportRemove(s._id)}
+                          className="text-blue-500 hover:text-blue-800 transition-colors"
+                        >
+                          <FiX size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search input */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={mergeSportsSearch}
+                    placeholder={mergeSportsLoading ? "Loading sports..." : "Search and select sports to merge..."}
+                    onChange={(e) => {
+                      setMergeSportsSearch(e.target.value);
+                      setShowMergeSportsDropdown(true);
+                    }}
+                    onFocus={() => setShowMergeSportsDropdown(true)}
+                    autoComplete="off"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FiHash className="h-5 w-5 text-gray-400" />
+                  </div>
+                  {mergeSportsSearch && (
+                    <button
+                      type="button"
+                      onClick={() => { setMergeSportsSearch(""); setShowMergeSportsDropdown(false); }}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      <FiX className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown list */}
+                {showMergeSportsDropdown && (
+                  <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                    {filteredSportsList.length > 0 ? (
+                      filteredSportsList.map((sport) => (
+                        <li
+                          key={sport._id}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleMergeSportSelect(sport)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors"
+                        >
+                          <FiHash className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <span>{sport.name}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-2.5 text-sm text-gray-400">
+                        {mergeSportsLoading ? "Loading..." : "No sports found"}
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Sports that share the same physical ground (used for booking conflict detection)</p>
             </div>
 
             {/* Actual Price per day */}

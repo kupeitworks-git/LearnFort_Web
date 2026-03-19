@@ -29,6 +29,7 @@ const BookingSlot = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingDetails, setBookingDetails] = useState({
     description: '',
+    slot_type: 'day', // 'day' or 'month'
   });
   const [sportData, setSportData] = useState(null);
   // Replaced manual loading state with query loading state
@@ -189,20 +190,23 @@ const BookingSlot = () => {
 
     // For month view, we need to check if the slot's month and year match the selected month
     if (bookingType === 'month' && selectedDate) {
-      const selectedDateObj = new Date(selectedDate);
-      const selectedMonth = selectedDateObj.getMonth();
-      const selectedYear = selectedDateObj.getFullYear();
+      if (slot.type_month && slot.type_year) {
+        const selectedDateObj = new Date(selectedDate);
+        const selectedMonth = selectedDateObj.getMonth();
+        const selectedYear = selectedDateObj.getFullYear();
 
-      // Check if slot's month and year match the selected month and year
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const slotMonth = monthNames.indexOf(slot.type_month);
-      const slotYear = parseInt(slot.type_year);
+        // Check if slot's month and year match the selected month and year
+        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const slotMonth = monthNames.indexOf(slot.type_month);
+        const slotYear = parseInt(slot.type_year);
 
-      const isMatchingMonthYear =
-        slotMonth === selectedMonth &&
-        slotYear === selectedYear;
+        const isMatchingMonthYear =
+          slotMonth === selectedMonth &&
+          slotYear === selectedYear;
 
-      return slot.status === 'AVAILABLE' && isMatchingMonthYear;
+        return slot.status === 'AVAILABLE' && isMatchingMonthYear;
+      }
+      return slot.status === 'AVAILABLE';
     }
 
     // For day view, just check the status
@@ -404,7 +408,8 @@ const BookingSlot = () => {
         players: processedSummary?.no_of_players || 1,
         price: processedSummary?.total_amount || 0,
         currency: processedSummary?.currency || 'INR',
-        timeSlot: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`
+        timeSlot: `${selectedSlots[0]?.startTime} - ${selectedSlots[0]?.endTime}`,
+        slot_type: bookingType === 'day' ? 'DAY' : 'MONTH'
       }));
 
       // Store the processed booking summary
@@ -585,10 +590,9 @@ const BookingSlot = () => {
                       selected={selectedDate ? new Date(selectedDate) : null}
                       onChange={(date) => {
                         if (!date) return;
-                        // Set to the first day of the selected month
-                        setSelectedDate(firstDayOfMonth.toISOString().split('T')[0]);
-                        // Force a re-render to update the display
-                        // fetchAvailableSlots(firstDayOfMonth.toISOString().split('T')[0]); // Handled by useQuery
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        setSelectedDate(`${year}-${month}-01`);
                       }}
                       minDate={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)} // First day of next month
                       maxDate={new Date(new Date().getFullYear() + 2, 11, 31)} // End of 2 years from now
@@ -676,7 +680,7 @@ const BookingSlot = () => {
                   {availableSlots
                     .filter(slot => {
                       // For month view, only show slots for the selected month
-                      if (bookingType === 'month' && selectedDate) {
+                      if (bookingType === 'month' && selectedDate && slot.type_month && slot.type_year) {
                         const selectedDateObj = new Date(selectedDate);
                         const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
                         const slotMonth = slot.type_month;
@@ -687,7 +691,7 @@ const BookingSlot = () => {
                           selectedDateObj.getFullYear() === slotYear
                         );
                       }
-                      return true; // For day view, show all slots
+                      return true; // For day view, or if API doesn't return type_month/year, show all slots
                     })
                     .map((slot, index) => {
                       const slotTime = formatTimeSlot(slot.startTime, slot.endTime);
