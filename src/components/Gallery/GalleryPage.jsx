@@ -5,7 +5,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { BaseUrl } from '../api/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import Pagination from "../common/Pagination";
 
 const initialSportsData = {};
 
@@ -59,6 +60,7 @@ const GalleryPage = () => {
   // Check if user came from Admin Dashboard
   const isFromAdmin = location.state?.fromAdmin || false;
   const [user, setUser] = useState(null);
+  const [currentSportsPage, setCurrentSportsPage] = useState(1);
   const token = sessionStorage.getItem('token');
 
   // Check for expired token or no token
@@ -112,20 +114,27 @@ const GalleryPage = () => {
   const isAdminUser = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN');
 
   // Fetch sports list using TanStack Query
-  const { data: sportsListData = [], isLoading: loading, error: sportsListError } = useQuery({
-    queryKey: ['sports_list'],
+  const { data: sportsDataResponse = { sports: [], pagination: {} }, isLoading: loading, error: sportsListError } = useQuery({
+    queryKey: ['sports_list', currentSportsPage],
     queryFn: async () => {
-      const response = await axios.get(`${BaseUrl}sports/list?limit=10`, {
+      const response = await axios.get(`${BaseUrl}sports/list?page=${currentSportsPage}&limit=12`, {
         headers: {
           // 'Authorization': `Bearer ${token}` 
         }
       });
-      if (response.data && response.data.sports) {
-        return Array.isArray(response.data.sports) ? response.data.sports : [];
+      if (response.data) {
+        return {
+          sports: Array.isArray(response.data.sports) ? response.data.sports : [],
+          pagination: response.data.pagination || { currentPage: 1, totalPages: 1 }
+        };
       }
-      return [];
-    }
+      return { sports: [], pagination: { currentPage: 1, totalPages: 1 } };
+    },
+    placeholderData: keepPreviousData
   });
+
+  const sportsListData = sportsDataResponse.sports;
+  const sportsPaginationInfo = sportsDataResponse.pagination;
 
   // Effect to process sports data into expected format for the component
   useEffect(() => {
@@ -834,6 +843,17 @@ const GalleryPage = () => {
             );
           })}
         </div>
+
+        {!loading && (
+          <Pagination
+            currentPage={sportsPaginationInfo.currentPage || 1}
+            totalPages={sportsPaginationInfo.totalPages || 1}
+            onPageChange={(page) => {
+              setCurrentSportsPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        )}
       </div>
     );
   };

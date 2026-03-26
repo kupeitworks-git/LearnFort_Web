@@ -9,11 +9,11 @@ import Pagination from "../../common/Pagination";
 
 
 // Confirmation Popup Component
-const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] transition-opacity duration-300">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
         <div className="flex flex-col items-center text-center">
           <div className="p-4 bg-red-100 rounded-full mb-4">
@@ -26,16 +26,25 @@ const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
           <div className="flex w-full space-x-4">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
             >
               Cancel
             </button>
 
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 flex items-center justify-center"
             >
-              Delete
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </button>
           </div>
         </div>
@@ -140,6 +149,8 @@ const ManageSports = () => {
     },
     onError: (err) => {
       showToast(err.message || "Error deleting sport", "error");
+      setShowDeleteDialog(false);
+      setSelectedSport(null);
     }
   });
 
@@ -256,7 +267,7 @@ const ManageSports = () => {
       {/* Toast Notification */}
       {toast.message && (
         <div
-          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
+          className={`fixed top-4 right-4 z-[100] px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 ease-in-out
             ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
         >
           <div className="flex items-center space-x-2">
@@ -430,6 +441,7 @@ const ManageSports = () => {
         onConfirm={handleConfirmDelete}
         title="Delete Sport"
         message={`Are you sure you want to delete "${selectedSport?.name}"? This action cannot be undone.`}
+        isLoading={deleteSportMutation.isPending}
       />
 
       {/* Action Menu Dropdown */}
