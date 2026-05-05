@@ -223,6 +223,7 @@ const BookingHistory = () => {
             const token = sessionStorage.getItem('token');
             let status = activeTab;
             let filter = historyType === "all" ? "all" : "my-bookings";
+            status = historyType === "all" ? activeTab : "all"; // Map 'live' to 'ongoing' if API uses that term
 
             let url = `${BaseUrl}booking/booking-details?status=${status}&limit=10&page=${pages[activeTab]}`;
             if (filter) {
