@@ -201,7 +201,9 @@ const BookingHistory = () => {
             : (item.slot_time || item.time || "Time"),
         duration: item.duration_minutes ? `${item.duration_minutes} mins` : (item.duration || "1 hour"),
         status: item.status || item.booking_status || "Pending",
-        amount: item.total_price || item.payment?.amount || item.amount || "0",
+        booking_amount: item.payment?.booking_amount || "0",
+        convenience_fee: item.payment.convenience_fee,
+        amount: item.payment.amount,
         customer: {
             name: item.user?.name || item.user_id?.name || "User",
             email: item.user?.email || item.user_id?.email || "email@example.com",
@@ -261,6 +263,8 @@ const BookingHistory = () => {
     const totalPages = queryData.totalPages;
     const hasMoreData = pages[activeTab] < totalPages;
 
+    console.log("currentBookings", currentBookings)
+
     const handlePrevPage = () => {
         setPages(prev => ({
             ...prev,
@@ -287,6 +291,8 @@ const BookingHistory = () => {
             setExpandedBooking(id);
         }
     };
+
+    console.log("selectedBooking", selectedBooking)
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
@@ -683,6 +689,14 @@ const BookingHistory = () => {
                                 <div className="bg-[#E8F5E9] border border-[#C8E6C9] rounded-xl p-4">
                                     <div className="flex justify-between mb-2">
                                         <span className="text-blue-600 font-medium">Amount:</span>
+                                        <span className="text-gray-800 font-bold">₹{selectedBooking.booking_amount}</span>
+                                    </div>
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-blue-600 font-medium">Convenience Fee:</span>
+                                        <span className="text-gray-800 font-bold">₹{selectedBooking.convenience_fee}</span>
+                                    </div>
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-blue-600 font-medium">Total:</span>
                                         <span className="text-gray-800 font-bold">₹{selectedBooking.amount}</span>
                                     </div>
                                     <div className="flex justify-between items-start mb-4">
