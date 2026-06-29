@@ -37,18 +37,26 @@ const BookingConfirmation = ({
     summaryData,
     selectedSlots = [],
     sportName = '',
-    bookingType = 'DAY'
+    bookingType = 'DAY',
+    paymentMode = ''
 }) => {
     console.log("bookingDetails", bookingDetails)
     const navigate = useNavigate();
     const { id } = useParams();
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [selectedPaymentMode, setSelectedPaymentMode] = useState('');
+    const [selectedPaymentMode, setSelectedPaymentMode] = useState(paymentMode || '');
     const [currentUser, setCurrentUser] = useState(null);
     const [step, setStep] = useState(1);
     const [selectedPayment, setSelectedPayment] = useState('online');
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+    // Sync selected payment mode state when paymentMode prop or isOpen changes
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedPaymentMode(paymentMode);
+        }
+    }, [isOpen, paymentMode]);
     const [isCancellingPayment, setIsCancellingPayment] = useState(false);
     const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
     const [showPaymentCancelled, setShowPaymentCancelled] = useState(false);
@@ -277,7 +285,7 @@ const BookingConfirmation = ({
             }
 
             // Handle payment based on method
-            if (selectedPaymentMode === 'COD') {
+            if (selectedPaymentMode === 'COD' || selectedPaymentMode === 'offline') {
                 setShowPaymentModal(false);
                 setIsProcessingPayment(false);
                 setShowPaymentSuccess(true);
@@ -836,22 +844,31 @@ const BookingConfirmation = ({
 
                     {/* Add more sections here */}
 
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-100">
+                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-100">
                         <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-600 font-medium">Booking Amount</span>
+                                <span className="text-gray-800 font-semibold">
+                                    ₹{(summaryData?.booking_amount || summaryData?.bookingAmount || 0).toLocaleString('en-IN')}
+                                </span>
+                            </div>
 
-                            {/* Add more fields here */}
+                            <div className="flex justify-between items-center text-sm border-b border-blue-200/50 pb-2">
+                                <span className="text-gray-600 font-medium">Convenience Fee</span>
+                                <span className="text-gray-800 font-semibold">
+                                    ₹{(summaryData?.convenience_fee || summaryData?.convenienceFee || 0).toLocaleString('en-IN')}
+                                </span>
+                            </div>
 
-                            <div className="">
+                            <div className="pt-1">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <p className="font-semibold text-lg text-gray-800">Total Amount</p>
-
+                                        <p className="font-bold text-lg text-gray-900">Total Amount</p>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-2xl font-bold text-blue-700">
-                                            ₹{(summaryData?.total_amount || 0).toLocaleString('en-IN')}
+                                        <span className="text-2xl font-black text-blue-700">
+                                            ₹{(summaryData?.total_amount || summaryData?.totalAmount || 0).toLocaleString('en-IN')}
                                         </span>
-
                                     </div>
                                 </div>
                             </div>
@@ -870,10 +887,11 @@ const BookingConfirmation = ({
                         </button>
                         <button
                             type="button"
-                            onClick={handleProceedToPay}
-                            className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+                            onClick={processPayment}
+                            disabled={isLoading}
+                            className={`flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            <span>Proceed to Pay</span>
+                            <span>{isLoading ? 'Processing...' : (selectedPaymentMode === 'online' ? 'Pay Now' : 'Confirm Booking')}</span>
                             <FiArrowRight size={18} />
                         </button>
                     </div>

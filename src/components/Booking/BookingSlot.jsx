@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiCalendar, FiClock, FiUsers, FiChevronLeft, FiLoader, FiFileText, FiX } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiUsers, FiChevronLeft, FiLoader, FiFileText, FiX, FiCheck } from 'react-icons/fi';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import BookingConfirmation from './BookingConfirmation';
 import { toast } from 'react-toastify';
 import { BaseUrl } from "../api/api";
@@ -39,7 +39,22 @@ const BookingSlot = () => {
   // const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingSummary, setBookingSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [showPaymentModeModal, setShowPaymentModeModal] = useState(false);
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const location = useLocation();
+
+  // Load user information on mount to check roles for COD/Offline
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('lf_user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, []);
 
   // Fetch Sports List to find current sport
   const { isLoading: loadingSport, data: sportsList } = useQuery({
@@ -303,7 +318,6 @@ const BookingSlot = () => {
     }
 
     // Check if user is logged in
-    let token = '';
     try {
       const stored = localStorage.getItem('lf_user');
       if (!stored) {
@@ -314,7 +328,7 @@ const BookingSlot = () => {
       }
 
       const parsed = JSON.parse(stored);
-      token = parsed?.token || '';
+      const token = parsed?.token || '';
 
       if (!token) {
         toast.info('Please login to continue with booking');
@@ -323,6 +337,23 @@ const BookingSlot = () => {
       }
     } catch (err) {
       // console.error('Error getting auth token:', err);
+      toast.error('An error occurred. Please try again.');
+      return;
+    }
+
+    // Open Payment Mode Modal first
+    setShowPaymentModeModal(true);
+  };
+
+  const fetchBookingSummary = async (paymentMethod) => {
+    let token = '';
+    try {
+      const stored = localStorage.getItem('lf_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        token = parsed?.token || '';
+      }
+    } catch (err) {
       toast.error('An error occurred. Please try again.');
       return;
     }
@@ -355,6 +386,7 @@ const BookingSlot = () => {
       const payload = {
         sports_id: sportData?.id || '',
         no_of_players: parseInt(bookingDetails.players) || 1,
+        payment_method: paymentMethod, // Pass payment_method: online or offline
         bookings: [booking]
       };
 
@@ -414,6 +446,7 @@ const BookingSlot = () => {
 
       // Store the processed booking summary
       setBookingSummary(processedSummary);
+      setSelectedPaymentMode(paymentMethod);
 
       // Show the confirmation dialog
       setShowConfirmation(true);
@@ -875,7 +908,112 @@ const BookingSlot = () => {
         selectedSlots={selectedSlots}
         sportName={sportData?.name}
         bookingType={bookingType}
+        paymentMode={selectedPaymentMode}
       />
+
+      {/* Select Payment Mode Modal */}
+      <AnimatePresence>
+        {showPaymentModeModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800 tracking-tight">Select Payment Mode</h3>
+                <button
+                  onClick={() => setShowPaymentModeModal(false)}
+                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors duration-200"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {/* Online Payment option */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentMode('online')}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 ${
+                    selectedPaymentMode === 'online'
+                      ? 'border-blue-600 bg-blue-50/50 shadow-sm text-blue-800'
+                      : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-all duration-300 ${
+                      selectedPaymentMode === 'online' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                    }`}>
+                      {selectedPaymentMode === 'online' && <FiCheck className="text-white w-3 h-3 stroke-[3]" />}
+                    </div>
+                    <div className="text-left">
+                      <span className="font-semibold block">Online Payment</span>
+                      <span className="text-xs text-gray-500">Pay securely via UPI, Card, NetBanking</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Offline Payment option (Conditional on role) */}
+                {currentUser?.role !== 'USER' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMode('offline')}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 ${
+                      selectedPaymentMode === 'offline'
+                        ? 'border-blue-600 bg-blue-50/50 shadow-sm text-blue-800'
+                        : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-all duration-300 ${
+                        selectedPaymentMode === 'offline' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                      }`}>
+                        {selectedPaymentMode === 'offline' && <FiCheck className="text-white w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <div className="text-left">
+                        <span className="font-semibold block">Offline Payment (COD)</span>
+                        <span className="text-xs text-gray-500">Pay at venue upon arrival</span>
+                      </div>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModeModal(false)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedPaymentMode) {
+                      toast.error('Please select a payment mode');
+                      return;
+                    }
+                    setShowPaymentModeModal(false);
+                    await fetchBookingSummary(selectedPaymentMode);
+                  }}
+                  disabled={!selectedPaymentMode}
+                  className={`flex-1 py-3 rounded-xl font-semibold shadow-md transition-all duration-300 ${
+                    selectedPaymentMode
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                  }`}
+                >
+                  Proceed
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
