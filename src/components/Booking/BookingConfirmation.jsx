@@ -693,19 +693,19 @@ const BookingConfirmation = ({
 
     const renderStepTwo = () => (
         <>
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white relative">
-                <h2 className="text-2xl font-bold">Booking Summary</h2>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 sm:p-6 text-white relative flex-shrink-0">
+                <h2 className="text-xl sm:text-2xl font-bold">Booking Summary</h2>
                 <button
                     onClick={onClose}
-                    className="absolute right-4 top-4 p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition"
+                    className="absolute right-4 top-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
                     type="button"
                 >
                     <FiX className="w-5 h-5" />
                 </button>
             </div>
 
-            <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                <div className="space-y-5">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+                <div className="space-y-4 sm:space-y-5">
                     <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Sports Details</h3>
                     <div className="w-full bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                         {/* Header */}
@@ -1324,9 +1324,9 @@ const BookingConfirmation = ({
     return (
         <AnimatePresence>
 
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center sm:items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto">
                 <motion.div
-                    className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-8 max-h-[90vh] flex flex-col"
+                    className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-2 sm:my-8 max-h-[95vh] sm:max-h-[90vh] flex flex-col"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
