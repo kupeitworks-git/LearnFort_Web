@@ -704,36 +704,33 @@ const BookingConfirmation = ({
                 </button>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-                <div className="space-y-4 sm:space-y-5">
-                    <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Sports Details</h3>
-                    <div className="w-full bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 flex items-center gap-2">
-                            <FiCalendar className="text-white w-5 h-5" />
-                            <h2 className="text-white font-semibold text-lg">Booking Details</h2>
-                        </div>
+            <div className="p-3 sm:p-5 overflow-y-auto flex-1">
+                {/* Responsive 2-col grid: stacks on mobile, side-by-side on md+ */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
 
-                        {/* Content */}
-                        <div className="p-4 space-y-3 text-sm">
-                            <div className="flex justify-between border-b pb-2">
+                    {/* ── Left Column: Booking Details ── */}
+                    <div className="w-full bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2">
+                            <FiCalendar className="text-white w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                            <h2 className="text-white font-semibold text-sm sm:text-base">Booking Details</h2>
+                        </div>
+                        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                            <div className="flex justify-between items-center border-b pb-2">
                                 <p className="font-semibold text-gray-700">Sport Name</p>
-                                <p className="text-gray-600">
+                                <p className="text-gray-600 text-right">
                                     {summaryData?.ground?.sport || bookingDetails?.sport || "-"}
                                 </p>
                             </div>
-
-                            <div className="flex justify-between border-b pb-2">
+                            <div className="flex justify-between items-center border-b pb-2">
                                 <p className="font-semibold text-gray-700">Booking Type</p>
                                 <p className="text-gray-600">
                                     {bookingDetails?.slot_type || bookingType || "DAY"}
                                 </p>
                             </div>
-
-                            <div className="flex justify-between border-b pb-2">
+                            <div className="flex justify-between items-center border-b pb-2">
                                 <p className="font-semibold text-gray-700">Date</p>
                                 <div className="flex items-center gap-1 text-gray-600">
-                                    <FiCalendar className="text-blue-500" size={14} />
+                                    <FiCalendar className="text-blue-500 flex-shrink-0" size={13} />
                                     <span>{
                                         bookingDetails?.date
                                             ? new Date(bookingDetails.date).toLocaleDateString('en-GB')
@@ -743,15 +740,14 @@ const BookingConfirmation = ({
                                     }</span>
                                 </div>
                             </div>
-
-                            <div className="flex justify-between border-b pb-2">
-                                <p className="font-semibold text-gray-700">Time Slot{selectedSlots?.length > 1 ? 's' : ''}</p>
+                            <div className="flex justify-between items-start border-b pb-2">
+                                <p className="font-semibold text-gray-700 flex-shrink-0 mr-2">Time Slot{selectedSlots?.length > 1 ? 's' : ''}</p>
                                 <div className="text-right">
                                     {selectedSlots?.length > 0 ? (
                                         <div className="space-y-1">
                                             {selectedSlots.map((slot, index) => (
                                                 <div key={index} className="flex items-center justify-end gap-1 text-gray-600">
-                                                    <FiClock className="text-blue-500" size={14} />
+                                                    <FiClock className="text-blue-500 flex-shrink-0" size={13} />
                                                     <span>
                                                         {(() => {
                                                             let startTime, endTime;
@@ -773,7 +769,7 @@ const BookingConfirmation = ({
                                         </div>
                                     ) : summaryData?.slots?.length > 0 ? (
                                         <div className="flex items-center gap-1 text-gray-600">
-                                            <FiClock className="text-blue-500" size={14} />
+                                            <FiClock className="text-blue-500 flex-shrink-0" size={13} />
                                             <span>
                                                 {summaryData.slots.map(slot =>
                                                     `${formatTimeTo12Hour(slot.start_time)} - ${formatTimeTo12Hour(slot.end_time)}`
@@ -782,7 +778,7 @@ const BookingConfirmation = ({
                                         </div>
                                     ) : bookingDetails?.time || bookingDetails?.timeSlot ? (
                                         <div className="flex items-center gap-1 text-gray-600">
-                                            <FiClock className="text-blue-500" size={14} />
+                                            <FiClock className="text-blue-500 flex-shrink-0" size={13} />
                                             <span>{
                                                 (() => {
                                                     const timeString = (bookingDetails.time || bookingDetails.timeSlot).replace(/\./g, ':');
@@ -796,105 +792,92 @@ const BookingConfirmation = ({
                                     )}
                                 </div>
                             </div>
-
-                            <div className="flex justify-between border-b pb-2">
+                            <div className="flex justify-between items-center">
                                 <p className="font-semibold text-gray-700">Players</p>
                                 <div className="flex items-center gap-1 text-gray-600">
-                                    <FiUsers className="text-blue-500" size={14} />
+                                    <FiUsers className="text-blue-500 flex-shrink-0" size={13} />
                                     <span>{summaryData?.no_of_players || bookingDetails?.players || 1} Player{summaryData?.no_of_players > 1 || bookingDetails?.players > 1 ? 's' : ''}</span>
                                 </div>
                             </div>
-
-                            {/* Add more fields here */}
-                        </div>
-                    </div>
-                    {/* User Details Section */}
-                    <div className="w-full bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 flex items-center gap-2">
-                            <FiUsers className="text-white w-5 h-5" />
-                            <h2 className="text-white font-semibold text-lg">User Details</h2>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-4 space-y-3 text-sm">
-                            <div className="flex justify-between border-b pb-2">
-                                <p className="font-semibold text-gray-700">Full Name</p>
-                                <p className="text-gray-600">
-                                    {formData.fullName || currentUser?.name || "-"}
-                                </p>
-                            </div>
-
-                            <div className="flex justify-between border-b pb-2">
-                                <p className="font-semibold text-gray-700">Mobile Number</p>
-                                <p className="text-gray-600">
-                                    {formData.mobileNumber || currentUser?.mobile || "-"}
-                                </p>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <p className="font-semibold text-gray-700">Email</p>
-                                <p className="text-gray-600">
-                                    {formData.email || currentUser?.email || "-"}
-                                </p>
-                            </div>
                         </div>
                     </div>
 
-
-                    {/* Add more sections here */}
-
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-100">
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-600 font-medium">Booking Amount</span>
-                                <span className="text-gray-800 font-semibold">
-                                    ₹{(summaryData?.booking_amount || summaryData?.bookingAmount || 0).toLocaleString('en-IN')}
-                                </span>
+                    {/* ── Right Column: User Details + Charges ── */}
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                        {/* User Details */}
+                        <div className="w-full bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2">
+                                <FiUsers className="text-white w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                <h2 className="text-white font-semibold text-sm sm:text-base">User Details</h2>
                             </div>
-
-                            <div className="flex justify-between items-center text-sm border-b border-blue-200/50 pb-2">
-                                <span className="text-gray-600 font-medium">Convenience Fee</span>
-                                <span className="text-gray-800 font-semibold">
-                                    ₹{(summaryData?.convenience_fee || summaryData?.convenienceFee || 0).toLocaleString('en-IN')}
-                                </span>
-                            </div>
-
-                            <div className="pt-1">
+                            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <p className="font-semibold text-gray-700">Full Name</p>
+                                    <p className="text-gray-600 text-right truncate max-w-[55%]">
+                                        {formData.fullName || currentUser?.name || "-"}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <p className="font-semibold text-gray-700">Mobile</p>
+                                    <p className="text-gray-600">
+                                        {formData.mobileNumber || currentUser?.mobile || "-"}
+                                    </p>
+                                </div>
                                 <div className="flex justify-between items-center">
-                                    <div>
-                                        <p className="font-bold text-lg text-gray-900">Total Amount</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-2xl font-black text-blue-700">
-                                            ₹{(summaryData?.total_amount || summaryData?.totalAmount || 0).toLocaleString('en-IN')}
-                                        </span>
-                                    </div>
+                                    <p className="font-semibold text-gray-700">Email</p>
+                                    <p className="text-gray-600 text-right truncate max-w-[55%]">
+                                        {formData.email || currentUser?.email || "-"}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Price Breakdown */}
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 sm:p-4 rounded-xl border border-blue-200">
+                            <div className="space-y-2 sm:space-y-3">
+                                <div className="flex justify-between items-center text-xs sm:text-sm">
+                                    <span className="text-gray-600 font-medium">Booking Amount</span>
+                                    <span className="text-gray-800 font-semibold">
+                                        ₹{(summaryData?.booking_amount || summaryData?.bookingAmount || 0).toLocaleString('en-IN')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs sm:text-sm border-b border-blue-200/60 pb-2">
+                                    <span className="text-gray-600 font-medium">Convenience Fee</span>
+                                    <span className="text-gray-800 font-semibold">
+                                        ₹{(summaryData?.convenience_fee || summaryData?.convenienceFee || 0).toLocaleString('en-IN')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-0.5">
+                                    <p className="font-bold text-sm sm:text-base text-gray-900">Total Amount</p>
+                                    <span className="text-lg sm:text-2xl font-black text-blue-700">
+                                        ₹{(summaryData?.total_amount || summaryData?.totalAmount || 0).toLocaleString('en-IN')}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-
-                    <div className="flex justify-between space-x-4 pt-2">
-                        <button
-                            type="button"
-                            onClick={handleBack}
-                            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center justify-center space-x-2"
-                        >
-                            <FiArrowLeft size={18} />
-                            <span>Back</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={processPayment}
-                            disabled={isLoading}
-                            className={`flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                            <span>{isLoading ? 'Processing...' : (selectedPaymentMode === 'online' ? 'Pay Now' : 'Confirm Booking')}</span>
-                            <FiArrowRight size={18} />
-                        </button>
-                    </div>
+                {/* Action Buttons */}
+                <div className="flex space-x-3 pt-3 mt-1 border-t border-gray-100">
+                    <button
+                        type="button"
+                        onClick={handleBack}
+                        className="flex-1 py-2.5 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+                    >
+                        <FiArrowLeft size={16} />
+                        <span>Back</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={processPayment}
+                        disabled={isLoading}
+                        className={`flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 text-sm sm:text-base ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        <span>{isLoading ? 'Processing...' : (selectedPaymentMode === 'online' ? 'Pay Now' : 'Confirm Booking')}</span>
+                        <FiArrowRight size={16} />
+                    </button>
+                </div>
 
                     {/* Payment Mode Modal */}
                     <AnimatePresence>
@@ -980,7 +963,6 @@ const BookingConfirmation = ({
                         )}
                     </AnimatePresence>
                 </div>
-            </div>
         </>
     );
 
