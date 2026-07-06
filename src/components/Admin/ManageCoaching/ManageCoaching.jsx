@@ -215,7 +215,7 @@ const ManageCoaching = () => {
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-            Manage Coaching Sports
+            Manage Coaching
           </h1>
           <button
             onClick={() => navigate("/")}
@@ -237,7 +237,7 @@ const ManageCoaching = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mt-6 mx-4 sm:mx-6">
           {/* Table header */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">Coaching Sports List</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Coaching Games List</h2>
             <button
               onClick={() => navigate("/add-coaching")}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition shadow-md"

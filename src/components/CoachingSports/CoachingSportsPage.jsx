@@ -278,7 +278,7 @@ const CoachingSportsPage = () => {
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">
-            Coaching Sports
+            Coaching Games
           </h1>
           <button
             onClick={() => navigate("/")}
@@ -295,7 +295,7 @@ const CoachingSportsPage = () => {
         {/* Intro */}
         <div className="mb-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-            Professional Sports Coaching
+            Professional Games Coaching
           </h2>
           <p className="text-gray-500 max-w-2xl mx-auto">
             Choose from our range of professional coaching programs. Select a monthly or yearly plan and get started today!
