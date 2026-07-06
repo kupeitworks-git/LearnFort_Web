@@ -879,90 +879,90 @@ const BookingConfirmation = ({
                     </button>
                 </div>
 
-                    {/* Payment Mode Modal */}
-                    <AnimatePresence>
-                        {showPaymentModal && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 20 }}
-                                    className="bg-white rounded-lg p-6 w-full max-w-md"
-                                >
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-semibold">Select Payment Mode</h3>
-                                        <button
-                                            onClick={handlePaymentCancel}
-                                            className="text-gray-500 hover:text-gray-700"
-                                        >
-                                            <FiX size={24} />
-                                        </button>
-                                    </div>
+                {/* Payment Mode Modal */}
+                <AnimatePresence>
+                    {showPaymentModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="bg-white rounded-lg p-6 w-full max-w-md"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold">Select Payment Mode</h3>
+                                    <button
+                                        onClick={handlePaymentCancel}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        <FiX size={24} />
+                                    </button>
+                                </div>
 
-                                    <div className="space-y-4 mb-6">
-                                        {/* Always show Online Payment option */}
+                                <div className="space-y-4 mb-6">
+                                    {/* Always show Online Payment option */}
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePaymentModeSelect('online')}
+                                        disabled={isLoading}
+                                        className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${selectedPaymentMode === 'online'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-gray-200 hover:border-blue-300'
+                                            } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    >
+                                        <div className="flex items-center">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${selectedPaymentMode === 'online' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
+                                                {selectedPaymentMode === 'online' && <FiCheck className="text-white w-3 h-3" />}
+                                            </div>
+                                            <span className="font-medium">
+                                                Online Payment
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    {/* Show COD option only if user is not a regular USER */}
+                                    {currentUser?.role !== 'USER' && (
                                         <button
                                             type="button"
-                                            onClick={() => handlePaymentModeSelect('online')}
+                                            onClick={() => handlePaymentModeSelect('COD')}
                                             disabled={isLoading}
-                                            className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${selectedPaymentMode === 'online'
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:border-blue-300'
-                                                } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                            className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${selectedPaymentMode === 'COD' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                         >
                                             <div className="flex items-center">
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${selectedPaymentMode === 'online' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                                                    {selectedPaymentMode === 'online' && <FiCheck className="text-white w-3 h-3" />}
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${selectedPaymentMode === 'COD' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
+                                                    {selectedPaymentMode === 'COD' && <FiCheck className="text-white w-3 h-3" />}
                                                 </div>
                                                 <span className="font-medium">
-                                                    Online Payment
+                                                    Cash on Delivery (COD)
                                                 </span>
                                             </div>
                                         </button>
+                                    )}
+                                </div>
 
-                                        {/* Show COD option only if user is not a regular USER */}
-                                        {currentUser?.role !== 'USER' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handlePaymentModeSelect('COD')}
-                                                disabled={isLoading}
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${selectedPaymentMode === 'COD' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                            >
-                                                <div className="flex items-center">
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${selectedPaymentMode === 'COD' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                                                        {selectedPaymentMode === 'COD' && <FiCheck className="text-white w-3 h-3" />}
-                                                    </div>
-                                                    <span className="font-medium">
-                                                        Cash on Delivery (COD)
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <div className="flex justify-end space-x-3 mt-6">
-                                        <button
-                                            type="button"
-                                            onClick={handlePaymentCancel}
-                                            className={`px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                            disabled={isLoading}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handlePaymentConfirm}
-                                            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                            disabled={!selectedPaymentMode || isLoading}
-                                        >
-                                            {isLoading ? 'Processing...' : 'Pay Now'}
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            </div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                                <div className="flex justify-end space-x-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={handlePaymentCancel}
+                                        className={`px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handlePaymentConfirm}
+                                        className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        disabled={!selectedPaymentMode || isLoading}
+                                    >
+                                        {isLoading ? 'Processing...' : 'Pay Now'}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
         </>
     );
 

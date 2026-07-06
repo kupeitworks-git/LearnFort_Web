@@ -25,6 +25,12 @@ import ForgotPassword from './components/Auth/ForgotPassword';
 import VenueDetails from './components/Booking/VenueDetails';
 import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import ManageCoaching from './components/Admin/ManageCoaching/ManageCoaching';
+import AddCoaching from './components/Admin/ManageCoaching/AddCoaching';
+import EditCoaching from './components/Admin/ManageCoaching/EditCoaching';
+import CoachingSportsPage from './components/CoachingSports/CoachingSportsPage';
+import MyCoachingBookings from './components/CoachingSports/MyCoachingBookings';
+import CoachingBookings from './components/Admin/ManageCoaching/CoachingBookings';
 
 import './App.css';
 import Footer from './components/Footer';
@@ -94,6 +100,12 @@ function App() {
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/explore-sports" element={<SportsList onBack={() => window.history.back()} />} />
+        <Route path="/coaching" element={<ManageCoaching />} />
+        <Route path="/add-coaching" element={<AddCoaching />} />
+        <Route path="/edit-coaching" element={<EditCoaching />} />
+        <Route path="/coaching-sports" element={<CoachingSportsPage />} />
+        <Route path="/my-coaching-bookings" element={<MyCoachingBookings />} />
+        <Route path="/coaching-bookings" element={<CoachingBookings />} />
       </Routes>
       <Footer />
     </>

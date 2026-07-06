@@ -10,6 +10,8 @@ import {
   FiGrid,
   FiChevronRight,
   FiSettings,
+  FiActivity,
+  FiFileText,
 } from "react-icons/fi";
 import { useNavigate, Routes, Route } from "react-router-dom";
 const AdminDashboard = ({ onBack }) => {
@@ -87,12 +89,24 @@ const AdminDashboard = ({ onBack }) => {
       icon: <FiSettings />,
       gradient: "bg-gradient-to-r from-indigo-600 to-blue-500",
     },
+    {
+      id: "coaching",
+      label: "Manage Coaching",
+      icon: <FiActivity />,
+      gradient: "bg-gradient-to-r from-emerald-700 to-teal-600",
+    },
+    {
+      id: "coaching-bookings",
+      label: "Coaching Bookings",
+      icon: <FiFileText />,
+      gradient: "bg-gradient-to-r from-purple-700 to-indigo-600",
+    },
   ];
 
   const menuItems = isAdmin
     ? baseMenuItems
     : baseMenuItems.filter((item) =>
-      ["profile", "bookings", "settings"].includes(item.id)
+      ["profile", "bookings", "settings", "coaching-bookings"].includes(item.id)
     );
 
   const handleBack = () => (onBack ? onBack() : navigate("/"));
@@ -116,6 +130,15 @@ const AdminDashboard = ({ onBack }) => {
       });
     else if (menuId === "settings")
       navigate("/settings");
+    else if (menuId === "coaching")
+      navigate("/coaching");
+    else if (menuId === "coaching-bookings") {
+      if (isAdmin) {
+        navigate("/coaching-bookings");
+      } else {
+        navigate("/my-coaching-bookings");
+      }
+    }
   };
 
   return (
