@@ -1,1 +1,1 @@
-export const BaseUrl = "http://localhost:3000/v1/"
+export const BaseUrl = "https://appdev.learnfortsports.com/v1/"

@@ -89,7 +89,7 @@ const AddCoaching = () => {
       const data = await res.json();
       if (!res.ok) {
         if (data.message === "jwt expired") { sessionStorage.clear(); navigate("/login"); throw new Error("Session expired"); }
-        // Extract validation errors array if present
+        
         if (Array.isArray(data.errors) && data.errors.length > 0) {
           throw new Error(data.errors.join("\n"));
         }
