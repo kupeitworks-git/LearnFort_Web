@@ -1,1 +1,1 @@
-export const BaseUrl = "https://appdev.learnfortsports.com/v1/"
+export const BaseUrl = "https://app.learnfortsports.com/v1/"
