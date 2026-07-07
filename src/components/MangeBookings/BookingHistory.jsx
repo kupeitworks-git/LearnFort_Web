@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, keepPreviousData, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BaseUrl } from "../api/api";
@@ -15,7 +15,8 @@ import {
     FiUser,
     FiLayers,
     FiChevronRight,
-    FiHome
+    FiHome,
+    FiAlertTriangle
 } from "react-icons/fi";
 import {
     GiSoccerBall,
@@ -28,6 +29,7 @@ import { FaSpinner } from "react-icons/fa";
 
 const BookingHistory = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("upcoming");
     const [expandedBooking, setExpandedBooking] = useState(null);
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -38,11 +40,23 @@ const BookingHistory = () => {
     const [viewMode, setViewMode] = useState("selection"); // 'selection' or 'history'
     const [historyType, setHistoryType] = useState("my"); // 'my' or 'all'
 
+    // Cancel booking state
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [bookingToCancel, setBookingToCancel] = useState(null);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelToast, setCancelToast] = useState({ message: "", type: "" });
+
+    const showCancelToast = (message, type) => {
+        setCancelToast({ message, type });
+        setTimeout(() => setCancelToast({ message: "", type: "" }), 4000);
+    };
+
     // State for pagination only (data will be handled by useQuery)
     const [pages, setPages] = useState({
         upcoming: 1,
         live: 1,
         completed: 1,
+        cancelled: 1,
         "my-bookings": 1,
         all: 1
     });
@@ -201,9 +215,16 @@ const BookingHistory = () => {
             : (item.slot_time || item.time || "Time"),
         duration: item.duration_minutes ? `${item.duration_minutes} mins` : (item.duration || "1 hour"),
         status: item.status || item.booking_status || "Pending",
-        booking_amount: item.payment?.booking_amount || "0",
-        convenience_fee: item.payment.convenience_fee,
-        amount: item.payment.amount,
+        booking_amount: item.payment?.booking_amount ?? "0",
+        convenience_fee: item.payment?.convenience_fee ?? 0,
+        amount: item.payment?.amount ?? 0,
+        cancellation_reason: item.cancellation_reason || null,
+        cancelled_at: item.cancelled_at
+            ? new Date(item.cancelled_at).toLocaleDateString("en-GB")
+            : null,
+        refund_status: item.refund_status || null,
+        refund_amount: item.refund_amount ?? 0,
+        refund_method: item.refund_method || null,
         customer: {
             name: item.user?.name || item.user_id?.name || "User",
             email: item.user?.email || item.user_id?.email || "email@example.com",
@@ -212,7 +233,7 @@ const BookingHistory = () => {
         },
         bookingId: item.booking_id || item._id || "ID",
         paymentId: (item.payment && item.payment.order_id) || item.payment_id || "PAY-ID",
-        paymentMode: "Online Payment", // Hardcoded or derived if available
+        paymentMode: item.payment?.method || "Online Payment", // Hardcoded or derived if available
         turf: item?.sports?.name || "Turf",
         notes: item.notes || null,
         rawDate: item.booking_date // Keep raw for receipts if needed
@@ -263,8 +284,6 @@ const BookingHistory = () => {
     const totalPages = queryData.totalPages;
     const hasMoreData = pages[activeTab] < totalPages;
 
-    console.log("currentBookings", currentBookings)
-
     const handlePrevPage = () => {
         setPages(prev => ({
             ...prev,
@@ -292,7 +311,47 @@ const BookingHistory = () => {
         }
     };
 
-    console.log("selectedBooking", selectedBooking)
+    // Cancel Booking Mutation
+    const cancelBookingMutation = useMutation({
+        mutationFn: async ({ bookingId, reason }) => {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${BaseUrl}booking/${bookingId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ reason: reason || undefined })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to cancel booking');
+            }
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['bookings']);
+            setShowCancelModal(false);
+            setBookingToCancel(null);
+            setCancelReason("");
+            showCancelToast("Booking cancelled successfully!", "success");
+        },
+        onError: (error) => {
+            showCancelToast(error.message || "Failed to cancel booking.", "error");
+        }
+    });
+
+    const handleCancelClick = (booking, e) => {
+        e.stopPropagation();
+        setBookingToCancel(booking);
+        setCancelReason("");
+        setShowCancelModal(true);
+    };
+
+    const handleConfirmCancel = () => {
+        if (!bookingToCancel) return;
+        cancelBookingMutation.mutate({ bookingId: bookingToCancel.id, reason: cancelReason });
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 via-indigo-50 to-white text-gray-800 font-['Inter',sans-serif] pb-12">
@@ -339,7 +398,7 @@ const BookingHistory = () => {
                                 setHistoryType("my");
                                 setViewMode("history");
                                 // Reset data for fresh fetch
-                                setPages({ upcoming: 1, live: 1, completed: 1, "my-bookings": 1, all: 1 });
+                                setPages({ upcoming: 1, live: 1, completed: 1, cancelled: 1, "my-bookings": 1, all: 1 });
                                 // setHasMore not needed as derived from query data
                             }}
                             className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-blue-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10"
@@ -367,8 +426,7 @@ const BookingHistory = () => {
                                     setHistoryType("all");
                                     setViewMode("history");
                                     setActiveTab("upcoming");
-                                    setActiveTab("upcoming");
-                                    setPages({ upcoming: 1, live: 1, completed: 1, "my-bookings": 1, all: 1 });
+                                    setPages({ upcoming: 1, live: 1, completed: 1, cancelled: 1, "my-bookings": 1, all: 1 });
                                     // setHasMore not needed
                                 }}
                                 className="bg-white group p-8 rounded-[2.5rem] shadow-xl shadow-green-900/5 border border-green-50 flex flex-col items-center text-center transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/10"
@@ -393,7 +451,7 @@ const BookingHistory = () => {
                     {historyType === "all" && (
                         <div className="max-w-5xl mx-auto mt-4 px-4 sticky top-16 z-10 bg-gray-50 pt-2 pb-2">
                             <div className="flex border-b border-gray-200">
-                                {["upcoming", "live", "completed"].map((tab) => (
+                                {["upcoming", "live", "completed", "cancelled"].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -434,11 +492,12 @@ const BookingHistory = () => {
                                 getBookings().map((booking, index) => {
                                     const isExpanded = expandedBooking === booking.id;
                                     const uniqueKey = `${booking.id}-${index}`;
+                                    const isCancelled = booking.status === 'CANCELLED';
 
                                     return (
                                         <motion.div
                                             key={uniqueKey}
-                                            className="bg-white rounded-xl overflow-hidden shadow-sm border border-purple-100"
+                                            className={`bg-white rounded-xl overflow-hidden shadow-sm border ${isCancelled ? "border-red-100" : "border-purple-100"}`}
                                         >
                                             {/* Card Header (Always Visible) */}
                                             <div
@@ -446,16 +505,23 @@ const BookingHistory = () => {
                                                 className="p-4 cursor-pointer flex items-center justify-between"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-700 shadow-sm">
+                                                    <div className={`w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm ${isCancelled ? "text-red-400 opacity-70" : "text-blue-700"}`}>
                                                         {gameIcons[booking.game] || <GiSoccerBall className="w-6 h-6" />}
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-bold text-blue-900 text-lg capitalize text-left">{booking.game}</h3>
+                                                        <h3 className={`font-bold text-lg capitalize text-left ${isCancelled ? "text-gray-500 line-through decoration-red-300" : "text-blue-900"}`}>
+                                                            {booking.game}
+                                                        </h3>
                                                         <p className="text-blue-400 text-sm font-medium text-left">{booking.date}</p>
                                                         <p className="text-blue-400 text-sm font-medium text-left">{booking.time}</p>
                                                     </div>
                                                 </div>
-                                                <div>
+                                                <div className="flex items-center gap-3">
+                                                    {isCancelled && (
+                                                        <span className="text-[11px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">
+                                                            Cancelled
+                                                        </span>
+                                                    )}
                                                     <motion.div
                                                         animate={{ rotate: isExpanded ? 180 : 0 }}
                                                         transition={{ duration: 0.2 }}
@@ -477,18 +543,58 @@ const BookingHistory = () => {
                                                 >
                                                     {/* Status Badge */}
                                                     <div className="flex items-center gap-2 mb-4">
-                                                        {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? (
+                                                        {booking.status === 'CANCELLED' ? (
+                                                            <FiX className="w-5 h-5 text-red-500" />
+                                                        ) : booking.status === 'CONFIRMED' || booking.status === 'Paid' ? (
                                                             <FiCheckCircle className="w-5 h-5 text-green-500" />
                                                         ) : (
                                                             <FiClock className="w-5 h-5 text-yellow-500" />
                                                         )}
                                                         <div>
                                                             <p className="font-semibold text-blue-900">
-                                                                {booking.status === 'CONFIRMED' || booking.status === 'Paid' ? 'Payment Successful' : 'Payment Information'}
+                                                                {booking.status === 'CANCELLED'
+                                                                    ? 'Booking Cancelled'
+                                                                    : booking.status === 'CONFIRMED' || booking.status === 'Paid'
+                                                                        ? 'Payment Successful'
+                                                                        : 'Payment Information'}
                                                             </p>
                                                             <p className="text-blue-700 font-bold">Amount: ₹{booking.amount}</p>
                                                         </div>
                                                     </div>
+
+                                                    {/* Cancellation Details (only for cancelled bookings) */}
+                                                    {isCancelled && (
+                                                        <div className="bg-red-50/60 border border-red-100 rounded-lg p-3 mb-4 text-sm space-y-1.5">
+                                                            {booking.cancelled_at && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-red-500 font-medium">Cancelled on:</span>
+                                                                    <span className="text-gray-700 font-medium">{booking.cancelled_at}</span>
+                                                                </div>
+                                                            )}
+                                                            {booking.cancellation_reason && (
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-red-500 font-medium shrink-0">Reason:</span>
+                                                                    <span className="text-gray-700 font-medium text-right">{booking.cancellation_reason}</span>
+                                                                </div>
+                                                            )}
+                                                            {booking.refund_status && booking.refund_status !== 'NONE' && (
+                                                                <>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-red-500 font-medium">Refund:</span>
+                                                                        <span className="text-gray-700 font-medium">
+                                                                            ₹{booking.refund_amount} ({booking.refund_status})
+                                                                        </span>
+                                                                    </div>
+                                                                    {booking.refund_method && (
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-red-500 font-medium">Refund Method:</span>
+                                                                            <span className="text-gray-700 font-medium">{booking.refund_method}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {/* Notes / Info */}
                                                     <div className="bg-green-50/50 border border-green-100 rounded-lg p-3 mb-4 text-green-800 text-sm flex items-start gap-2">
@@ -499,7 +605,17 @@ const BookingHistory = () => {
                                                     </div>
 
                                                     {/* Action Buttons */}
-                                                    <div className="flex justify-end">
+                                                    <div className="flex justify-end gap-3 flex-wrap">
+                                                        {/* Cancel Booking - Admin only, non-cancelled bookings */}
+                                                        {isAdmin && !isCancelled && (
+                                                            <button
+                                                                onClick={(e) => handleCancelClick(booking, e)}
+                                                                className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+                                                            >
+                                                                <FiX className="h-4 w-4" />
+                                                                Cancel Booking
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedBooking(booking);
@@ -560,13 +676,6 @@ const BookingHistory = () => {
                                         </svg>
                                     </button>
                                 </div>
-
-                                {/* {loading && (
-                                    <div className="flex items-center gap-2 text-blue-600 font-medium">
-                                        <FaSpinner className="animate-spin" />
-                                        <span className="text-sm">Loading records...</span>
-                                    </div>
-                                )} */}
                             </div>
                         )}
                     </motion.div>
@@ -575,9 +684,6 @@ const BookingHistory = () => {
 
             {/* Payment Success Modal (Simplified/Removed in favor of specific flow if needed, but keeping logic just in case) */}
             {selectedBooking && !showReceipt && false && (
-                // Kept for backward compatibility if logic requires it, but user flow seems to go straight to receipt on button click
-                // Or if this was for valid immediate payment success. 
-                // For now, minimizing to avoid clutter since we want "View Receipt" to open Receipt directly.
                 <></>
             )}
 
@@ -620,12 +726,16 @@ const BookingHistory = () => {
                             {/* Logo & Title */}
                             <div className="flex flex-col items-center mb-6">
                                 <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-3 p-2">
-                                    {/* Placeholder for Logo - You can replace with actual Image */}
                                     <img src={LearnFortLogo} alt="LearnFort Sports Park" className="w-full h-full object-contain" />
                                 </div>
                                 <h2 className="text-xl font-bold text-[#3B5998] text-center">LearnFort Sports Park</h2>
                                 <p className="text-gray-500 font-medium">Booking Receipt</p>
                                 <p className="text-gray-400 text-xs italic mt-1">Receipt ID: #{selectedBooking.id}</p>
+                                {selectedBooking.status === 'CANCELLED' && (
+                                    <span className="mt-2 text-xs font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
+                                        Cancelled
+                                    </span>
+                                )}
                             </div>
 
                             {/* Customer Details */}
@@ -665,11 +775,6 @@ const BookingHistory = () => {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-blue-600 font-medium">Time Slot:</span>
-                                        {/* Use raw time or 24h format if that's what screenshot had, but user asked for 12h in list. 
-                                            Screenshot 2 shows '19:00 - 20:00'. Let's stick to what's in list for consistency or 
-                                            reuse formatTo12Hour if preferred. Screenshot shows 24h. I'll use list's format (12h) 
-                                            as it's friendlier, but code above sets 'time' to 12h. 
-                                        */}
                                         <span className="text-gray-700 font-medium text-right">{selectedBooking.time}</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -686,7 +791,7 @@ const BookingHistory = () => {
                             {/* Payment Details */}
                             <div className="mb-6">
                                 <h3 className="text-[#1E3A8A] font-bold text-lg mb-3 text-center">Payment Details</h3>
-                                <div className="bg-[#E8F5E9] border border-[#C8E6C9] rounded-xl p-4">
+                                <div className={`border rounded-xl p-4 ${selectedBooking.status === 'CANCELLED' ? "bg-red-50 border-red-100" : "bg-[#E8F5E9] border-[#C8E6C9]"}`}>
                                     <div className="flex justify-between mb-2">
                                         <span className="text-blue-600 font-medium">Amount:</span>
                                         <span className="text-gray-800 font-bold">₹{selectedBooking.booking_amount}</span>
@@ -702,18 +807,51 @@ const BookingHistory = () => {
                                     <div className="flex justify-between items-start mb-4">
                                         <span className="text-blue-600 font-medium">Payment Mode:</span>
                                         <div className="text-right">
-                                            <span className="text-gray-800 font-medium block">Online</span>
-                                            <span className="text-gray-800 font-medium block">Payment</span>
+                                            <span className="text-gray-800 font-medium block">{selectedBooking.paymentMode}</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-end items-center gap-2">
-                                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                            </svg>
+
+                                    {selectedBooking.status === 'CANCELLED' ? (
+                                        <>
+                                            <div className="border-t border-red-200 my-3"></div>
+                                            {selectedBooking.cancelled_at && (
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-red-500 font-medium">Cancelled on:</span>
+                                                    <span className="text-gray-800 font-medium">{selectedBooking.cancelled_at}</span>
+                                                </div>
+                                            )}
+                                            {selectedBooking.cancellation_reason && (
+                                                <div className="flex justify-between mb-2 gap-4">
+                                                    <span className="text-red-500 font-medium shrink-0">Reason:</span>
+                                                    <span className="text-gray-800 font-medium text-right">{selectedBooking.cancellation_reason}</span>
+                                                </div>
+                                            )}
+                                            {selectedBooking.refund_status && selectedBooking.refund_status !== 'NONE' && (
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-red-500 font-medium">Refund:</span>
+                                                    <span className="text-gray-800 font-medium">
+                                                        ₹{selectedBooking.refund_amount} ({selectedBooking.refund_status}
+                                                        {selectedBooking.refund_method ? ` · ${selectedBooking.refund_method}` : ""})
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-end items-center gap-2">
+                                                <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                                                    <FiX className="h-3 w-3 text-white" />
+                                                </div>
+                                                <span className="text-red-600 font-bold uppercase text-sm">Cancelled</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex justify-end items-center gap-2">
+                                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-green-600 font-bold uppercase text-sm">Paid</span>
                                         </div>
-                                        <span className="text-green-600 font-bold uppercase text-sm">Paid</span>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -848,6 +986,111 @@ const BookingHistory = () => {
                 </div>
             )}
 
+            {/* Cancel Toast Notification */}
+            {cancelToast.message && (
+                <div
+                    className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-xl shadow-xl text-white font-medium transform transition-all duration-300 ease-in-out flex items-center gap-2
+                        ${cancelToast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
+                >
+                    {cancelToast.type === "success" ? (
+                        <FiCheckCircle className="w-5 h-5 shrink-0" />
+                    ) : (
+                        <FiAlertTriangle className="w-5 h-5 shrink-0" />
+                    )}
+                    <span>{cancelToast.message}</span>
+                </div>
+            )}
+
+            {/* Cancel Booking Confirmation Modal */}
+            {showCancelModal && bookingToCancel && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[55] p-4">
+                    <motion.div
+                        initial={{ scale: 0.85, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.25 }}
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative"
+                    >
+                        {/* Close */}
+                        <button
+                            onClick={() => {
+                                setShowCancelModal(false);
+                                setBookingToCancel(null);
+                                setCancelReason("");
+                            }}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+                            disabled={cancelBookingMutation.isPending}
+                        >
+                            <FiX className="w-5 h-5" />
+                        </button>
+
+                        {/* Icon */}
+                        <div className="flex flex-col items-center text-center mb-5">
+                            <div className="w-16 h-16 bg-red-50 border border-red-100 rounded-full flex items-center justify-center mb-3">
+                                <FiAlertTriangle className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-1">Cancel Booking?</h3>
+                            <p className="text-gray-500 text-sm">
+                                You are about to cancel the{" "}
+                                <span className="font-semibold text-gray-700">{bookingToCancel.game}</span>{" "}
+                                booking on{" "}
+                                <span className="font-semibold text-gray-700">{bookingToCancel.date}</span>.
+                            </p>
+                            {bookingToCancel.status === 'CONFIRMED' && (
+                                <p className="text-red-500 text-xs mt-2 font-medium">
+                                    ⚠️ This booking is paid. A refund may be processed.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Reason Input */}
+                        <div className="mb-5">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Reason for cancellation <span className="text-gray-400 text-xs">(optional)</span>
+                            </label>
+                            <textarea
+                                rows={3}
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                placeholder="e.g. Maintenance, weather conditions, admin decision..."
+                                className="w-full text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 resize-none transition"
+                                disabled={cancelBookingMutation.isPending}
+                            />
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowCancelModal(false);
+                                    setBookingToCancel(null);
+                                    setCancelReason("");
+                                }}
+                                disabled={cancelBookingMutation.isPending}
+                                className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                                Keep Booking
+                            </button>
+                            <button
+                                onClick={handleConfirmCancel}
+                                disabled={cancelBookingMutation.isPending}
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {cancelBookingMutation.isPending ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Cancelling...
+                                    </>
+                                ) : (
+                                    "Yes, Cancel"
+                                )}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
 
         </div>
     );
