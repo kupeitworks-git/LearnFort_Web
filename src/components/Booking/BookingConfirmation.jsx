@@ -285,7 +285,7 @@ const BookingConfirmation = ({
             }
 
             // Handle payment based on method
-            if (selectedPaymentMode === 'COD' || selectedPaymentMode === 'offline') {
+            if (selectedPaymentMode === 'COD' || selectedPaymentMode === 'COD') {
                 setShowPaymentModal(false);
                 setIsProcessingPayment(false);
                 setShowPaymentSuccess(true);

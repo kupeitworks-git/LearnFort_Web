@@ -165,7 +165,7 @@ const AddCoaching = () => {
     <div className="grid grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label} — Actual (₹) <span className="text-red-500">*</span>
+          {label} — Actual Fee (₹) <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">₹</span>
@@ -183,7 +183,7 @@ const AddCoaching = () => {
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label} — Final (₹) <span className="text-red-500">*</span>
+          {label} — Final Fee (₹) <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">₹</span>
@@ -221,7 +221,7 @@ const AddCoaching = () => {
           <button onClick={() => navigate("/coaching")} className="p-2 rounded-full bg-white/10 hover:bg-white/20 mr-4 transition">
             <FiArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">Add Coaching Sport</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-wide">Add Coaching Game</h1>
           <button onClick={() => navigate("/")} className="ml-auto p-2 rounded-full bg-white/10 hover:bg-white/20 transition" title="Go Home">
             <FiHome className="w-5 h-5" />
           </button>
@@ -235,7 +235,7 @@ const AddCoaching = () => {
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Coaching Sport Name <span className="text-red-500">*</span>
+              Game Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -353,7 +353,7 @@ const AddCoaching = () => {
               ) : (
                 <>
                   <FiCheck className="w-4 h-4" />
-                  Create Coaching Sport
+                  Create Game
                 </>
               )}
             </button>

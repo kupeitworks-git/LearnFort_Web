@@ -44,7 +44,7 @@ const BookingSlot = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const location = useLocation();
 
-  // Load user information on mount to check roles for COD/Offline
+  // Load user information on mount to check roles for COD/COD
   useEffect(() => {
     try {
       const stored = localStorage.getItem('lf_user');
@@ -386,7 +386,7 @@ const BookingSlot = () => {
       const payload = {
         sports_id: sportData?.id || '',
         no_of_players: parseInt(bookingDetails.players) || 1,
-        payment_method: paymentMethod, // Pass payment_method: online or offline
+        payment_method: paymentMethod, // Pass payment_method: online or COD
         bookings: [booking]
       };
 
@@ -956,25 +956,25 @@ const BookingSlot = () => {
                   </div>
                 </button>
 
-                {/* Offline Payment option (Conditional on role) */}
+                {/* COD Payment option (Conditional on role) */}
                 {currentUser?.role !== 'USER' && (
                   <button
                     type="button"
-                    onClick={() => setSelectedPaymentMode('offline')}
+                    onClick={() => setSelectedPaymentMode('COD')}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 ${
-                      selectedPaymentMode === 'offline'
+                      selectedPaymentMode === 'COD'
                         ? 'border-blue-600 bg-blue-50/50 shadow-sm text-blue-800'
                         : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     <div className="flex items-center">
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-all duration-300 ${
-                        selectedPaymentMode === 'offline' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                        selectedPaymentMode === 'COD' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
                       }`}>
-                        {selectedPaymentMode === 'offline' && <FiCheck className="text-white w-3 h-3 stroke-[3]" />}
+                        {selectedPaymentMode === 'COD' && <FiCheck className="text-white w-3 h-3 stroke-[3]" />}
                       </div>
                       <div className="text-left">
-                        <span className="font-semibold block">Offline Payment (COD)</span>
+                        <span className="font-semibold block">COD Payment (COD)</span>
                         <span className="text-xs text-gray-500">Pay at venue upon arrival</span>
                       </div>
                     </div>

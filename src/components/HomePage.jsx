@@ -30,6 +30,7 @@ const HomePage = () => {
   // Menu items data
   const menuItems = [
     { id: 'games', label: 'List of Sports', submenu: [] }, // no submenu
+    { id: 'coaching-sports', label: 'List of Games', submenu: [] },
     {
       id: 'book',
       label: 'Book your slot',
@@ -45,7 +46,6 @@ const HomePage = () => {
     { id: 'gallery', label: 'Gallery', submenu: [] }, // ✅ changed
     { id: 'contact', label: 'Contact Us', submenu: [] },
     { id: 'about', label: 'About Us', submenu: ['Our Story', 'Facilities', 'Team'] },
-    { id: 'coaching-sports', label: 'Coaching Sports', submenu: [] },
     { id: 'terms', label: 'Terms & Conditions', submenu: [] },
     { id: 'privacy', label: 'Privacy Policy', submenu: [] },
     // { id: 'admin', label: 'Admin Only', submenu: ['Dashboard', 'Bookings', 'Users'] },

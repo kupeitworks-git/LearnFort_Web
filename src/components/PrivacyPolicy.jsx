@@ -94,7 +94,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-lg font-semibold text-blue-800 mb-2">Online Privacy Policy Only</h2>
             <p>
-              Our Privacy Policy applies only to our online activities and is valid for visitors to our website with regards to the information that they shared and/or collected in LearnFort Sports Park. This policy is not applicable to any information collected offline or via channels other than this website.
+              Our Privacy Policy applies only to our online activities and is valid for visitors to our website with regards to the information that they shared and/or collected in LearnFort Sports Park. This policy is not applicable to any information collected COD or via channels other than this website.
             </p>
           </section>
 
